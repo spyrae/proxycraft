@@ -138,7 +138,7 @@ class VPNService:
         devices: int,
         duration: int,
         enable: bool = True,
-        flow: str = "xtls-rprx-vision",
+        flow: str | None = None,
         total_gb: int = 0,
         inbound_id: int = 1,
     ) -> bool:
@@ -150,12 +150,14 @@ class VPNService:
         if not connection:
             return False
 
+        client_flow = flow if flow is not None else self.config.xui.CLIENT_FLOW
+
         new_client = Client(
             email=str(user.tg_id),
             enable=enable,
             id=user.vpn_id,
             expiry_time=days_to_timestamp(duration),
-            flow=flow,
+            flow=client_flow,
             limit_ip=devices,
             sub_id=user.vpn_id,
             total_gb=total_gb,
@@ -178,7 +180,7 @@ class VPNService:
         replace_devices: bool = False,
         replace_duration: bool = False,
         enable: bool = True,
-        flow: str = "xtls-rprx-vision",
+        flow: str | None = None,
         total_gb: int = 0,
     ) -> bool:
         logger.info(f"Updating client {user.tg_id} | {devices} devices {duration} days.")
@@ -207,10 +209,12 @@ class VPNService:
 
             expiry_time = add_days_to_timestamp(timestamp=expiry_time_to_use, days=duration)
 
+            client_flow = flow if flow is not None else self.config.xui.CLIENT_FLOW
+
             client.enable = enable
             client.id = user.vpn_id
             client.expiry_time = expiry_time
-            client.flow = flow
+            client.flow = client_flow
             client.limit_ip = devices
             client.sub_id = user.vpn_id
             client.total_gb = total_gb

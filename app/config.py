@@ -99,6 +99,8 @@ class XUIConfig:
     TOKEN: str | None
     SUBSCRIPTION_PORT: int
     SUBSCRIPTION_PATH: str
+    INBOUND_REMARK: str | None
+    CLIENT_FLOW: str
 
 
 @dataclass
@@ -346,6 +348,8 @@ def load_config() -> Config:
                 "XUI_SUBSCRIPTION_PATH",
                 default=DEFAULT_SUBSCRIPTION_PATH,
             ),
+            INBOUND_REMARK=env.str("XUI_INBOUND_REMARK", default=None),
+            CLIENT_FLOW=env.str("XUI_CLIENT_FLOW", default=""),
         ),
         cryptomus=CryptomusConfig(
             API_KEY=env.str("CRYPTOMUS_API_KEY", default=None),

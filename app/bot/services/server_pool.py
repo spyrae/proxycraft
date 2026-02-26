@@ -66,6 +66,15 @@ class ServerPoolService:
         except Exception as exception:
             logger.error(f"Failed to fetch inbounds: {exception}")
             return None
+
+        remark = self.config.xui.INBOUND_REMARK
+        if remark:
+            for inbound in inbounds:
+                if inbound.remark == remark:
+                    logger.debug(f"Found inbound by remark '{remark}': id={inbound.id}")
+                    return inbound.id
+            logger.warning(f"Inbound with remark '{remark}' not found, falling back to first.")
+
         return inbounds[0].id
 
     async def get_connection(self, user: User) -> Connection | None:
