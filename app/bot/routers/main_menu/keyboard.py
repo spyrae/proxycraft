@@ -4,6 +4,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.bot.utils.navigation import (
     NavAdminTools,
+    NavMTProto,
     NavProfile,
     NavReferral,
     NavSubscription,
@@ -16,6 +17,7 @@ def main_menu_keyboard(
     is_referral_available: bool = False,
     is_trial_available: bool = False,
     is_referred_trial_available: bool = False,
+    is_mtproto_enabled: bool = False,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
@@ -43,6 +45,14 @@ def main_menu_keyboard(
             callback_data=NavSubscription.MAIN,
         ),
     )
+    if is_mtproto_enabled:
+        builder.row(
+            InlineKeyboardButton(
+                text=_("main_menu:button:mtproto"),
+                callback_data=NavMTProto.MAIN,
+            )
+        )
+
     builder.row(
         *(
             [

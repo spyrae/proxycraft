@@ -93,6 +93,7 @@ async def successful_payment(
     session: AsyncSession,
     bot: Bot,
     gateway_factory: GatewayFactory,
+    services: ServicesContainer,
 ) -> None:
     if await IsDev()(user_id=user.tg_id):
         await bot.refund_star_payment(
@@ -100,7 +101,50 @@ async def successful_payment(
             telegram_payment_charge_id=message.successful_payment.telegram_payment_charge_id,
         )
 
-    data = SubscriptionData.unpack(message.successful_payment.invoice_payload)
+    payload = message.successful_payment.invoice_payload
+
+    # MTProto payment — payload format: "mtproto:{user_tg_id}:{duration}:{is_extend}"
+    if payload.startswith("mtproto:"):
+        parts = payload.split(":")
+        user_tg_id = int(parts[1])
+        duration_days = int(parts[2])
+        is_extend = parts[3] == "True"
+
+        transaction = await Transaction.create(
+            session=session,
+            tg_id=user.tg_id,
+            subscription=payload,
+            payment_id=message.successful_payment.telegram_payment_charge_id,
+            status=TransactionStatus.COMPLETED,
+        )
+
+        if is_extend:
+            await services.mtproto.extend(user_tg_id, duration_days)
+        else:
+            await services.mtproto.activate(user_tg_id, duration_days)
+
+        link = await services.mtproto.get_link(user_tg_id)
+        period = format_subscription_period(duration_days)
+
+        from app.bot.routers.mtproto.keyboard import mtproto_success_keyboard
+
+        if is_extend:
+            await services.notification.notify_by_id(
+                chat_id=user.tg_id,
+                text=_("mtproto:message:extend_success").format(duration=period),
+            )
+        else:
+            await services.notification.notify_by_id(
+                chat_id=user.tg_id,
+                text=_("mtproto:message:purchase_success").format(link=link),
+                reply_markup=mtproto_success_keyboard(),
+            )
+
+        logger.info(f"MTProto payment succeeded for user {user.tg_id}, duration {duration_days}d")
+        return
+
+    # VPN payment — standard SubscriptionData flow
+    data = SubscriptionData.unpack(payload)
     transaction = await Transaction.create(
         session=session,
         tg_id=user.tg_id,

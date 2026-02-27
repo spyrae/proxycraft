@@ -40,6 +40,16 @@ DEFAULT_SHOP_PAYMENT_CRYPTOMUS_ENABLED = False
 DEFAULT_SHOP_PAYMENT_HELEKET_ENABLED = False
 DEFAULT_SHOP_PAYMENT_YOOKASSA_ENABLED = False
 DEFAULT_SHOP_PAYMENT_YOOMONEY_ENABLED = False
+
+DEFAULT_SHOP_MTPROTO_ENABLED = False
+DEFAULT_SHOP_MTPROTO_HOST = "141.227.131.165"
+DEFAULT_SHOP_MTPROTO_PORT = 8443
+DEFAULT_SHOP_MTPROTO_CONFIG_PATH = "/app/mtproto/config.py"
+DEFAULT_SHOP_MTPROTO_TRIAL_PERIOD = 3
+DEFAULT_SHOP_MTPROTO_PRICE_30 = 49
+DEFAULT_SHOP_MTPROTO_PRICE_90 = 129
+DEFAULT_SHOP_MTPROTO_PRICE_180 = 239
+DEFAULT_SHOP_MTPROTO_PRICE_365 = 399
 DEFAULT_DB_NAME = "bot_database"
 
 DEFAULT_REDIS_DB_NAME = "0"
@@ -90,6 +100,15 @@ class ShopConfig:
     PAYMENT_HELEKET_ENABLED: bool
     PAYMENT_YOOKASSA_ENABLED: bool
     PAYMENT_YOOMONEY_ENABLED: bool
+    MTPROTO_ENABLED: bool
+    MTPROTO_HOST: str
+    MTPROTO_PORT: int
+    MTPROTO_CONFIG_PATH: str
+    MTPROTO_TRIAL_PERIOD: int
+    MTPROTO_PRICE_30: int
+    MTPROTO_PRICE_90: int
+    MTPROTO_PRICE_180: int
+    MTPROTO_PRICE_365: int
 
 
 @dataclass
@@ -338,6 +357,33 @@ def load_config() -> Config:
             PAYMENT_HELEKET_ENABLED=payment_heleket_enabled,
             PAYMENT_YOOKASSA_ENABLED=payment_yookassa_enabled,
             PAYMENT_YOOMONEY_ENABLED=payment_yoomoney_enabled,
+            MTPROTO_ENABLED=env.bool(
+                "SHOP_MTPROTO_ENABLED", default=DEFAULT_SHOP_MTPROTO_ENABLED
+            ),
+            MTPROTO_HOST=env.str(
+                "SHOP_MTPROTO_HOST", default=DEFAULT_SHOP_MTPROTO_HOST
+            ),
+            MTPROTO_PORT=env.int(
+                "SHOP_MTPROTO_PORT", default=DEFAULT_SHOP_MTPROTO_PORT
+            ),
+            MTPROTO_CONFIG_PATH=env.str(
+                "SHOP_MTPROTO_CONFIG_PATH", default=DEFAULT_SHOP_MTPROTO_CONFIG_PATH
+            ),
+            MTPROTO_TRIAL_PERIOD=env.int(
+                "SHOP_MTPROTO_TRIAL_PERIOD", default=DEFAULT_SHOP_MTPROTO_TRIAL_PERIOD
+            ),
+            MTPROTO_PRICE_30=env.int(
+                "SHOP_MTPROTO_PRICE_30", default=DEFAULT_SHOP_MTPROTO_PRICE_30
+            ),
+            MTPROTO_PRICE_90=env.int(
+                "SHOP_MTPROTO_PRICE_90", default=DEFAULT_SHOP_MTPROTO_PRICE_90
+            ),
+            MTPROTO_PRICE_180=env.int(
+                "SHOP_MTPROTO_PRICE_180", default=DEFAULT_SHOP_MTPROTO_PRICE_180
+            ),
+            MTPROTO_PRICE_365=env.int(
+                "SHOP_MTPROTO_PRICE_365", default=DEFAULT_SHOP_MTPROTO_PRICE_365
+            ),
         ),
         xui=XUIConfig(
             USERNAME=env.str("XUI_USERNAME"),

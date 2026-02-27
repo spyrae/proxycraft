@@ -69,6 +69,14 @@ async def on_startup(
         vpn_service=services.vpn,
         notification_service=services.notification,
     )
+    if config.shop.MTPROTO_ENABLED:
+        tasks.mtproto_expiry.start_scheduler(
+            session_factory=db.session,
+            redis=redis,
+            i18n=i18n,
+            mtproto_service=services.mtproto,
+            notification_service=services.notification,
+        )
 
 
 async def main() -> None:

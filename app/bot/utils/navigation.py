@@ -52,6 +52,17 @@ class NavSubscription(str, Enum):
     BACK_TO_PAYMENT = "back_to_payment"
 
 
+class NavMTProto(str, Enum):
+    MAIN = "mtproto"
+    BUY = "mtproto_buy"
+    DURATION = "mtproto_duration"
+    GET_TRIAL = "mtproto_trial"
+    SHOW_LINK = "mtproto_show_link"
+    EXTEND = "mtproto_extend"
+    PAY = "mtproto_pay"
+    PAY_TELEGRAM_STARS = f"{PAY}_telegram_stars"
+
+
 class NavAdminTools(str, Enum):
     MAIN = "admin_tools"
     TEST = "test"

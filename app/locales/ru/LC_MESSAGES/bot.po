@@ -1213,6 +1213,151 @@ msgstr "ЗБ"
 msgid "YB"
 msgstr "ЙБ"
 
+#: app/bot/routers/main_menu/keyboard.py
+msgid "main_menu:button:mtproto"
+msgstr "📱 Telegram Proxy"
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:message:not_active"
+msgstr ""
+"📱 <b>Telegram Proxy</b>\n"
+"\n"
+"Доступ к Telegram без ограничений, даже если мессенджер заблокирован.\n"
+"\n"
+"⚡ Не нужно устанавливать приложение\n"
+"🔐 Встроенная маскировка трафика\n"
+"💰 Всего от 49₽/мес\n"
+"\n"
+"<i>У вас нет активной подписки на Telegram Proxy.</i>"
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:message:active"
+msgstr ""
+"📱 <b>Telegram Proxy</b>\n"
+"\n"
+"✅ <b>Подписка активна</b>\n"
+"Действует до: {expires_at}"
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:message:choose_duration"
+msgstr "⏳ <b>Выберите длительность:</b>"
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:message:confirm_order"
+msgstr ""
+"🛒 <b>Подтверждение покупки:</b>\n"
+"\n"
+"Продукт: Telegram Proxy\n"
+"Длительность: {duration}\n"
+"Стоимость: {price_rub}₽\n"
+"\n"
+"<i>Выберите способ оплаты:</i>"
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:message:pay"
+msgstr ""
+"💳 <b>Оплатите {amount} ⭐ для активации Telegram Proxy</b>\n"
+"\n"
+"<i>После оплаты вы получите ссылку для подключения.</i>"
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:message:trial_success"
+msgstr ""
+"✅ <b>Telegram Proxy активирован!</b>\n"
+"\n"
+"Пробный период: {duration}\n"
+"\n"
+"Нажмите кнопку ниже, чтобы скопировать ссылку:\n"
+"<code>{link}</code>"
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:message:link"
+msgstr ""
+"🔗 <b>Ваша ссылка на Telegram Proxy:</b>\n"
+"\n"
+"<code>{link}</code>\n"
+"\n"
+"<i>Нажмите кнопку ниже — Telegram подключится автоматически.</i>"
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:message:purchase_success"
+msgstr ""
+"✅ <b>Telegram Proxy активирован!</b>\n"
+"\n"
+"Нажмите кнопку ниже, чтобы скопировать ссылку:\n"
+"<code>{link}</code>"
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:message:extend_success"
+msgstr ""
+"✅ <b>Telegram Proxy продлён!</b>\n"
+"\n"
+"Подписка продлена на {duration}."
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:message:expiring_soon"
+msgstr ""
+"⚠️ <b>Подписка Telegram Proxy скоро истекает!</b>\n"
+"\n"
+"Действует до: {expires_at}\n"
+"Продлите подписку, чтобы не потерять доступ."
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:invoice:title"
+msgstr "Telegram Proxy | {duration}"
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:invoice:description"
+msgstr "Telegram Proxy на {duration}"
+
+#: app/bot/routers/mtproto/keyboard.py
+msgid "mtproto:button:buy"
+msgstr "💳 Подключить Telegram Proxy"
+
+#: app/bot/routers/mtproto/keyboard.py
+msgid "mtproto:button:extend"
+msgstr "💳 Продлить"
+
+#: app/bot/routers/mtproto/keyboard.py
+msgid "mtproto:button:trial"
+msgstr "🎁 Попробовать бесплатно (3 дня)"
+
+#: app/bot/routers/mtproto/keyboard.py
+msgid "mtproto:button:show_link"
+msgstr "🔗 Показать ссылку"
+
+#: app/bot/routers/mtproto/keyboard.py
+msgid "mtproto:button:connect_proxy"
+msgstr "🔌 Подключить прокси"
+
+#: app/bot/routers/mtproto/keyboard.py
+msgid "mtproto:duration:30"
+msgstr "1 месяц"
+
+#: app/bot/routers/mtproto/keyboard.py
+msgid "mtproto:duration:90"
+msgstr "3 месяца"
+
+#: app/bot/routers/mtproto/keyboard.py
+msgid "mtproto:duration:180"
+msgstr "6 месяцев"
+
+#: app/bot/routers/mtproto/keyboard.py
+msgid "mtproto:duration:365"
+msgstr "1 год"
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:popup:trial_unavailable"
+msgstr "❌ Пробный период уже был использован."
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:popup:trial_failed"
+msgstr "❌ Не удалось активировать пробный период. Попробуйте позже."
+
+#: app/bot/routers/mtproto/handler.py
+msgid "mtproto:popup:no_subscription"
+msgstr "❌ У вас нет активной подписки на Telegram Proxy."
+
 #: app/bot/utils/formatting.py:46
 msgid "d"
 msgstr "д"

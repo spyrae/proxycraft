@@ -12,6 +12,7 @@ if TYPE_CHECKING:
         SubscriptionService,
         PaymentStatsService,
         InviteStatsService,
+        MTProtoService,
     )
 
 from dataclasses import dataclass
@@ -27,3 +28,4 @@ class ServicesContainer:
     subscription: SubscriptionService
     payment_stats: PaymentStatsService
     invite_stats: InviteStatsService
+    mtproto: MTProtoService

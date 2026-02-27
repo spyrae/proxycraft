@@ -5,6 +5,7 @@ from app.bot.models import ServicesContainer
 from app.config import Config
 
 from .invite_stats import InviteStatsService
+from .mtproto import MTProtoService
 from .notification import NotificationService
 from .payment_stats import PaymentStatsService
 from .plan import PlanService
@@ -27,6 +28,7 @@ async def initialize(
     subscription = SubscriptionService(config=config, session_factory=session, vpn_service=vpn)
     payment_stats = PaymentStatsService(session_factory=session)
     invite_stats = InviteStatsService(session_factory=session, payment_stats_service=payment_stats)
+    mtproto = MTProtoService(config=config, session_factory=session)
 
     return ServicesContainer(
         server_pool=server_pool,
@@ -37,4 +39,5 @@ async def initialize(
         subscription=subscription,
         payment_stats=payment_stats,
         invite_stats=invite_stats,
+        mtproto=mtproto,
     )
