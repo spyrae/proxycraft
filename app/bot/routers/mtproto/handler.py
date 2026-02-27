@@ -35,7 +35,9 @@ async def callback_mtproto_main(
     logger.info(f"User {user.tg_id} opened MTProto page.")
 
     sub = await services.mtproto.get_subscription(user.tg_id)
+    logger.debug(f"MTProto sub for {user.tg_id}: {sub}, is_active={sub.is_active if sub else None}")
     has_subscription = sub is not None and sub.is_active and await services.mtproto.is_active(user.tg_id)
+    logger.debug(f"MTProto has_subscription={has_subscription}")
 
     if has_subscription:
         text = _("mtproto:message:active").format(
@@ -234,12 +236,16 @@ async def callback_mtproto_show_link(
     logger.info(f"User {user.tg_id} requesting MTProto link.")
 
     link = await services.mtproto.get_link(user.tg_id)
+    logger.debug(f"MTProto link for {user.tg_id}: {link}")
     if not link:
         await services.notification.show_popup(
             callback=callback,
             text=_("mtproto:popup:no_subscription"),
         )
         return
+
+    text = _("mtproto:message:link").format(link=link)
+    logger.debug(f"MTProto link text: {text!r}")
 
     builder = InlineKeyboardBuilder()
     builder.row(
@@ -255,7 +261,11 @@ async def callback_mtproto_show_link(
         )
     )
 
-    await callback.message.edit_text(
-        text=_("mtproto:message:link").format(link=link),
-        reply_markup=builder.as_markup(),
-    )
+    try:
+        await callback.message.edit_text(
+            text=text,
+            reply_markup=builder.as_markup(),
+        )
+        logger.debug(f"MTProto link message sent to {user.tg_id}")
+    except Exception as e:
+        logger.error(f"MTProto link edit_text failed for {user.tg_id}: {e}")
