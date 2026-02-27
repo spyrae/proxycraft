@@ -763,7 +763,11 @@ msgstr "👥 Пригласить"
 msgid "main_menu:button:support"
 msgstr "🆘 Помощь"
 
-#: app/bot/routers/main_menu/keyboard.py:66
+#: app/bot/routers/main_menu/keyboard.py:83
+msgid "main_menu:button:open_app"
+msgstr "📲 Открыть приложение"
+
+#: app/bot/routers/main_menu/keyboard.py:90
 msgid "main_menu:button:admin_tools"
 msgstr "🛠 Административные инструменты"
 

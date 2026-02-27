@@ -1,3 +1,7 @@
+# region: Web App
+WEBAPP_URL = "https://app.vpncraft.tech"
+# endregion
+
 # region: Download
 APP_IOS_LINK = "https://apps.apple.com/ru/app/happ-proxy-utility-plus/id6746188973"
 APP_ANDROID_LINK = "https://play.google.com/store/apps/details?id=com.happproxy"

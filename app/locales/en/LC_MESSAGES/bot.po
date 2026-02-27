@@ -754,7 +754,11 @@ msgstr "👥 Referral"
 msgid "main_menu:button:support"
 msgstr "🆘 Support"
 
-#: app/bot/routers/main_menu/keyboard.py:66
+#: app/bot/routers/main_menu/keyboard.py:83
+msgid "main_menu:button:open_app"
+msgstr "📲 Open App"
+
+#: app/bot/routers/main_menu/keyboard.py:90
 msgid "main_menu:button:admin_tools"
 msgstr "🛠 Admin tools"
 
