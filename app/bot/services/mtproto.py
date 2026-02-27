@@ -179,11 +179,12 @@ class MTProtoService:
             )
         else:
             # Add new entry before closing brace of USERS dict
+            # Match } on its own line (closing brace of the dict)
             content = re.sub(
-                r"(USERS\s*=\s*\{)(.*?)(})",
+                r"(USERS\s*=\s*\{)(.*?)(^\})",
                 rf"\1\2{entry}\n\3",
                 content,
-                flags=re.DOTALL,
+                flags=re.DOTALL | re.MULTILINE,
             )
 
         self._write_config(content)
