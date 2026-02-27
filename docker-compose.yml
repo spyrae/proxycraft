@@ -11,7 +11,7 @@ services:
     container_name: vpncraft-mtproto
     restart: unless-stopped
     ports:
-      - "8443:8443"
+      - "8444:8444"
     volumes:
       - ./mtproto/config.py:/app/config.py
       - ./mtproto/mtprotoproxy.py:/app/mtprotoproxy.py

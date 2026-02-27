@@ -1,4 +1,4 @@
-PORT = 8443
+PORT = 8444
 
 USERS = {
     # Managed by VPNCraft bot — do not edit manually
