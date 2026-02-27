@@ -26,7 +26,7 @@ class MTProtoService:
     async def activate(self, user_tg_id: int, duration_days: int, is_trial: bool = False) -> str | None:
         """Generate a secret, save to DB, update config, reload proxy."""
         secret = secrets.token_hex(16)
-        expires_at = datetime.now(timezone.utc) + timedelta(days=duration_days)
+        expires_at = datetime.utcnow() + timedelta(days=duration_days)
 
         async with self.session_factory() as session:
             sub = await MTProtoSubscription.create(
@@ -59,7 +59,7 @@ class MTProtoService:
                 logger.warning(f"No MTProto subscription to extend for user {user_tg_id}")
                 return False
 
-            now = datetime.now(timezone.utc)
+            now = datetime.utcnow()
             base = sub.expires_at if sub.expires_at > now else now
             new_expires = base + timedelta(days=duration_days)
             await MTProtoSubscription.update_expiry(session, user_tg_id, new_expires)
@@ -94,7 +94,7 @@ class MTProtoService:
             sub = await MTProtoSubscription.get_by_user(session, user_tg_id)
             if not sub or not sub.is_active:
                 return False
-            return sub.expires_at > datetime.now(timezone.utc)
+            return sub.expires_at > datetime.utcnow()
 
     async def get_subscription(self, user_tg_id: int) -> MTProtoSubscription | None:
         """Get subscription data."""

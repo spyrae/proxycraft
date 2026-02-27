@@ -25,7 +25,7 @@ async def cleanup_and_notify_mtproto(
     async with session_factory() as session:
         active_subs = await MTProtoSubscription.get_all_active(session)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()
 
         for sub in active_subs:
             user_notified_key = f"mtproto:notified:{sub.user_tg_id}"
@@ -34,7 +34,7 @@ async def cleanup_and_notify_mtproto(
             if await redis.get(user_notified_key):
                 continue
 
-            time_left = sub.expires_at.replace(tzinfo=timezone.utc) - now
+            time_left = sub.expires_at - now
 
             # Notify if expiring within 24 hours
             if timedelta(0) < time_left <= timedelta(hours=24):
