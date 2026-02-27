@@ -13,6 +13,7 @@ from . import (
     referral,
     subscription,
     support,
+    whatsapp,
 )
 
 
@@ -27,6 +28,7 @@ def include(app: Application, dispatcher: Dispatcher) -> None:
         support.handler.router,
         download.handler.router,
         mtproto.handler.router,
+        whatsapp.handler.router,
         subscription.subscription_handler.router,
         subscription.payment_handler.router,
         subscription.promocode_handler.router,

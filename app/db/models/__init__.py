@@ -7,3 +7,4 @@ from .referrer_reward import ReferrerReward
 from .server import Server
 from .transaction import Transaction
 from .user import User
+from .whatsapp_subscription import WhatsAppSubscription

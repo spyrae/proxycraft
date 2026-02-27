@@ -1358,6 +1358,158 @@ msgstr "❌ Не удалось активировать пробный пери
 msgid "mtproto:popup:no_subscription"
 msgstr "❌ У вас нет активной подписки на Telegram Proxy."
 
+#: app/bot/routers/main_menu/keyboard.py
+msgid "main_menu:button:whatsapp"
+msgstr "💬 WhatsApp Proxy"
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:message:not_active"
+msgstr ""
+"💬 <b>WhatsApp Proxy</b>\n"
+"\n"
+"Доступ к WhatsApp через прокси — работает даже при блокировках.\n"
+"\n"
+"⚡ Настройка за 30 секунд\n"
+"📱 Прямо в настройках WhatsApp\n"
+"🔐 Шифрование сохраняется\n"
+"💰 Всего от 69₽/мес\n"
+"\n"
+"<i>У вас нет активной подписки на WhatsApp Proxy.</i>"
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:message:active"
+msgstr ""
+"💬 <b>WhatsApp Proxy</b>\n"
+"\n"
+"✅ <b>Подписка активна</b>\n"
+"Действует до: {expires_at}"
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:message:choose_duration"
+msgstr "⏳ <b>Выберите длительность:</b>"
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:message:confirm_order"
+msgstr ""
+"🛒 <b>Подтверждение покупки:</b>\n"
+"\n"
+"Продукт: WhatsApp Proxy\n"
+"Длительность: {duration}\n"
+"Стоимость: {price_rub}₽\n"
+"\n"
+"<i>Выберите способ оплаты:</i>"
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:message:pay"
+msgstr ""
+"💳 <b>Оплатите {amount} ⭐ для активации WhatsApp Proxy</b>\n"
+"\n"
+"<i>После оплаты вы получите данные для подключения.</i>"
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:message:trial_success"
+msgstr ""
+"✅ <b>WhatsApp Proxy активирован!</b>\n"
+"\n"
+"Пробный период: {duration}\n"
+"\n"
+"📍 Сервер: <code>{host}</code>\n"
+"🔌 Порт: <code>{port}</code>\n"
+"\n"
+"Нажмите кнопку ниже для просмотра инструкции подключения."
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:message:connection_info"
+msgstr ""
+"💬 <b>Данные для подключения WhatsApp Proxy:</b>\n"
+"\n"
+"📍 Сервер: <code>{host}</code>\n"
+"🔌 Порт: <code>{port}</code>\n"
+"\n"
+"📋 <b>Как подключить (30 секунд):</b>\n"
+"1. Откройте WhatsApp → Настройки\n"
+"2. Хранилище и данные → Прокси\n"
+"3. Нажмите «Добавить прокси»\n"
+"4. Введите: <code>{host}:{port}</code>\n"
+"5. Готово!"
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:message:purchase_success"
+msgstr ""
+"✅ <b>WhatsApp Proxy активирован!</b>\n"
+"\n"
+"📍 Сервер: <code>{host}</code>\n"
+"🔌 Порт: <code>{port}</code>\n"
+"\n"
+"Нажмите кнопку ниже для просмотра инструкции подключения."
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:message:extend_success"
+msgstr ""
+"✅ <b>WhatsApp Proxy продлён!</b>\n"
+"\n"
+"Подписка продлена на {duration}."
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:message:expiring_soon"
+msgstr ""
+"⚠️ <b>Подписка WhatsApp Proxy скоро истекает!</b>\n"
+"\n"
+"Действует до: {expires_at}\n"
+"Продлите подписку, чтобы не потерять доступ."
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:invoice:title"
+msgstr "WhatsApp Proxy | {duration}"
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:invoice:description"
+msgstr "WhatsApp Proxy на {duration}"
+
+#: app/bot/routers/whatsapp/keyboard.py
+msgid "whatsapp:button:buy"
+msgstr "💳 Подключить WhatsApp Proxy"
+
+#: app/bot/routers/whatsapp/keyboard.py
+msgid "whatsapp:button:extend"
+msgstr "💳 Продлить"
+
+#: app/bot/routers/whatsapp/keyboard.py
+msgid "whatsapp:button:trial"
+msgstr "🎁 Попробовать бесплатно (3 дня)"
+
+#: app/bot/routers/whatsapp/keyboard.py
+msgid "whatsapp:button:show_info"
+msgstr "📋 Данные подключения"
+
+#: app/bot/routers/whatsapp/keyboard.py
+msgid "whatsapp:duration:30"
+msgstr "1 месяц"
+
+#: app/bot/routers/whatsapp/keyboard.py
+msgid "whatsapp:duration:90"
+msgstr "3 месяца"
+
+#: app/bot/routers/whatsapp/keyboard.py
+msgid "whatsapp:duration:180"
+msgstr "6 месяцев"
+
+#: app/bot/routers/whatsapp/keyboard.py
+msgid "whatsapp:duration:365"
+msgstr "1 год"
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:popup:trial_unavailable"
+msgstr "❌ Пробный период уже был использован."
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:popup:trial_failed"
+msgstr "❌ Не удалось активировать пробный период. Попробуйте позже."
+
+#: app/bot/routers/whatsapp/handler.py
+msgid "whatsapp:popup:no_subscription"
+msgstr "❌ У вас нет активной подписки на WhatsApp Proxy."
+
 #: app/bot/utils/formatting.py:46
 msgid "d"
 msgstr "д"

@@ -20,6 +20,16 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
 
+  whatsapp:
+    image: haproxy:2.9-alpine
+    container_name: vpncraft-whatsapp
+    restart: unless-stopped
+    ports:
+      - "10001-10999:10001-10999"
+    volumes:
+      - ./whatsapp/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    command: haproxy -f /usr/local/etc/haproxy/haproxy.cfg
+
   bot:
     build: .
     container_name: vpncraft-bot
@@ -29,6 +39,7 @@ services:
       - ./app/locales:/app/locales
       - ./app/logs:/app/logs
       - ./mtproto/config.py:/app/mtproto/config.py
+      - ./whatsapp/haproxy.cfg:/app/whatsapp/haproxy.cfg
     env_file:
       - .env
     ports:

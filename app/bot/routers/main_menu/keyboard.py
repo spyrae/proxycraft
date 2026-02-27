@@ -9,6 +9,7 @@ from app.bot.utils.navigation import (
     NavReferral,
     NavSubscription,
     NavSupport,
+    NavWhatsApp,
 )
 
 
@@ -18,6 +19,7 @@ def main_menu_keyboard(
     is_trial_available: bool = False,
     is_referred_trial_available: bool = False,
     is_mtproto_enabled: bool = False,
+    is_whatsapp_enabled: bool = False,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
@@ -50,6 +52,13 @@ def main_menu_keyboard(
             InlineKeyboardButton(
                 text=_("main_menu:button:mtproto"),
                 callback_data=NavMTProto.MAIN,
+            )
+        )
+    if is_whatsapp_enabled:
+        builder.row(
+            InlineKeyboardButton(
+                text=_("main_menu:button:whatsapp"),
+                callback_data=NavWhatsApp.MAIN,
             )
         )
 

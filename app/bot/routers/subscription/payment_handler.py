@@ -143,6 +143,47 @@ async def successful_payment(
         logger.info(f"MTProto payment succeeded for user {user.tg_id}, duration {duration_days}d")
         return
 
+    # WhatsApp payment — payload format: "whatsapp:{user_tg_id}:{duration}:{is_extend}"
+    if payload.startswith("whatsapp:"):
+        parts = payload.split(":")
+        user_tg_id = int(parts[1])
+        duration_days = int(parts[2])
+        is_extend = parts[3] == "True"
+
+        transaction = await Transaction.create(
+            session=session,
+            tg_id=user.tg_id,
+            subscription=payload,
+            payment_id=message.successful_payment.telegram_payment_charge_id,
+            status=TransactionStatus.COMPLETED,
+        )
+
+        if is_extend:
+            await services.whatsapp.extend(user_tg_id, duration_days)
+        else:
+            await services.whatsapp.activate(user_tg_id, duration_days)
+
+        info = await services.whatsapp.get_connection_info(user_tg_id)
+        period = format_subscription_period(duration_days)
+
+        from app.bot.routers.whatsapp.keyboard import whatsapp_success_keyboard
+
+        if is_extend:
+            await services.notification.notify_by_id(
+                chat_id=user.tg_id,
+                text=_("whatsapp:message:extend_success").format(duration=period),
+            )
+        else:
+            host, port = info if info else ("", 0)
+            await services.notification.notify_by_id(
+                chat_id=user.tg_id,
+                text=_("whatsapp:message:purchase_success").format(host=host, port=port),
+                reply_markup=whatsapp_success_keyboard(),
+            )
+
+        logger.info(f"WhatsApp payment succeeded for user {user.tg_id}, duration {duration_days}d")
+        return
+
     # VPN payment — standard SubscriptionData flow
     data = SubscriptionData.unpack(payload)
     transaction = await Transaction.create(

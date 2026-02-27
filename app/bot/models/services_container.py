@@ -13,6 +13,7 @@ if TYPE_CHECKING:
         PaymentStatsService,
         InviteStatsService,
         MTProtoService,
+        WhatsAppService,
     )
 
 from dataclasses import dataclass
@@ -29,3 +30,4 @@ class ServicesContainer:
     payment_stats: PaymentStatsService
     invite_stats: InviteStatsService
     mtproto: MTProtoService
+    whatsapp: WhatsAppService

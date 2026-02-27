@@ -63,6 +63,17 @@ class NavMTProto(str, Enum):
     PAY_TELEGRAM_STARS = f"{PAY}_telegram_stars"
 
 
+class NavWhatsApp(str, Enum):
+    MAIN = "whatsapp"
+    BUY = "whatsapp_buy"
+    DURATION = "whatsapp_duration"
+    GET_TRIAL = "whatsapp_trial"
+    SHOW_INFO = "whatsapp_show_info"
+    EXTEND = "whatsapp_extend"
+    PAY = "whatsapp_pay"
+    PAY_TELEGRAM_STARS = f"{PAY}_telegram_stars"
+
+
 class NavAdminTools(str, Enum):
     MAIN = "admin_tools"
     TEST = "test"

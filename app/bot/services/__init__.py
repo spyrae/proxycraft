@@ -7,6 +7,7 @@ from app.config import Config
 from .invite_stats import InviteStatsService
 from .mtproto import MTProtoService
 from .notification import NotificationService
+from .whatsapp import WhatsAppService
 from .payment_stats import PaymentStatsService
 from .plan import PlanService
 from .referral import ReferralService
@@ -29,6 +30,7 @@ async def initialize(
     payment_stats = PaymentStatsService(session_factory=session)
     invite_stats = InviteStatsService(session_factory=session, payment_stats_service=payment_stats)
     mtproto = MTProtoService(config=config, session_factory=session)
+    whatsapp = WhatsAppService(config=config, session_factory=session)
 
     return ServicesContainer(
         server_pool=server_pool,
@@ -40,4 +42,5 @@ async def initialize(
         payment_stats=payment_stats,
         invite_stats=invite_stats,
         mtproto=mtproto,
+        whatsapp=whatsapp,
     )

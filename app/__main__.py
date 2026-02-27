@@ -77,6 +77,14 @@ async def on_startup(
             mtproto_service=services.mtproto,
             notification_service=services.notification,
         )
+    if config.shop.WHATSAPP_ENABLED:
+        tasks.whatsapp_expiry.start_scheduler(
+            session_factory=db.session,
+            redis=redis,
+            i18n=i18n,
+            whatsapp_service=services.whatsapp,
+            notification_service=services.notification,
+        )
 
 
 async def main() -> None:
