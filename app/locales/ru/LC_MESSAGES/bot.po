@@ -1483,6 +1483,10 @@ msgid "whatsapp:button:show_info"
 msgstr "📋 Данные подключения"
 
 #: app/bot/routers/whatsapp/keyboard.py
+msgid "whatsapp:button:copy_config"
+msgstr "📋 Скопировать адрес"
+
+#: app/bot/routers/whatsapp/keyboard.py
 msgid "whatsapp:duration:30"
 msgstr "1 месяц"
 

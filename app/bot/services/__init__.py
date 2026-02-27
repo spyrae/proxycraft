@@ -32,6 +32,9 @@ async def initialize(
     mtproto = MTProtoService(config=config, session_factory=session)
     whatsapp = WhatsAppService(config=config, session_factory=session)
 
+    if config.shop.WHATSAPP_ENABLED:
+        await whatsapp.startup_sync()
+
     return ServicesContainer(
         server_pool=server_pool,
         plan=plan,

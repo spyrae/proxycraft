@@ -251,5 +251,5 @@ async def callback_whatsapp_show_info(
             host=host,
             port=port,
         ),
-        reply_markup=whatsapp_info_keyboard(),
+        reply_markup=whatsapp_info_keyboard(host=host, port=port),
     )

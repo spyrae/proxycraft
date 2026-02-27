@@ -1,5 +1,6 @@
+import http.client
 import logging
-import subprocess
+import socket
 from datetime import datetime, timedelta
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -8,6 +9,9 @@ from app.config import Config
 from app.db.models import WhatsAppSubscription
 
 logger = logging.getLogger(__name__)
+
+DOCKER_SOCKET_PATH = "/var/run/docker.sock"
+WHATSAPP_CONTAINER_NAME = "vpncraft-whatsapp"
 
 
 class WhatsAppService:
@@ -19,6 +23,11 @@ class WhatsAppService:
         self.port_max = config.shop.WHATSAPP_PORT_MAX
         self.haproxy_config_path = config.shop.WHATSAPP_HAPROXY_CONFIG_PATH
         logger.info("WhatsApp Service initialized.")
+
+    async def startup_sync(self) -> None:
+        """Regenerate HAProxy config on bot startup to ensure all active subscriptions have frontends."""
+        await self._regenerate_and_reload()
+        logger.info("WhatsApp HAProxy config synced on startup.")
 
     async def activate(self, user_tg_id: int, duration_days: int, is_trial: bool = False) -> int | None:
         """Assign a port, save to DB, regenerate HAProxy config, reload. Returns port or None."""
@@ -151,29 +160,65 @@ class WhatsAppService:
         self._reload_haproxy()
 
     def _generate_haproxy_config(self, active_subs: list[WhatsAppSubscription]) -> str:
-        """Generate the full HAProxy config with per-user frontends."""
+        """Generate the full HAProxy config matching the official WhatsApp proxy spec.
+
+        Official WhatsApp proxy protocol:
+        - Client connects with TLS → proxy terminates SSL → forwards to g.whatsapp.net:5222
+        - PROXY protocol v1 header sent to backend (carries client's real IP)
+        - Self-signed cert is fine (WhatsApp client accepts it)
+        """
+        ssl_cert_path = "/etc/haproxy/ssl/proxy.pem"
+
         lines = [
             "global",
             "    log stdout format raw local0",
+            "    tune.bufsize 4096",
             "    maxconn 4096",
+            "    ssl-server-verify none",
+            "",
+            "resolvers docker_dns",
+            "    nameserver dns1 127.0.0.11:53",
+            "    resolve_retries 3",
+            "    timeout resolve 1s",
+            "    timeout retry 1s",
+            "    hold valid 30s",
             "",
             "defaults",
             "    mode tcp",
-            "    timeout connect 10s",
-            "    timeout client 1h",
-            "    timeout server 1h",
+            "    timeout connect 5s",
+            "    timeout client-fin 1s",
+            "    timeout server-fin 1s",
+            "    timeout client 200s",
+            "    timeout server 200s",
+            "    default-server inter 10s fastinter 1s downinter 3s error-limit 50",
             "",
-            "backend whatsapp",
-            "    server wa1 g.whatsapp.net:443",
+            "# Chat backend: WhatsApp XMPP with PROXY protocol",
+            "backend wa",
+            "    default-server check inter 60000 observe layer4 send-proxy",
+            f"    server wa1 g.whatsapp.net:5222 resolvers docker_dns resolve-prefer ipv4",
+            "",
+            "# Media backend: whatsapp.net (no PROXY protocol)",
+            "backend wa_media",
+            "    default-server check inter 60000 observe layer4",
+            f"    server media1 whatsapp.net:443 resolvers docker_dns resolve-prefer ipv4",
+            "",
+            "# Shared media frontends (ports 587, 7777 — media upload/download)",
+            "frontend media_587",
+            "    bind *:587",
+            "    default_backend wa_media",
+            "",
+            "frontend media_7777",
+            "    bind *:7777",
+            "    default_backend wa_media",
             "",
         ]
 
         if active_subs:
-            lines.append("# Per-user frontends")
+            lines.append("# Per-user chat frontends (SSL termination + forward to wa backend)")
             for sub in sorted(active_subs, key=lambda s: s.port):
                 lines.append(f"frontend user_{sub.user_tg_id}")
-                lines.append(f"    bind *:{sub.port}")
-                lines.append("    default_backend whatsapp")
+                lines.append(f"    bind *:{sub.port} ssl crt {ssl_cert_path}")
+                lines.append("    default_backend wa")
                 lines.append("")
 
         return "\n".join(lines)
@@ -188,17 +233,26 @@ class WhatsAppService:
             logger.error(f"Failed to write HAProxy config: {e}")
 
     def _reload_haproxy(self) -> None:
-        """Send HUP signal to HAProxy container for graceful reload."""
+        """Send HUP signal to HAProxy container via Docker socket API."""
         try:
-            result = subprocess.run(
-                ["docker", "kill", "-s", "HUP", "vpncraft-whatsapp"],
-                capture_output=True,
-                text=True,
-                timeout=10,
+            conn = http.client.HTTPConnection("localhost")
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.connect(DOCKER_SOCKET_PATH)
+            conn.sock = sock
+
+            conn.request(
+                "POST",
+                f"/containers/{WHATSAPP_CONTAINER_NAME}/kill?signal=HUP",
             )
-            if result.returncode == 0:
-                logger.info("HAProxy reloaded (HUP)")
+            response = conn.getresponse()
+            conn.close()
+
+            if response.status == 204:
+                logger.info("HAProxy reloaded (HUP via Docker socket)")
             else:
-                logger.error(f"Failed to reload HAProxy: {result.stderr}")
+                body = response.read().decode()
+                logger.error(f"Failed to reload HAProxy: HTTP {response.status} — {body}")
+        except FileNotFoundError:
+            logger.error(f"Docker socket not found at {DOCKER_SOCKET_PATH}. Mount it in docker-compose.yml")
         except Exception as e:
             logger.error(f"Error sending HUP to whatsapp container: {e}")

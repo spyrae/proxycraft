@@ -25,9 +25,12 @@ services:
     container_name: vpncraft-whatsapp
     restart: unless-stopped
     ports:
+      - "587:587"
+      - "7777:7777"
       - "10001-10999:10001-10999"
     volumes:
       - ./whatsapp/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+      - ./whatsapp/ssl:/etc/haproxy/ssl:ro
     command: haproxy -f /usr/local/etc/haproxy/haproxy.cfg
 
   bot:
@@ -40,6 +43,7 @@ services:
       - ./app/logs:/app/logs
       - ./mtproto/config.py:/app/mtproto/config.py
       - ./whatsapp/haproxy.cfg:/app/whatsapp/haproxy.cfg
+      - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - .env
     ports:

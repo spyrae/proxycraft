@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import CopyTextButton, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.i18n import gettext as _
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -122,8 +122,14 @@ def whatsapp_success_keyboard() -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def whatsapp_info_keyboard() -> InlineKeyboardMarkup:
+def whatsapp_info_keyboard(host: str, port: int) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(
+            text=_("whatsapp:button:copy_config"),
+            copy_text=CopyTextButton(text=f"{host}:{port}"),
+        )
+    )
     builder.row(
         InlineKeyboardButton(
             text=_("misc:button:back"),

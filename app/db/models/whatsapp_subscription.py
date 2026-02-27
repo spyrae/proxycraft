@@ -1,4 +1,5 @@
 import logging
+import random
 from datetime import datetime
 from typing import Any, Self
 
@@ -138,18 +139,19 @@ class WhatsAppSubscription(Base):
     async def get_next_available_port(
         cls, session: AsyncSession, port_min: int = WHATSAPP_PORT_MIN, port_max: int = WHATSAPP_PORT_MAX
     ) -> int | None:
-        """Find the lowest available port in the range that is not assigned to any subscription."""
+        """Pick a random available port from the range (security: prevents sequential enumeration)."""
         result = await session.execute(
-            select(WhatsAppSubscription.port).order_by(WhatsAppSubscription.port)
+            select(WhatsAppSubscription.port)
         )
         used_ports = set(result.scalars().all())
+        all_ports = set(range(port_min, port_max + 1))
+        available = list(all_ports - used_ports)
 
-        for port in range(port_min, port_max + 1):
-            if port not in used_ports:
-                return port
+        if not available:
+            logger.error("No available WhatsApp proxy ports!")
+            return None
 
-        logger.error("No available WhatsApp proxy ports!")
-        return None
+        return random.choice(available)
 
     @classmethod
     async def mark_trial_used(cls, session: AsyncSession, user_tg_id: int) -> bool:
