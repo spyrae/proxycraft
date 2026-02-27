@@ -6,7 +6,18 @@ from aiohttp.web import Application, Request, Response
 
 from aiogram.types import LabeledPrice
 
+from sqlalchemy import func, select, or_
+from sqlalchemy.orm import selectinload
+
+from app.bot.api.middleware import (
+    require_admin,
+    _validate_telegram_login,
+    _create_admin_token,
+)
 from app.bot.api.serializers import (
+    serialize_admin_server,
+    serialize_admin_user,
+    serialize_admin_user_detail,
     serialize_mtproto_plans,
     serialize_mtproto_subscription,
     serialize_plans,
@@ -15,10 +26,11 @@ from app.bot.api.serializers import (
     serialize_whatsapp_plans,
     serialize_whatsapp_subscription,
 )
+from app.bot.filters.is_admin import IsAdmin
 from app.bot.models import ServicesContainer, SubscriptionData
 from app.bot.utils.constants import Currency, TransactionStatus
 from app.bot.utils.navigation import NavSubscription, NavMTProto, NavWhatsApp
-from app.db.models import Transaction
+from app.db.models import Server, Transaction, User
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +87,7 @@ async def handle_me(request: Request) -> Response:
         "whatsapp_enabled": config.shop.WHATSAPP_ENABLED,
         "stars_enabled": config.shop.PAYMENT_STARS_ENABLED,
     }
+    data["is_admin"] = await IsAdmin()(user_id=tg_id)
 
     return web.json_response(data)
 
@@ -321,6 +334,195 @@ async def handle_trial_whatsapp(request: Request) -> Response:
     })
 
 
+# ---------- Admin endpoints ----------
+
+
+async def handle_admin_auth(request: Request) -> Response:
+    """POST /api/v1/admin/auth — Authenticate via Telegram Login Widget.
+
+    Body: { id, first_name, username?, auth_date, hash, ... }
+    Returns: { token, expires_in, user: { tg_id, first_name, username } }
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    # Validate required fields
+    tg_id = body.get("id")
+    if not tg_id:
+        return web.json_response({"error": "Missing id"}, status=400)
+
+    try:
+        tg_id = int(tg_id)
+    except (ValueError, TypeError):
+        return web.json_response({"error": "Invalid id"}, status=400)
+
+    bot_token = _config(request).bot.TOKEN
+
+    # Validate Telegram Login Widget data
+    if not _validate_telegram_login(body, bot_token):
+        return web.json_response({"error": "Invalid Telegram login data"}, status=401)
+
+    # Check admin status
+    if not await IsAdmin()(user_id=tg_id):
+        return web.json_response({"error": "Admin access required"}, status=403)
+
+    # Generate admin token
+    token = _create_admin_token(tg_id, bot_token)
+
+    return web.json_response({
+        "token": token,
+        "expires_in": 86400,
+        "user": {
+            "tg_id": tg_id,
+            "first_name": body.get("first_name", ""),
+            "username": body.get("username"),
+        },
+    })
+
+
+async def handle_admin_stats(request: Request) -> Response:
+    """GET /api/v1/admin/stats — Dashboard statistics."""
+    await require_admin(request)
+
+    session_factory = request.app["session"]
+    services = _services(request)
+
+    async with session_factory() as session:
+        # Total users
+        result = await session.execute(select(func.count(User.id)))
+        total_users = result.scalar() or 0
+
+        # Registrations last 30 days
+        result = await session.execute(
+            select(
+                func.date(User.created_at).label("date"),
+                func.count(User.id).label("count"),
+            )
+            .where(User.created_at >= func.date("now", "-30 days"))
+            .group_by(func.date(User.created_at))
+            .order_by(func.date(User.created_at))
+        )
+        registrations_30d = [
+            {"date": str(row.date), "count": row.count} for row in result.all()
+        ]
+
+        # Payments last 30 days (completed)
+        result = await session.execute(
+            select(
+                func.date(Transaction.created_at).label("date"),
+                func.count(Transaction.id).label("count"),
+            )
+            .where(
+                Transaction.status == TransactionStatus.COMPLETED,
+                Transaction.created_at >= func.date("now", "-30 days"),
+            )
+            .group_by(func.date(Transaction.created_at))
+            .order_by(func.date(Transaction.created_at))
+        )
+        payments_30d = [
+            {"date": str(row.date), "count": row.count} for row in result.all()
+        ]
+
+    # Revenue via PaymentStatsService
+    payment_method_currencies = {"stars": "XTR", "telegram_stars": "XTR"}
+    revenue = await services.payment_stats.get_total_revenue_stats(
+        payment_method_currencies=payment_method_currencies,
+    )
+
+    return web.json_response({
+        "total_users": total_users,
+        "active_subscriptions": 0,  # WIP: needs 3X-UI aggregation
+        "revenue": revenue,
+        "registrations_30d": registrations_30d,
+        "payments_30d": payments_30d,
+    })
+
+
+async def handle_admin_users(request: Request) -> Response:
+    """GET /api/v1/admin/users — Paginated user list with search."""
+    await require_admin(request)
+
+    q = request.query.get("q", "").strip()
+    page = max(1, int(request.query.get("page", "1")))
+    limit = min(100, max(1, int(request.query.get("limit", "20"))))
+    offset = (page - 1) * limit
+
+    session_factory = request.app["session"]
+    async with session_factory() as session:
+        base_query = select(User).options(selectinload(User.server))
+        count_query = select(func.count(User.id))
+
+        if q:
+            # Search by tg_id (exact), username (ILIKE), first_name (ILIKE)
+            conditions = [
+                User.username.ilike(f"%{q}%"),
+                User.first_name.ilike(f"%{q}%"),
+            ]
+            # If query is numeric, also try exact tg_id match
+            if q.isdigit():
+                conditions.append(User.tg_id == int(q))
+            filter_clause = or_(*conditions)
+            base_query = base_query.where(filter_clause)
+            count_query = count_query.where(filter_clause)
+
+        result = await session.execute(count_query)
+        total = result.scalar() or 0
+
+        result = await session.execute(
+            base_query.order_by(User.created_at.desc()).offset(offset).limit(limit)
+        )
+        users = result.scalars().all()
+
+    return web.json_response({
+        "users": [serialize_admin_user(u) for u in users],
+        "total": total,
+        "page": page,
+        "limit": limit,
+    })
+
+
+async def handle_admin_user_detail(request: Request) -> Response:
+    """GET /api/v1/admin/users/{tg_id} — User detail with VPN + transactions."""
+    await require_admin(request)
+
+    try:
+        target_tg_id = int(request.match_info["tg_id"])
+    except (KeyError, ValueError):
+        return web.json_response({"error": "Invalid tg_id"}, status=400)
+
+    session_factory = request.app["session"]
+    services = _services(request)
+
+    async with session_factory() as session:
+        user = await User.get(session=session, tg_id=target_tg_id)
+        if not user:
+            return web.json_response({"error": "User not found"}, status=404)
+
+        transactions = await Transaction.get_by_user(session=session, tg_id=target_tg_id)
+
+    # VPN client data
+    client_data = await services.vpn.get_client_data(user)
+
+    return web.json_response(
+        serialize_admin_user_detail(user, client_data, transactions)
+    )
+
+
+async def handle_admin_servers(request: Request) -> Response:
+    """GET /api/v1/admin/servers — All servers with client counts."""
+    await require_admin(request)
+
+    session_factory = request.app["session"]
+    async with session_factory() as session:
+        servers = await Server.get_all(session=session)
+
+    return web.json_response({
+        "servers": [serialize_admin_server(s) for s in servers],
+    })
+
+
 def register_routes(app: Application) -> None:
     """Register all API v1 routes."""
     app.router.add_get("/api/v1/me", handle_me)
@@ -334,3 +536,10 @@ def register_routes(app: Application) -> None:
     app.router.add_post("/api/v1/trial/vpn", handle_trial_vpn)
     app.router.add_post("/api/v1/trial/mtproto", handle_trial_mtproto)
     app.router.add_post("/api/v1/trial/whatsapp", handle_trial_whatsapp)
+
+    # Admin endpoints
+    app.router.add_post("/api/v1/admin/auth", handle_admin_auth)
+    app.router.add_get("/api/v1/admin/stats", handle_admin_stats)
+    app.router.add_get("/api/v1/admin/users", handle_admin_users)
+    app.router.add_get("/api/v1/admin/users/{tg_id}", handle_admin_user_detail)
+    app.router.add_get("/api/v1/admin/servers", handle_admin_servers)

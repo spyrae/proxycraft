@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import hmac
 import json
@@ -9,6 +10,7 @@ from aiohttp import web
 from aiohttp.web import Request, Response, middleware
 
 from app.db.models import User
+from app.bot.filters.is_admin import IsAdmin
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +19,19 @@ API_PREFIX = "/api/v1/"
 ALLOWED_ORIGINS = [
     "https://app.vpncraft.tech",
     "https://vpncraft-webapp.pages.dev",
+    "https://admin.vpncraft.tech",
     "http://localhost:5173",
     "http://localhost:4173",
 ]
 
 MAX_AUTH_AGE_SECONDS = 3600  # 1 hour
+ADMIN_TOKEN_TTL = 86400  # 24 hours
+TELEGRAM_LOGIN_MAX_AGE = 86400  # 24 hours
+
+# Paths that don't require TMA auth
+AUTH_EXEMPT_PATHS = {
+    "/api/v1/admin/auth",
+}
 
 
 def _is_allowed_origin(origin: str) -> bool:
@@ -29,6 +39,8 @@ def _is_allowed_origin(origin: str) -> bool:
         return True
     # Allow Cloudflare Pages preview deployments
     if origin.endswith(".vpncraft-webapp.pages.dev") and origin.startswith("https://"):
+        return True
+    if origin.endswith(".vpncraft-admin.pages.dev") and origin.startswith("https://"):
         return True
     return False
 
@@ -113,40 +125,156 @@ def _validate_init_data(init_data_raw: str, bot_token: str) -> dict | None:
         return None
 
 
+# ---------- Telegram Login Widget auth ----------
+
+
+def _validate_telegram_login(data: dict, bot_token: str) -> bool:
+    """Validate Telegram Login Widget data using SHA256-based HMAC.
+
+    Unlike TMA (which uses HMAC of "WebAppData"), Login Widget uses
+    SHA256(bot_token) as the secret key directly.
+    See: https://core.telegram.org/widgets/login#checking-authorization
+    """
+    received_hash = data.get("hash")
+    if not received_hash:
+        return False
+
+    # Check auth_date freshness
+    auth_date = data.get("auth_date")
+    if not auth_date:
+        return False
+    try:
+        if time.time() - int(auth_date) > TELEGRAM_LOGIN_MAX_AGE:
+            return False
+    except (ValueError, TypeError):
+        return False
+
+    # Build data-check-string: sorted key=value pairs excluding hash
+    check_pairs = sorted(
+        f"{k}={v}" for k, v in data.items() if k != "hash"
+    )
+    data_check_string = "\n".join(check_pairs)
+
+    # Secret key = SHA256(bot_token) — NOT HMAC like TMA!
+    secret_key = hashlib.sha256(bot_token.encode()).digest()
+    computed_hash = hmac.new(
+        secret_key, data_check_string.encode(), hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(computed_hash, received_hash)
+
+
+def _create_admin_token(tg_id: int, bot_token: str) -> str:
+    """Create a signed admin JWT-like token.
+
+    Format: base64url(json_payload).hmac_signature
+    Payload: {"tg_id": int, "exp": unix_timestamp}
+    """
+    payload = json.dumps({"tg_id": tg_id, "exp": int(time.time()) + ADMIN_TOKEN_TTL})
+    payload_b64 = base64.urlsafe_b64encode(payload.encode()).decode().rstrip("=")
+    sig = hmac.new(bot_token.encode(), payload_b64.encode(), hashlib.sha256).hexdigest()
+    return f"{payload_b64}.{sig}"
+
+
+def _validate_admin_token(token: str, bot_token: str) -> int | None:
+    """Validate admin token and return tg_id, or None if invalid/expired."""
+    parts = token.split(".")
+    if len(parts) != 2:
+        return None
+
+    payload_b64, received_sig = parts
+
+    # Verify HMAC signature
+    expected_sig = hmac.new(
+        bot_token.encode(), payload_b64.encode(), hashlib.sha256
+    ).hexdigest()
+    if not hmac.compare_digest(expected_sig, received_sig):
+        return None
+
+    # Decode payload
+    try:
+        # Add padding back
+        padded = payload_b64 + "=" * (-len(payload_b64) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(padded))
+    except (json.JSONDecodeError, Exception):
+        return None
+
+    # Check expiration
+    exp = payload.get("exp", 0)
+    if time.time() > exp:
+        return None
+
+    return payload.get("tg_id")
+
+
 @middleware
 async def tma_auth_middleware(request: Request, handler) -> Response:
-    """Authenticate requests to /api/v1/* using Telegram Mini App initData."""
+    """Authenticate requests to /api/v1/* using Telegram Mini App initData or Bearer token."""
     if not request.path.startswith(API_PREFIX):
         return await handler(request)
 
     if request.method == "OPTIONS":
         return await handler(request)
 
+    # Skip auth for exempt paths
+    if request.path in AUTH_EXEMPT_PATHS:
+        return await handler(request)
+
     auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("tma "):
-        return web.json_response({"error": "Missing or invalid Authorization header"}, status=401)
-
-    init_data_raw = auth_header[4:]
     bot_token = request.app["config"].bot.TOKEN
-
-    tg_user = _validate_init_data(init_data_raw, bot_token)
-    if not tg_user:
-        return web.json_response({"error": "Invalid initData"}, status=401)
-
-    tg_id = tg_user.get("id")
-    if not tg_id:
-        return web.json_response({"error": "No user id in initData"}, status=401)
-
-    # Load user from DB
     session_factory = request.app["session"]
-    async with session_factory() as session:
-        user = await User.get(session=session, tg_id=tg_id)
 
-    if not user:
-        return web.json_response({"error": "User not found"}, status=404)
+    # Bearer token auth (admin panel)
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+        tg_id = _validate_admin_token(token, bot_token)
+        if not tg_id:
+            return web.json_response({"error": "Invalid or expired token"}, status=401)
 
-    request["user"] = user
-    request["tg_id"] = tg_id
-    request["tg_user"] = tg_user
+        async with session_factory() as session:
+            user = await User.get(session=session, tg_id=tg_id)
 
-    return await handler(request)
+        if not user:
+            return web.json_response({"error": "User not found"}, status=404)
+
+        request["user"] = user
+        request["tg_id"] = tg_id
+        request["tg_user"] = {"id": tg_id}
+
+        return await handler(request)
+
+    # TMA initData auth (Telegram Mini App)
+    if auth_header.startswith("tma "):
+        init_data_raw = auth_header[4:]
+
+        tg_user = _validate_init_data(init_data_raw, bot_token)
+        if not tg_user:
+            return web.json_response({"error": "Invalid initData"}, status=401)
+
+        tg_id = tg_user.get("id")
+        if not tg_id:
+            return web.json_response({"error": "No user id in initData"}, status=401)
+
+        async with session_factory() as session:
+            user = await User.get(session=session, tg_id=tg_id)
+
+        if not user:
+            return web.json_response({"error": "User not found"}, status=404)
+
+        request["user"] = user
+        request["tg_id"] = tg_id
+        request["tg_user"] = tg_user
+
+        return await handler(request)
+
+    return web.json_response({"error": "Missing or invalid Authorization header"}, status=401)
+
+
+async def require_admin(request: Request) -> None:
+    """Check that the authenticated user is an admin. Raise 403 if not."""
+    tg_id = request["tg_id"]
+    if not await IsAdmin()(user_id=tg_id):
+        raise web.HTTPForbidden(
+            text='{"error":"Admin access required"}',
+            content_type="application/json",
+        )

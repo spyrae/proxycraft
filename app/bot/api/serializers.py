@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.bot.models import ClientData, Plan
-    from app.db.models import MTProtoSubscription, User, WhatsAppSubscription
+    from app.db.models import MTProtoSubscription, Server, Transaction, User, WhatsAppSubscription
 
 
 def serialize_user(
@@ -142,4 +142,73 @@ def serialize_whatsapp_subscription(
         "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
         "host": host,
         "port": sub.port,
+    }
+
+
+# ---------- Admin serializers ----------
+
+
+def serialize_admin_user(user: User) -> dict:
+    """Serialize a user for the admin users list."""
+    return {
+        "tg_id": user.tg_id,
+        "first_name": user.first_name,
+        "username": user.username,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "server_name": user.server.name if user.server else None,
+        "is_trial_used": user.is_trial_used,
+    }
+
+
+def serialize_admin_transaction(tx: Transaction) -> dict:
+    """Serialize a transaction for admin user detail."""
+    return {
+        "id": tx.id,
+        "payment_id": tx.payment_id,
+        "subscription": tx.subscription,
+        "status": tx.status.value if tx.status else None,
+        "created_at": tx.created_at.isoformat() if tx.created_at else None,
+        "updated_at": tx.updated_at.isoformat() if tx.updated_at else None,
+    }
+
+
+def serialize_admin_user_detail(
+    user: User,
+    client_data: ClientData | None,
+    transactions: list[Transaction],
+) -> dict:
+    """Serialize full user detail for admin view."""
+    vpn_info = None
+    if client_data:
+        vpn_info = {
+            "active": not client_data.has_subscription_expired,
+            "expired": client_data.has_subscription_expired,
+            "max_devices": client_data._max_devices,
+            "traffic_total": client_data._traffic_total,
+            "traffic_used": client_data._traffic_used,
+            "expiry_time": client_data._expiry_time,
+        }
+
+    return {
+        "tg_id": user.tg_id,
+        "first_name": user.first_name,
+        "username": user.username,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "server_name": user.server.name if user.server else None,
+        "is_trial_used": user.is_trial_used,
+        "vpn": vpn_info,
+        "transactions": [serialize_admin_transaction(tx) for tx in transactions],
+    }
+
+
+def serialize_admin_server(server: Server) -> dict:
+    """Serialize a server for the admin servers list."""
+    return {
+        "id": server.id,
+        "name": server.name,
+        "host": server.host,
+        "location": server.location,
+        "online": server.online,
+        "max_clients": server.max_clients,
+        "current_clients": server.current_clients,
     }
