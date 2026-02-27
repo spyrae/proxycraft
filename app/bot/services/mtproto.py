@@ -85,8 +85,10 @@ class MTProtoService:
             if not sub or not sub.is_active:
                 return None
 
-        # FakeTLS prefix "ee" + secret, use t.me format for inline button compatibility
-        return f"https://t.me/proxy?server={self.host}&port={self.port}&secret=ee{sub.secret}"
+        # FakeTLS secret = "ee" + hex_secret + hex_encoded_domain
+        tls_domain_hex = "www.google.com".encode().hex()
+        secret = f"ee{sub.secret}{tls_domain_hex}"
+        return f"https://t.me/proxy?server={self.host}&port={self.port}&secret={secret}"
 
     async def is_active(self, user_tg_id: int) -> bool:
         """Check if user has an active, non-expired subscription."""
