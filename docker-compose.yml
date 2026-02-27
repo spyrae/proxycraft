@@ -16,7 +16,7 @@ services:
       - ./mtproto/config.py:/app/config.py
       - ./mtproto/mtprotoproxy.py:/app/mtprotoproxy.py
     working_dir: /app
-    command: python mtprotoproxy.py
+    command: sh -c "pip install --quiet cryptography && python mtprotoproxy.py"
     environment:
       - PYTHONUNBUFFERED=1
 
