@@ -5,6 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from app.bot.utils.constants import WEBAPP_URL
 from app.bot.utils.navigation import (
     NavAdminTools,
+    NavBundle,
     NavMTProto,
     NavProfile,
     NavReferral,
@@ -21,6 +22,7 @@ def main_menu_keyboard(
     is_referred_trial_available: bool = False,
     is_mtproto_enabled: bool = False,
     is_whatsapp_enabled: bool = False,
+    is_bundles_enabled: bool = False,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
@@ -60,6 +62,13 @@ def main_menu_keyboard(
             InlineKeyboardButton(
                 text=_("main_menu:button:whatsapp"),
                 callback_data=NavWhatsApp.MAIN,
+            )
+        )
+    if is_bundles_enabled:
+        builder.row(
+            InlineKeyboardButton(
+                text=_("main_menu:button:bundles"),
+                callback_data=NavBundle.MAIN,
             )
         )
 

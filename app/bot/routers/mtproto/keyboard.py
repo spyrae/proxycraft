@@ -52,6 +52,7 @@ def mtproto_main_keyboard(
 def mtproto_duration_keyboard(
     callback_data: MTProtoData,
     prices: dict[int, int],
+    catalog=None,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
@@ -67,9 +68,16 @@ def mtproto_duration_keyboard(
         callback_data.duration = duration_days
         callback_data.price = price_rub
         label = duration_labels.get(duration_days, f"{duration_days} days")
+
+        discount_badge = ""
+        if catalog:
+            discount = catalog.get_discount_percent(duration_days)
+            if discount > 0:
+                discount_badge = f"  -{discount}%"
+
         builder.row(
             InlineKeyboardButton(
-                text=f"{label} | {price_rub} \u20bd",
+                text=f"{label} | {price_rub} \u20bd{discount_badge}",
                 callback_data=callback_data.pack(),
             )
         )

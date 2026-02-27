@@ -4,9 +4,11 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from app.bot.models import ServicesContainer
 from app.config import Config
 
+from .bundle import BundleService
 from .invite_stats import InviteStatsService
 from .mtproto import MTProtoService
 from .notification import NotificationService
+from .product_catalog import ProductCatalog
 from .whatsapp import WhatsAppService
 from .payment_stats import PaymentStatsService
 from .plan import PlanService
@@ -31,6 +33,13 @@ async def initialize(
     invite_stats = InviteStatsService(session_factory=session, payment_stats_service=payment_stats)
     mtproto = MTProtoService(config=config, session_factory=session)
     whatsapp = WhatsAppService(config=config, session_factory=session)
+    product_catalog = ProductCatalog()
+    bundle_service = BundleService(
+        catalog=product_catalog,
+        mtproto=mtproto,
+        whatsapp=whatsapp,
+        vpn=vpn,
+    )
 
     if config.shop.WHATSAPP_ENABLED:
         await whatsapp.startup_sync()
@@ -46,4 +55,6 @@ async def initialize(
         invite_stats=invite_stats,
         mtproto=mtproto,
         whatsapp=whatsapp,
+        product_catalog=product_catalog,
+        bundle=bundle_service,
     )

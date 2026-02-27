@@ -1542,3 +1542,89 @@ msgstr "❌ Failed to activate trial. Please try later."
 msgid "whatsapp:popup:no_subscription"
 msgstr "❌ You don't have an active WhatsApp Proxy subscription."
 
+# --- Bundle translations ---
+
+#: app/bot/routers/main_menu/keyboard.py
+msgid "main_menu:button:bundles"
+msgstr "🎁 Bundles"
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:select"
+msgstr ""
+"🎁 <b>Bundles</b>\n"
+"\n"
+"Discounted service bundles.\n"
+"Choose the option that suits you:"
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:choose_duration"
+msgstr ""
+"{emoji} <b>{name}</b>\n"
+"\n"
+"{description}\n"
+"\n"
+"Choose subscription period:"
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:confirm_order"
+msgstr ""
+"📦 <b>Your order:</b>\n"
+"\n"
+"Plan: {name}\n"
+"Period: {duration}\n"
+"Price: {price_rub} ₽{discount}\n"
+"\n"
+"Choose payment method:"
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:pay"
+msgstr ""
+"⭐ <b>Telegram Stars Payment</b>\n"
+"\n"
+"Amount: <b>{amount} ★</b>\n"
+"Press the button to pay."
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:purchase_success"
+msgstr ""
+"✅ <b>Bundle «{name}» activated successfully!</b>\n"
+"\n"
+"All services are now available. Check via menu."
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:extend_success"
+msgstr ""
+"✅ <b>Bundle «{name}» extended for {duration}!</b>"
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:trial_success"
+msgstr ""
+"🎁 <b>Trial period for bundle «{name}» activated!</b>\n"
+"\n"
+"All services available for {duration}."
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:invoice:title"
+msgstr "{name} / {duration}"
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:invoice:description"
+msgstr "{name} subscription for {duration}"
+
+#: app/bot/routers/bundle/handler.py
+msgid "bundle:popup:trial_unavailable"
+msgstr "❌ Trial period has already been used."
+
+#: app/bot/routers/bundle/handler.py
+msgid "bundle:popup:trial_failed"
+msgstr "❌ Failed to activate trial. Please try later."
+

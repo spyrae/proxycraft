@@ -67,12 +67,7 @@ async def callback_mtproto_buy(
 ) -> None:
     logger.info(f"User {user.tg_id} started MTProto purchase.")
 
-    prices = {
-        30: config.shop.MTPROTO_PRICE_30,
-        90: config.shop.MTPROTO_PRICE_90,
-        180: config.shop.MTPROTO_PRICE_180,
-        365: config.shop.MTPROTO_PRICE_365,
-    }
+    prices = services.product_catalog.get_prices_rub("mtproto")
 
     callback_data.user_id = user.tg_id
     await callback.message.edit_text(
@@ -80,6 +75,7 @@ async def callback_mtproto_buy(
         reply_markup=mtproto_duration_keyboard(
             callback_data=callback_data,
             prices=prices,
+            catalog=services.product_catalog,
         ),
     )
 
@@ -94,12 +90,7 @@ async def callback_mtproto_extend(
 ) -> None:
     logger.info(f"User {user.tg_id} started MTProto extend.")
 
-    prices = {
-        30: config.shop.MTPROTO_PRICE_30,
-        90: config.shop.MTPROTO_PRICE_90,
-        180: config.shop.MTPROTO_PRICE_180,
-        365: config.shop.MTPROTO_PRICE_365,
-    }
+    prices = services.product_catalog.get_prices_rub("mtproto")
 
     callback_data.user_id = user.tg_id
     callback_data.is_extend = True
@@ -108,6 +99,7 @@ async def callback_mtproto_extend(
         reply_markup=mtproto_duration_keyboard(
             callback_data=callback_data,
             prices=prices,
+            catalog=services.product_catalog,
         ),
     )
 

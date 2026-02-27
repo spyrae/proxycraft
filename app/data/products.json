@@ -1,0 +1,57 @@
+{
+  "products": {
+    "mtproto": {
+      "name": "Telegram Proxy",
+      "emoji": "\ud83d\udcf1",
+      "description": "\u0414\u043e\u0441\u0442\u0443\u043f \u043a Telegram \u0431\u0435\u0437 \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u0439",
+      "base_price": 4900,
+      "trial_days": 3,
+      "is_bundle": false,
+      "includes": []
+    },
+    "socks5": {
+      "name": "WhatsApp Proxy",
+      "emoji": "\ud83d\udcac",
+      "description": "\u0417\u0432\u043e\u043d\u043a\u0438 \u0438 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u044f \u0432 WhatsApp",
+      "base_price": 6900,
+      "trial_days": 3,
+      "is_bundle": false,
+      "includes": []
+    },
+    "vpn": {
+      "name": "Full VPN",
+      "emoji": "\ud83d\udee1",
+      "description": "\u041f\u043e\u043b\u043d\u0430\u044f \u0437\u0430\u0449\u0438\u0442\u0430 \u0432\u0441\u0435\u0433\u043e \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430",
+      "base_price": 24900,
+      "trial_days": 7,
+      "is_bundle": false,
+      "includes": []
+    },
+    "bundle_msg": {
+      "name": "\u041c\u0435\u0441\u0441\u0435\u043d\u0434\u0436\u0435\u0440\u044b",
+      "emoji": "\ud83d\udcac\ud83d\udcf1",
+      "description": "Telegram + WhatsApp \u0432\u043c\u0435\u0441\u0442\u0435",
+      "base_price": 9900,
+      "trial_days": 3,
+      "is_bundle": true,
+      "includes": ["mtproto", "socks5"]
+    },
+    "bundle_all": {
+      "name": "\u0412\u0441\u0451 \u0432\u043a\u043b\u044e\u0447\u0435\u043d\u043e",
+      "emoji": "\ud83d\ude80",
+      "description": "VPN + Telegram + WhatsApp",
+      "base_price": 27900,
+      "trial_days": 7,
+      "is_bundle": true,
+      "includes": ["vpn", "mtproto", "socks5"]
+    }
+  },
+  "durations": [30, 90, 180, 365],
+  "discounts": {
+    "30": 0,
+    "90": 0.13,
+    "180": 0.20,
+    "365": 0.33
+  },
+  "stars_rate": 1.8
+}

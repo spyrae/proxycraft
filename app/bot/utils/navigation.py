@@ -74,6 +74,16 @@ class NavWhatsApp(str, Enum):
     PAY_TELEGRAM_STARS = f"{PAY}_telegram_stars"
 
 
+class NavBundle(str, Enum):
+    # Short values to stay within aiogram's 64-byte callback_data limit
+    MAIN = "bundle"
+    SELECT = "bndl_s"
+    DURATION = "bndl_d"
+    GET_TRIAL = "bndl_t"
+    PAY = "bndl_p"
+    PAY_TELEGRAM_STARS = "bndl_stars"
+
+
 class NavAdminTools(str, Enum):
     MAIN = "admin_tools"
     TEST = "test"

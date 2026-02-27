@@ -5,6 +5,7 @@ from app.bot.utils.constants import CONNECTION_WEBHOOK
 
 from . import (
     admin_tools,
+    bundle,
     download,
     main_menu,
     misc,
@@ -29,6 +30,7 @@ def include(app: Application, dispatcher: Dispatcher) -> None:
         download.handler.router,
         mtproto.handler.router,
         whatsapp.handler.router,
+        bundle.handler.router,
         subscription.subscription_handler.router,
         subscription.payment_handler.router,
         subscription.promocode_handler.router,

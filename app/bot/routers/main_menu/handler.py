@@ -108,6 +108,7 @@ async def command_main_menu(
             is_referred_trial_available=await services.referral.is_referred_trial_available(user),
             is_mtproto_enabled=config.shop.MTPROTO_ENABLED,
             is_whatsapp_enabled=config.shop.WHATSAPP_ENABLED,
+            is_bundles_enabled=config.shop.MTPROTO_ENABLED and config.shop.WHATSAPP_ENABLED,
         ),
     )
     await state.update_data({MAIN_MESSAGE_ID_KEY: main_menu.message_id})
@@ -134,6 +135,7 @@ async def callback_main_menu(
             is_referred_trial_available=await services.referral.is_referred_trial_available(user),
             is_mtproto_enabled=config.shop.MTPROTO_ENABLED,
             is_whatsapp_enabled=config.shop.WHATSAPP_ENABLED,
+            is_bundles_enabled=config.shop.MTPROTO_ENABLED and config.shop.WHATSAPP_ENABLED,
         ),
     )
 
@@ -170,7 +172,8 @@ async def redirect_to_main_menu(
                     user
                 ),
                 is_mtproto_enabled=config.shop.MTPROTO_ENABLED,
-            is_whatsapp_enabled=config.shop.WHATSAPP_ENABLED,
+                is_whatsapp_enabled=config.shop.WHATSAPP_ENABLED,
+                is_bundles_enabled=config.shop.MTPROTO_ENABLED and config.shop.WHATSAPP_ENABLED,
             ),
         )
     except Exception as exception:

@@ -145,6 +145,34 @@ def serialize_whatsapp_subscription(
     }
 
 
+def serialize_bundle_plans(catalog) -> list[dict]:
+    """Serialize bundle products with all duration prices."""
+    from app.bot.services.product_catalog import ProductCatalog
+
+    result = []
+    for bundle in catalog.get_bundles():
+        durations = []
+        for d in catalog.get_durations():
+            durations.append({
+                "duration": d,
+                "price_rub": catalog.calculate_price_rub(bundle.slug, d),
+                "price_stars": catalog.calculate_price_stars(bundle.slug, d),
+                "discount_percent": catalog.get_discount_percent(d),
+            })
+
+        result.append({
+            "slug": bundle.slug,
+            "name": bundle.name,
+            "emoji": bundle.emoji,
+            "description": bundle.description,
+            "trial_days": bundle.trial_days,
+            "includes": bundle.includes,
+            "durations": durations,
+        })
+
+    return result
+
+
 # ---------- Admin serializers ----------
 
 

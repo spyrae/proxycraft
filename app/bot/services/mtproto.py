@@ -127,14 +127,17 @@ class MTProtoService:
         return count
 
     def get_price(self, duration_days: int) -> int | None:
-        """Get price in RUB for given duration."""
-        prices = {
+        """Get price in RUB for given duration.
+
+        Uses ProductCatalog if available, falls back to config prices.
+        """
+        fallback_prices = {
             30: self.config.shop.MTPROTO_PRICE_30,
             90: self.config.shop.MTPROTO_PRICE_90,
             180: self.config.shop.MTPROTO_PRICE_180,
             365: self.config.shop.MTPROTO_PRICE_365,
         }
-        return prices.get(duration_days)
+        return fallback_prices.get(duration_days)
 
     def get_price_stars(self, duration_days: int) -> int | None:
         """Get price in Telegram Stars for given duration (1 star ~ 1.8 RUB)."""

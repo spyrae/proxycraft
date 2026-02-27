@@ -1558,3 +1558,89 @@ msgstr[0] "1 месяц"
 msgstr[1] "{} месяца"
 msgstr[2] "{} месяцев"
 
+# --- Bundle translations ---
+
+#: app/bot/routers/main_menu/keyboard.py
+msgid "main_menu:button:bundles"
+msgstr "🎁 Бандлы"
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:select"
+msgstr ""
+"🎁 <b>Бандлы</b>\n"
+"\n"
+"Выгодные комплекты услуг со скидкой.\n"
+"Выберите подходящий вариант:"
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:choose_duration"
+msgstr ""
+"{emoji} <b>{name}</b>\n"
+"\n"
+"{description}\n"
+"\n"
+"Выберите срок подписки:"
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:confirm_order"
+msgstr ""
+"📦 <b>Ваш заказ:</b>\n"
+"\n"
+"Тариф: {name}\n"
+"Период: {duration}\n"
+"Стоимость: {price_rub} ₽{discount}\n"
+"\n"
+"Выберите способ оплаты:"
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:pay"
+msgstr ""
+"⭐ <b>Оплата Telegram Stars</b>\n"
+"\n"
+"К оплате: <b>{amount} ★</b>\n"
+"Нажмите кнопку для оплаты."
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:purchase_success"
+msgstr ""
+"✅ <b>Бандл «{name}» успешно активирован!</b>\n"
+"\n"
+"Все сервисы уже доступны. Проверьте через меню."
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:extend_success"
+msgstr ""
+"✅ <b>Бандл «{name}» продлён на {duration}!</b>"
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:message:trial_success"
+msgstr ""
+"🎁 <b>Пробный период бандла «{name}» активирован!</b>\n"
+"\n"
+"Все сервисы доступны на {duration}."
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:invoice:title"
+msgstr "{name} / {duration}"
+
+#: app/bot/routers/bundle/handler.py
+#, python-brace-format
+msgid "bundle:invoice:description"
+msgstr "Подписка {name} на {duration}"
+
+#: app/bot/routers/bundle/handler.py
+msgid "bundle:popup:trial_unavailable"
+msgstr "❌ Пробный период уже был использован."
+
+#: app/bot/routers/bundle/handler.py
+msgid "bundle:popup:trial_failed"
+msgstr "❌ Не удалось активировать пробный период. Попробуйте позже."
+

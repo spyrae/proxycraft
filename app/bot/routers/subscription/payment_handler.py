@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.bot.filters.is_dev import IsDev
 from app.bot.models import ServicesContainer, SubscriptionData
 from app.bot.payment_gateways import GatewayFactory
+from app.bot.routers.bundle.keyboard import bundle_success_keyboard
 from app.bot.utils.constants import TransactionStatus
 from app.bot.utils.formatting import format_subscription_period
 from app.bot.utils.navigation import NavSubscription
@@ -102,6 +103,63 @@ async def successful_payment(
         )
 
     payload = message.successful_payment.invoice_payload
+
+    # Bundle payment — payload format: "bundle:{slug}:{duration}:{is_extend}"
+    if payload.startswith("bundle:"):
+        parts = payload.split(":")
+        slug = parts[1]
+        duration_days = int(parts[2])
+        is_extend = parts[3] == "True"
+
+        transaction = await Transaction.create(
+            session=session,
+            tg_id=user.tg_id,
+            subscription=payload,
+            payment_id=message.successful_payment.telegram_payment_charge_id,
+            status=TransactionStatus.COMPLETED,
+        )
+
+        if is_extend:
+            results = await services.bundle.extend(
+                slug=slug, user_tg_id=user.tg_id, user=user, duration=duration_days
+            )
+        else:
+            results = await services.bundle.activate(
+                slug=slug, user_tg_id=user.tg_id, user=user, duration=duration_days
+            )
+
+        period = format_subscription_period(duration_days)
+        product = services.product_catalog.get_product(slug)
+        product_name = product.name if product else slug
+
+        # Check for partial failures
+        all_success = all(r.get("success", False) for r in results.values())
+        if not all_success:
+            failed = [k for k, v in results.items() if not v.get("success")]
+            logger.error(
+                f"Bundle partial failure for user {user.tg_id}: "
+                f"slug={slug}, failed={failed}, results={results}"
+            )
+
+        if is_extend:
+            await services.notification.notify_by_id(
+                chat_id=user.tg_id,
+                text=_("bundle:message:extend_success").format(
+                    name=product_name, duration=period
+                ),
+            )
+        else:
+            await services.notification.notify_by_id(
+                chat_id=user.tg_id,
+                text=_("bundle:message:purchase_success").format(name=product_name),
+                reply_markup=bundle_success_keyboard(),
+            )
+
+        logger.info(
+            f"Bundle payment {'partially ' if not all_success else ''}succeeded "
+            f"for user {user.tg_id}, slug={slug}, duration={duration_days}d"
+        )
+        return
 
     # MTProto payment — payload format: "mtproto:{user_tg_id}:{duration}:{is_extend}"
     if payload.startswith("mtproto:"):

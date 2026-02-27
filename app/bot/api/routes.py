@@ -18,6 +18,7 @@ from app.bot.api.serializers import (
     serialize_admin_server,
     serialize_admin_user,
     serialize_admin_user_detail,
+    serialize_bundle_plans,
     serialize_mtproto_plans,
     serialize_mtproto_subscription,
     serialize_plans,
@@ -218,6 +219,19 @@ async def handle_payment_invoice(request: Request) -> Response:
         description = f"WhatsApp proxy subscription for {duration} days"
         product_type = "whatsapp"
 
+    elif product.startswith("bundle_"):
+        if not (config.shop.MTPROTO_ENABLED and config.shop.WHATSAPP_ENABLED):
+            return web.json_response({"error": "Bundles require MTProto and WhatsApp"}, status=404)
+        catalog = services.product_catalog
+        bundle_product = catalog.get_product(product)
+        if not bundle_product or not bundle_product.is_bundle:
+            return web.json_response({"error": "Invalid bundle"}, status=400)
+        amount = catalog.calculate_price_stars(product, duration)
+        devices = 1
+        title = f"{bundle_product.name} / {duration} days"
+        description = f"{bundle_product.description} for {duration} days"
+        product_type = product
+
     else:
         return web.json_response({"error": "Invalid product type"}, status=400)
 
@@ -332,6 +346,64 @@ async def handle_trial_whatsapp(request: Request) -> Response:
         "host": config.shop.WHATSAPP_HOST,
         "port": port,
     })
+
+
+async def handle_plans_bundles(request: Request) -> Response:
+    """GET /api/v1/plans/bundles — Bundle products with pricing."""
+    config = _config(request)
+    services = _services(request)
+
+    if not (config.shop.MTPROTO_ENABLED and config.shop.WHATSAPP_ENABLED):
+        return web.json_response({"error": "Bundles require MTProto and WhatsApp enabled"}, status=404)
+
+    return web.json_response({"plans": serialize_bundle_plans(services.product_catalog)})
+
+
+async def handle_trial_bundle(request: Request) -> Response:
+    """POST /api/v1/trial/bundle — Activate bundle trial.
+
+    Body: {"slug": "bundle_msg"}
+    """
+    user = request["user"]
+    tg_id = request["tg_id"]
+    config = _config(request)
+    services = _services(request)
+
+    if not (config.shop.MTPROTO_ENABLED and config.shop.WHATSAPP_ENABLED):
+        return web.json_response({"error": "Bundles require MTProto and WhatsApp enabled"}, status=404)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    slug = body.get("slug", "bundle_msg")
+    product = services.product_catalog.get_product(slug)
+    if not product or not product.is_bundle:
+        return web.json_response({"error": "Invalid bundle slug"}, status=400)
+
+    # Check trial availability for all components
+    for component in product.includes:
+        if component == "mtproto":
+            if not await services.mtproto.is_trial_available(tg_id):
+                return web.json_response({"error": "Trial not available"}, status=400)
+        elif component == "socks5":
+            if not await services.whatsapp.is_trial_available(tg_id):
+                return web.json_response({"error": "Trial not available"}, status=400)
+
+    results = await services.bundle.activate(
+        slug=slug,
+        user_tg_id=tg_id,
+        user=user,
+        duration=product.trial_days,
+        is_trial=True,
+    )
+
+    all_success = all(r.get("success", False) for r in results.values())
+    if not all_success:
+        return web.json_response({"error": "Failed to activate bundle trial", "details": results}, status=500)
+
+    return web.json_response({"success": True, "slug": slug, "trial_days": product.trial_days})
 
 
 # ---------- Admin endpoints ----------
@@ -536,6 +608,8 @@ def register_routes(app: Application) -> None:
     app.router.add_post("/api/v1/trial/vpn", handle_trial_vpn)
     app.router.add_post("/api/v1/trial/mtproto", handle_trial_mtproto)
     app.router.add_post("/api/v1/trial/whatsapp", handle_trial_whatsapp)
+    app.router.add_get("/api/v1/plans/bundles", handle_plans_bundles)
+    app.router.add_post("/api/v1/trial/bundle", handle_trial_bundle)
 
     # Admin endpoints
     app.router.add_post("/api/v1/admin/auth", handle_admin_auth)
