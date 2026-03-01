@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from .product_catalog import ProductCatalog
     from .server_pool import ServerPoolService
 
 import logging
@@ -29,10 +30,12 @@ class VPNService:
         config: Config,
         session: async_sessionmaker,
         server_pool_service: ServerPoolService,
+        catalog: ProductCatalog | None = None,
     ) -> None:
         self.config = config
         self.session = session
         self.server_pool_service = server_pool_service
+        self.catalog = catalog
         logger.info("VPN Service initialized.")
 
     async def is_client_exists(self, user: User) -> Client | None:
@@ -151,6 +154,12 @@ class VPNService:
             return False
 
         client_flow = flow if flow is not None else self.config.xui.CLIENT_FLOW
+        operator_remark = None
+        if user.operator and self.catalog:
+            operator_remark = self.catalog.get_operator_inbound_remark(user.operator)
+            operator_flow = self.catalog.get_operator_client_flow(user.operator)
+            if operator_flow is not None:
+                client_flow = operator_flow
 
         new_client = Client(
             email=str(user.tg_id),
@@ -162,7 +171,7 @@ class VPNService:
             sub_id=user.vpn_id,
             total_gb=total_gb,
         )
-        inbound_id = await self.server_pool_service.get_inbound_id(connection.api)
+        inbound_id = await self.server_pool_service.get_inbound_id(connection.api, remark=operator_remark)
 
         try:
             await connection.api.client.add(inbound_id=inbound_id, clients=[new_client])
@@ -263,6 +272,70 @@ class VPNService:
                 return True
 
         return False
+
+    async def change_operator(self, user: User, new_operator: str) -> bool:
+        """Move client from current inbound to operator-specific inbound."""
+        connection = await self.server_pool_service.get_connection(user)
+        if not connection:
+            return False
+
+        client_data = await self.get_client_data(user)
+        if not client_data:
+            return False
+
+        # Find current inbound
+        old_remark = None
+        if user.operator and self.catalog:
+            old_remark = self.catalog.get_operator_inbound_remark(user.operator)
+        old_inbound_id = await self.server_pool_service.get_inbound_id(
+            connection.api, remark=old_remark
+        )
+
+        # Find new inbound
+        new_remark = None
+        if self.catalog:
+            new_remark = self.catalog.get_operator_inbound_remark(new_operator)
+        new_inbound_id = await self.server_pool_service.get_inbound_id(
+            connection.api, remark=new_remark
+        )
+
+        if old_inbound_id == new_inbound_id:
+            return True  # already in correct inbound
+
+        try:
+            # Delete from old inbound
+            await connection.api.client.delete(old_inbound_id, user.vpn_id)
+
+            # Get current limit_ip from client_data
+            limit_ip = client_data._max_devices if client_data._max_devices != -1 else 0
+
+            # Resolve client_flow for the new operator
+            new_flow = self.config.xui.CLIENT_FLOW
+            if self.catalog:
+                operator_flow = self.catalog.get_operator_client_flow(new_operator)
+                if operator_flow is not None:
+                    new_flow = operator_flow
+
+            # Create in new inbound with same settings
+            new_client = Client(
+                email=str(user.tg_id),
+                enable=True,
+                id=user.vpn_id,
+                expiry_time=client_data._expiry_time,
+                flow=new_flow,
+                limit_ip=limit_ip,
+                sub_id=user.vpn_id,
+                total_gb=0,
+            )
+            await connection.api.client.add(inbound_id=new_inbound_id, clients=[new_client])
+            logger.info(
+                f"User {user.tg_id} moved from inbound {old_inbound_id} to {new_inbound_id} "
+                f"(operator: {user.operator} -> {new_operator})"
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Failed to change operator for user {user.tg_id}: {e}")
+            return False
 
     async def activate_promocode(self, user: User, promocode: Promocode) -> bool:
         # TODO: consider moving to some 'promocode module services' with usage of vpn-service methods.

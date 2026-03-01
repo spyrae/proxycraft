@@ -1110,6 +1110,26 @@ msgstr "❌ Trial is not available for you now."
 msgid "subscription:popup:trial_activate_failed"
 msgstr "❌ Failed to activate trial period. Please, try later."
 
+#: app/bot/routers/subscription/subscription_handler.py
+msgid "subscription:message:operator"
+msgstr ""
+"📡 <b>Select your mobile operator:</b>\n"
+"\n"
+"This is needed to optimize your VPN connection.\n"
+"If you're using WiFi or your operator is not listed — choose «Other»."
+
+#: app/bot/routers/subscription/subscription_handler.py
+msgid "subscription:popup:operator_changed"
+msgstr "✅ Operator changed. Configuration updated."
+
+#: app/bot/routers/subscription/subscription_handler.py
+msgid "subscription:popup:operator_change_failed"
+msgstr "❌ Failed to change operator. Please try later."
+
+#: app/bot/routers/subscription/keyboard.py
+msgid "subscription:button:change_operator"
+msgstr "📡 Change operator"
+
 #: app/bot/routers/support/handler.py:21
 msgid "support:message:main"
 msgstr ""

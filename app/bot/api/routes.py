@@ -21,6 +21,7 @@ from app.bot.api.serializers import (
     serialize_bundle_plans,
     serialize_mtproto_plans,
     serialize_mtproto_subscription,
+    serialize_operators,
     serialize_vpn_products,
     serialize_user,
     serialize_vpn_subscription,
@@ -91,6 +92,13 @@ async def handle_me(request: Request) -> Response:
     data["is_admin"] = await IsAdmin()(user_id=tg_id)
 
     return web.json_response(data)
+
+
+async def handle_operators(request: Request) -> Response:
+    """GET /api/v1/operators — Available mobile operators."""
+    services = _services(request)
+    operators = services.product_catalog.get_operators()
+    return web.json_response({"operators": serialize_operators(operators)})
 
 
 async def handle_plans(request: Request) -> Response:
@@ -599,6 +607,7 @@ async def handle_admin_servers(request: Request) -> Response:
 def register_routes(app: Application) -> None:
     """Register all API v1 routes."""
     app.router.add_get("/api/v1/me", handle_me)
+    app.router.add_get("/api/v1/operators", handle_operators)
     app.router.add_get("/api/v1/plans", handle_plans)
     app.router.add_get("/api/v1/plans/mtproto", handle_plans_mtproto)
     app.router.add_get("/api/v1/plans/whatsapp", handle_plans_whatsapp)

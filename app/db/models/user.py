@@ -70,6 +70,7 @@ class User(Base):
         uselist=False,
     )
     source_invite_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    operator: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
 
     def __repr__(self) -> str:
         return (

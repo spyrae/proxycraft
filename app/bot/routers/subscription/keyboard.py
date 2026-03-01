@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.bot.services.product_catalog import Product, ProductCatalog
+    from app.bot.services.product_catalog import Operator, Product, ProductCatalog
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.i18n import gettext as _
@@ -31,6 +31,7 @@ def change_subscription_button() -> InlineKeyboardButton:
 def subscription_keyboard(
     has_subscription: bool,
     callback_data: SubscriptionData,
+    has_operators: bool = False,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
@@ -50,6 +51,12 @@ def subscription_keyboard(
             text=_("subscription:button:change"),
             callback_data=callback_data,
         )
+        if has_operators:
+            callback_data.state = NavSubscription.CHANGE_OPERATOR
+            builder.button(
+                text=_("subscription:button:change_operator"),
+                callback_data=callback_data,
+            )
 
     builder.button(
         text=_("subscription:button:activate_promocode"),
@@ -186,6 +193,47 @@ def trial_success_keyboard() -> InlineKeyboardMarkup:
         )
     )
 
+    builder.row(back_to_main_menu_button())
+    return builder.as_markup()
+
+
+def operator_keyboard(operators: list[Operator]) -> InlineKeyboardMarkup:
+    """Keyboard for selecting mobile operator during subscription purchase."""
+    builder = InlineKeyboardBuilder()
+    for op in operators:
+        builder.button(
+            text=f"{op.emoji} {op.name}",
+            callback_data=f"set_operator:{op.slug}",
+        )
+    builder.adjust(1)
+    builder.row(back_button(NavSubscription.MAIN))
+    builder.row(back_to_main_menu_button())
+    return builder.as_markup()
+
+
+def trial_operator_keyboard(operators: list[Operator]) -> InlineKeyboardMarkup:
+    """Keyboard for selecting mobile operator during trial activation."""
+    builder = InlineKeyboardBuilder()
+    for op in operators:
+        builder.button(
+            text=f"{op.emoji} {op.name}",
+            callback_data=f"trial_operator:{op.slug}",
+        )
+    builder.adjust(1)
+    builder.row(back_to_main_menu_button())
+    return builder.as_markup()
+
+
+def change_operator_keyboard(operators: list[Operator]) -> InlineKeyboardMarkup:
+    """Keyboard for changing operator for existing subscribers."""
+    builder = InlineKeyboardBuilder()
+    for op in operators:
+        builder.button(
+            text=f"{op.emoji} {op.name}",
+            callback_data=f"change_op:{op.slug}",
+        )
+    builder.adjust(1)
+    builder.row(back_button(NavSubscription.MAIN))
     builder.row(back_to_main_menu_button())
     return builder.as_markup()
 

@@ -37,10 +37,12 @@ class NavSubscription(str, Enum):
     CHANGE = "change"
     EXTEND = "extend"
     PROCESS = "process"
+    OPERATOR = "operator"
     DEVICES = "devices"
     DURATION = "duration"
     PROMOCODE = "promocode"
     GET_TRIAL = "get_trial"
+    CHANGE_OPERATOR = "change_op"
 
     PAY = "pay"
     PAY_YOOKASSA = f"{PAY}_yookassa"

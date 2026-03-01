@@ -13,8 +13,10 @@ from app.config import Config
 from app.db.models import User
 
 from .keyboard import (
+    change_operator_keyboard,
     devices_keyboard,
     duration_keyboard,
+    operator_keyboard,
     payment_method_keyboard,
     subscription_keyboard,
 )
@@ -27,6 +29,7 @@ async def show_subscription(
     callback: CallbackQuery,
     client_data: ClientData | None,
     callback_data: SubscriptionData,
+    has_operators: bool = False,
 ) -> None:
     if client_data:
 
@@ -45,6 +48,7 @@ async def show_subscription(
         reply_markup=subscription_keyboard(
             has_subscription=client_data,
             callback_data=callback_data,
+            has_operators=has_operators,
         ),
     )
 
@@ -70,7 +74,13 @@ async def callback_subscription(
             return
 
     callback_data = SubscriptionData(state=NavSubscription.PROCESS, user_id=user.tg_id)
-    await show_subscription(callback=callback, client_data=client_data, callback_data=callback_data)
+    has_operators = bool(services.product_catalog.get_operators())
+    await show_subscription(
+        callback=callback,
+        client_data=client_data,
+        callback_data=callback_data,
+        has_operators=has_operators,
+    )
 
 
 @router.callback_query(SubscriptionData.filter(F.state == NavSubscription.EXTEND))
@@ -127,6 +137,7 @@ async def callback_subscription_process(
     user: User,
     session: AsyncSession,
     callback_data: SubscriptionData,
+    state: FSMContext,
     services: ServicesContainer,
 ) -> None:
     logger.info(f"User {user.tg_id} started subscription process.")
@@ -140,7 +151,44 @@ async def callback_subscription_process(
         )
         return
 
+    # Save callback_data in FSM for use after operator selection
+    await state.update_data(sub_callback=callback_data.pack())
+
+    # Show operator selection
+    operators = services.product_catalog.get_operators()
+    if operators:
+        await callback.message.edit_text(
+            text=_("subscription:message:operator"),
+            reply_markup=operator_keyboard(operators),
+        )
+    else:
+        # No operators configured — skip to devices
+        callback_data.state = NavSubscription.DEVICES
+        await callback.message.edit_text(
+            text=_("subscription:message:devices"),
+            reply_markup=devices_keyboard(services.product_catalog.get_vpn_products(), callback_data),
+        )
+
+
+@router.callback_query(F.data.startswith("set_operator:"))
+async def callback_operator_selected(
+    callback: CallbackQuery,
+    user: User,
+    session: AsyncSession,
+    state: FSMContext,
+    services: ServicesContainer,
+) -> None:
+    operator_slug = callback.data.split(":")[1]
+    logger.info(f"User {user.tg_id} selected operator: {operator_slug}")
+
+    # Save operator to User
+    await User.update(session=session, tg_id=user.tg_id, operator=operator_slug)
+
+    # Restore callback_data from FSM
+    fsm_data = await state.get_data()
+    callback_data = SubscriptionData.unpack(fsm_data["sub_callback"])
     callback_data.state = NavSubscription.DEVICES
+
     await callback.message.edit_text(
         text=_("subscription:message:devices"),
         reply_markup=devices_keyboard(services.product_catalog.get_vpn_products(), callback_data),
@@ -185,4 +233,52 @@ async def callback_duration_selected(
             callback_data=callback_data,
             gateways=gateway_factory.get_gateways(),
         ),
+    )
+
+
+@router.callback_query(SubscriptionData.filter(F.state == NavSubscription.CHANGE_OPERATOR))
+async def callback_change_operator(
+    callback: CallbackQuery,
+    user: User,
+    services: ServicesContainer,
+) -> None:
+    logger.info(f"User {user.tg_id} wants to change operator.")
+    await callback.message.edit_text(
+        text=_("subscription:message:operator"),
+        reply_markup=change_operator_keyboard(services.product_catalog.get_operators()),
+    )
+
+
+@router.callback_query(F.data.startswith("change_op:"))
+async def callback_change_operator_selected(
+    callback: CallbackQuery,
+    user: User,
+    session: AsyncSession,
+    services: ServicesContainer,
+) -> None:
+    new_operator = callback.data.split(":")[1]
+    logger.info(f"User {user.tg_id} changing operator to: {new_operator}")
+
+    success = await services.vpn.change_operator(user, new_operator)
+    if success:
+        await User.update(session=session, tg_id=user.tg_id, operator=new_operator)
+        await services.notification.show_popup(
+            callback=callback,
+            text=_("subscription:popup:operator_changed"),
+        )
+    else:
+        await services.notification.show_popup(
+            callback=callback,
+            text=_("subscription:popup:operator_change_failed"),
+        )
+
+    # Return to subscription page
+    client_data = await services.vpn.get_client_data(user)
+    callback_data = SubscriptionData(state=NavSubscription.PROCESS, user_id=user.tg_id)
+    has_operators = bool(services.product_catalog.get_operators())
+    await show_subscription(
+        callback=callback,
+        client_data=client_data,
+        callback_data=callback_data,
+        has_operators=has_operators,
     )

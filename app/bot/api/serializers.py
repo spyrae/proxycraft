@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.bot.models import ClientData
-    from app.bot.services.product_catalog import Product
+    from app.bot.services.product_catalog import Operator, Product
     from app.db.models import MTProtoSubscription, Server, Transaction, User, WhatsAppSubscription
 
 
@@ -24,6 +24,7 @@ def serialize_user(
         "tg_id": user.tg_id,
         "first_name": user.first_name,
         "username": user.username,
+        "operator": user.operator,
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "subscriptions": {
             "vpn": {
@@ -177,6 +178,19 @@ def serialize_bundle_plans(catalog) -> list[dict]:
     return result
 
 
+def serialize_operator(operator: Operator) -> dict:
+    return {
+        "slug": operator.slug,
+        "name": operator.name,
+        "emoji": operator.emoji,
+        "order": operator.order,
+    }
+
+
+def serialize_operators(operators: list[Operator]) -> list[dict]:
+    return [serialize_operator(op) for op in operators]
+
+
 # ---------- Admin serializers ----------
 
 
@@ -186,6 +200,7 @@ def serialize_admin_user(user: User) -> dict:
         "tg_id": user.tg_id,
         "first_name": user.first_name,
         "username": user.username,
+        "operator": user.operator,
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "server_name": user.server.name if user.server else None,
         "is_trial_used": user.is_trial_used,

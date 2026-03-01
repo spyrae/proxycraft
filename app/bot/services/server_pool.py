@@ -60,20 +60,20 @@ class ServerPoolService:
         await self._add_server(server)
         logger.info(f"Server {server.name} reinitialized successfully.")
 
-    async def get_inbound_id(self, api: AsyncApi) -> int | None:
+    async def get_inbound_id(self, api: AsyncApi, remark: str | None = None) -> int | None:
         try:
             inbounds = await api.inbound.get_list()
         except Exception as exception:
             logger.error(f"Failed to fetch inbounds: {exception}")
             return None
 
-        remark = self.config.xui.INBOUND_REMARK
-        if remark:
+        target_remark = remark or self.config.xui.INBOUND_REMARK
+        if target_remark:
             for inbound in inbounds:
-                if inbound.remark == remark:
-                    logger.debug(f"Found inbound by remark '{remark}': id={inbound.id}")
+                if inbound.remark == target_remark:
+                    logger.debug(f"Found inbound by remark '{target_remark}': id={inbound.id}")
                     return inbound.id
-            logger.warning(f"Inbound with remark '{remark}' not found, falling back to first.")
+            logger.warning(f"Inbound with remark '{target_remark}' not found, falling back to first.")
 
         return inbounds[0].id
 

@@ -9,6 +9,17 @@ from app.config import DEFAULT_DATA_DIR
 logger = logging.getLogger(__name__)
 
 DEFAULT_PRODUCTS_PATH = DEFAULT_DATA_DIR / "products.json"
+DEFAULT_OPERATORS_PATH = DEFAULT_DATA_DIR / "operators.json"
+
+
+@dataclass
+class Operator:
+    slug: str
+    name: str
+    emoji: str
+    inbound_remark: str
+    order: int
+    client_flow: str = ""
 
 
 @dataclass
@@ -73,9 +84,32 @@ class ProductCatalog:
         }
         self._stars_rate: float = data.get("stars_rate", 1.8)
 
+        # --- Load operators ---
+        self._operators: dict[str, Operator] = {}
+        operators_path = DEFAULT_OPERATORS_PATH
+        if operators_path.is_file():
+            try:
+                with open(operators_path, "r") as f:
+                    operators_data = json.load(f)
+                for info in operators_data.get("operators", []):
+                    op = Operator(
+                        slug=info["slug"],
+                        name=info["name"],
+                        emoji=info.get("emoji", ""),
+                        inbound_remark=info["inbound_remark"],
+                        order=info.get("order", 0),
+                        client_flow=info.get("client_flow", ""),
+                    )
+                    self._operators[op.slug] = op
+            except (json.JSONDecodeError, KeyError) as e:
+                logger.error(f"Failed to parse operators file: {e}")
+        else:
+            logger.warning(f"Operators file '{operators_path}' not found, operator selection disabled.")
+
         logger.info(
             f"ProductCatalog loaded: {len(self._products)} products, "
-            f"{len(self._durations)} durations, stars_rate={self._stars_rate}"
+            f"{len(self._durations)} durations, {len(self._operators)} operators, "
+            f"stars_rate={self._stars_rate}"
         )
 
     # --- General product access ---
@@ -168,3 +202,20 @@ class ProductCatalog:
     @property
     def stars_rate(self) -> float:
         return self._stars_rate
+
+    # --- Operator access ---
+
+    def get_operators(self) -> list[Operator]:
+        """All operators, sorted by order."""
+        return sorted(self._operators.values(), key=lambda o: o.order)
+
+    def get_operator(self, slug: str) -> Operator | None:
+        return self._operators.get(slug)
+
+    def get_operator_inbound_remark(self, slug: str) -> str | None:
+        op = self._operators.get(slug)
+        return op.inbound_remark if op else None
+
+    def get_operator_client_flow(self, slug: str) -> str | None:
+        op = self._operators.get(slug)
+        return op.client_flow if op else None

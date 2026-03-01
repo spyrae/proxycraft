@@ -23,7 +23,8 @@ async def initialize(
     bot: Bot,
 ) -> ServicesContainer:
     server_pool = ServerPoolService(config=config, session=session)
-    vpn = VPNService(config=config, session=session, server_pool_service=server_pool)
+    product_catalog = ProductCatalog()
+    vpn = VPNService(config=config, session=session, server_pool_service=server_pool, catalog=product_catalog)
     notification = NotificationService(config=config, bot=bot)
     referral = ReferralService(config=config, session_factory=session, vpn_service=vpn)
     subscription = SubscriptionService(config=config, session_factory=session, vpn_service=vpn)
@@ -31,7 +32,6 @@ async def initialize(
     invite_stats = InviteStatsService(session_factory=session, payment_stats_service=payment_stats)
     mtproto = MTProtoService(config=config, session_factory=session)
     whatsapp = WhatsAppService(config=config, session_factory=session)
-    product_catalog = ProductCatalog()
     bundle_service = BundleService(
         catalog=product_catalog,
         mtproto=mtproto,

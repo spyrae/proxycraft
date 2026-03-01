@@ -1,0 +1,44 @@
+{
+  "operators": [
+    {
+      "slug": "universal",
+      "name": "Другой / WiFi",
+      "emoji": "🌐",
+      "inbound_remark": "universal",
+      "client_flow": "",
+      "order": 0
+    },
+    {
+      "slug": "t2",
+      "name": "Т2 / Yota / Тинькофф",
+      "emoji": "💛",
+      "inbound_remark": "t2-yota",
+      "client_flow": "xtls-rprx-vision",
+      "order": 1
+    },
+    {
+      "slug": "mts",
+      "name": "МТС",
+      "emoji": "❤️",
+      "inbound_remark": "mts",
+      "client_flow": "xtls-rprx-vision",
+      "order": 2
+    },
+    {
+      "slug": "megafon",
+      "name": "Мегафон",
+      "emoji": "💚",
+      "inbound_remark": "megafon",
+      "client_flow": "xtls-rprx-vision",
+      "order": 3
+    },
+    {
+      "slug": "beeline",
+      "name": "Билайн",
+      "emoji": "🖤",
+      "inbound_remark": "beeline",
+      "client_flow": "xtls-rprx-vision",
+      "order": 4
+    }
+  ]
+}
