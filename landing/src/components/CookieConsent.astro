@@ -1,0 +1,123 @@
+---
+// No frontmatter needed — language detected client-side
+---
+
+<div
+  id="cookie-banner"
+  role="dialog"
+  aria-modal="false"
+  aria-label="Cookie consent"
+  style="display: none;"
+  class="fixed bottom-0 left-0 right-0 z-[9999] border-t border-border bg-bg-card/95 backdrop-blur-sm"
+>
+  <div class="mx-auto flex max-w-5xl flex-wrap items-center gap-4 px-4 py-4 sm:px-6">
+    <p class="min-w-[200px] flex-1 text-sm leading-relaxed text-text-muted">
+      <span class="cookie-lang" data-lang="ru">
+        Мы используем аналитические cookie (Яндекс.Метрика) для анализа посещаемости.
+      </span>
+      <span class="cookie-lang" data-lang="en" style="display:none;">
+        We use analytics cookies (Google Analytics) to understand how visitors use this site.
+      </span>
+    </p>
+    <div class="flex flex-shrink-0 gap-3">
+      <button id="cookie-accept"
+        class="min-h-[44px] min-w-[80px] rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+        <span class="cookie-lang" data-lang="ru">Принять</span>
+        <span class="cookie-lang" data-lang="en" style="display:none;">Accept</span>
+      </button>
+      <button id="cookie-decline"
+        class="min-h-[44px] min-w-[80px] rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-text-muted transition-colors hover:border-text-muted hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+        <span class="cookie-lang" data-lang="ru">Отклонить</span>
+        <span class="cookie-lang" data-lang="en" style="display:none;">Decline</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'cookie_consent';
+
+  function detectLang(): 'ru' | 'en' {
+    return document.documentElement.lang?.startsWith('en') ? 'en' : 'ru';
+  }
+
+  function applyLang(lang: 'ru' | 'en') {
+    document.querySelectorAll<HTMLElement>('.cookie-lang').forEach((el) => {
+      el.style.display = el.dataset.lang === lang ? '' : 'none';
+    });
+  }
+
+  function loadYM() {
+    if ((window as any).ym) return;
+    (function(m: any, e: any, t: any, r: any, i: any) {
+      m[i] = m[i] || function() { (m[i].a = m[i].a || []).push(arguments); };
+      m[i].l = Number(new Date());
+      const k = e.createElement(t);
+      const a = e.getElementsByTagName(t)[0];
+      k.async = true; k.src = r;
+      a.parentNode?.insertBefore(k, a);
+    })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js', 'ym');
+    // TODO: Replace with actual Yandex Metrika counter ID
+    // (window as any).ym(COUNTER_ID, 'init', { clickmap: true, trackLinks: true, accurateTrackBounce: true, webvisor: true });
+  }
+
+  function loadGA4() {
+    // TODO: Replace with actual GA4 measurement ID
+    // const GA_ID = 'G-XXXXXXXXXX';
+    // if (document.querySelector(`script[src*="${GA_ID}"]`)) return;
+    // const s = document.createElement('script');
+    // s.async = true;
+    // s.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
+    // document.head.appendChild(s);
+  }
+
+  function loadAnalytics() {
+    const lang = detectLang();
+    if (lang === 'ru') { loadYM(); } else { loadGA4(); }
+  }
+
+  function getConsent(): string | null {
+    try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+  }
+
+  function saveConsent(v: string) {
+    try { localStorage.setItem(STORAGE_KEY, v); } catch {}
+  }
+
+  function hideBanner() {
+    const b = document.getElementById('cookie-banner');
+    if (b) { b.style.display = 'none'; b.setAttribute('aria-hidden', 'true'); }
+  }
+
+  function showBanner() {
+    const b = document.getElementById('cookie-banner');
+    if (b) { b.style.display = ''; b.removeAttribute('aria-hidden'); }
+  }
+
+  function initCookieConsent() {
+    const consent = getConsent();
+    if (consent === 'accepted') { loadAnalytics(); return; }
+    if (consent === 'declined') return;
+
+    applyLang(detectLang());
+    showBanner();
+
+    document.getElementById('cookie-accept')?.addEventListener('click', () => {
+      saveConsent('accepted');
+      hideBanner();
+      loadAnalytics();
+    });
+
+    document.getElementById('cookie-decline')?.addEventListener('click', () => {
+      saveConsent('declined');
+      hideBanner();
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCookieConsent);
+  } else {
+    initCookieConsent();
+  }
+  document.addEventListener('astro:after-swap', initCookieConsent);
+</script>

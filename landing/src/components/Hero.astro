@@ -1,0 +1,56 @@
+---
+import { getLangFromUrl, t } from '@/i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const i18n = t(lang);
+const botUrl = 'https://t.me/proxycraftapp_bot';
+---
+
+<section class="relative overflow-hidden pt-28 pb-20 sm:pt-36 sm:pb-28">
+  <!-- Background glow -->
+  <div class="hero-glow absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+
+  <div class="relative mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="flex flex-col items-center text-center">
+      <!-- Shield icon -->
+      <div class="shield-pulse mb-8 flex h-20 w-20 items-center justify-center rounded-2xl border border-accent/20 bg-accent/10">
+        <svg class="h-10 w-10 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+        </svg>
+      </div>
+
+      <!-- Title -->
+      <h1 class="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+        {i18n.hero.title}
+        <br />
+        <span class="gradient-text">{i18n.hero.titleHighlight}</span>
+      </h1>
+
+      <!-- Subtitle -->
+      <p class="mt-6 max-w-2xl text-lg text-text-muted sm:text-xl">
+        {i18n.hero.subtitle}
+      </p>
+
+      <!-- CTAs -->
+      <div class="mt-10 flex flex-col gap-4 sm:flex-row">
+        <a
+          href={botUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-accent px-8 py-3 text-base font-semibold text-white shadow-lg shadow-accent/25 transition-all hover:bg-accent-light hover:shadow-xl hover:shadow-accent/30"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+          </svg>
+          {i18n.hero.cta}
+        </a>
+        <a
+          href="#pricing"
+          class="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-border px-8 py-3 text-base font-semibold text-text-muted transition-colors hover:border-text-muted hover:text-text"
+        >
+          {i18n.hero.ctaSecondary}
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

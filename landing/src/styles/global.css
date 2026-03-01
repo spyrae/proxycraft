@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0A0E17;
+  --color-bg-card: #111827;
+  --color-bg-card-hover: #1a2235;
+  --color-accent: #10B981;
+  --color-accent-light: #34D399;
+  --color-accent-glow: rgba(16, 185, 129, 0.3);
+  --color-secondary: #06B6D4;
+  --color-secondary-light: #22D3EE;
+  --color-text: #F9FAFB;
+  --color-text-muted: #9CA3AF;
+  --color-text-dim: #6B7280;
+  --color-border: #1F2937;
+  --color-border-accent: rgba(16, 185, 129, 0.4);
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-popular: #8B5CF6;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scroll-based fade-in animation */
+.fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Hero gradient glow */
+.hero-glow {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-accent-glow) 0%, transparent 70%);
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+/* Pulsing dot animation */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.3); }
+}
+.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+/* Glow effect for cards */
+.card-glow { transition: box-shadow 0.3s ease, border-color 0.3s ease; }
+.card-glow:hover {
+  box-shadow: 0 0 30px var(--color-accent-glow);
+  border-color: var(--color-border-accent);
+}
+
+/* FAQ accordion */
+details summary { cursor: pointer; list-style: none; }
+details summary::-webkit-details-marker { display: none; }
+details[open] summary .chevron { transform: rotate(180deg); }
+.chevron { transition: transform 0.2s ease; }
+
+/* Shield pulse animation for hero */
+@keyframes shield-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+.shield-pulse { animation: shield-pulse 3s ease-in-out infinite; }
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

@@ -1,0 +1,37 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+---
+
+<BaseLayout title="Политика конфиденциальности — ProxyCraft" noindex>
+  <Header />
+  <main class="pt-28 pb-20">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6">
+      <h1 class="text-3xl font-bold">Политика конфиденциальности</h1>
+      <div class="prose-invert mt-8 space-y-6 text-text-muted">
+        <p>Последнее обновление: март 2026</p>
+
+        <h2 class="text-xl font-semibold text-text">1. Какие данные мы собираем</h2>
+        <p>ProxyCraft собирает минимум данных, необходимых для предоставления сервиса:</p>
+        <ul class="list-disc space-y-1 pl-6">
+          <li>Telegram ID для идентификации аккаунта</li>
+          <li>Информация об оплатах для управления подписками</li>
+          <li>Техническая информация для работы сервиса (тип устройства, платформа)</li>
+        </ul>
+
+        <h2 class="text-xl font-semibold text-text">2. Чего мы НЕ делаем</h2>
+        <ul class="list-disc space-y-1 pl-6">
+          <li>Не ведём логи подключений</li>
+          <li>Не отслеживаем посещённые сайты</li>
+          <li>Не продаём данные третьим лицам</li>
+          <li>Не храним историю активности</li>
+        </ul>
+
+        <h2 class="text-xl font-semibold text-text">3. Контакты</h2>
+        <p>По вопросам конфиденциальности: <a href="mailto:support@proxycraft.tech" class="text-accent hover:underline">support@proxycraft.tech</a></p>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

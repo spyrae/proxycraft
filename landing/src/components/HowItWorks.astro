@@ -1,0 +1,44 @@
+---
+import { getLangFromUrl, t } from '@/i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const i18n = t(lang);
+
+const stepIcons = [
+  'M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z',
+  'M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z',
+  'M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244',
+];
+---
+
+<section class="bg-bg-card/30 py-20 sm:py-28">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="fade-in text-center">
+      <h2 class="text-3xl font-bold sm:text-4xl">{i18n.howItWorks.title}</h2>
+      <p class="mt-4 text-lg text-text-muted">{i18n.howItWorks.subtitle}</p>
+    </div>
+
+    <div class="mt-12 grid gap-8 md:grid-cols-3">
+      {i18n.howItWorks.steps.map((step, i) => (
+        <div class="fade-in relative flex flex-col items-center text-center" style={`transition-delay: ${i * 100}ms`}>
+          {/* Connector line */}
+          {i < 2 && (
+            <div class="absolute top-10 left-[calc(50%+40px)] hidden h-px w-[calc(100%-80px)] bg-border md:block"></div>
+          )}
+
+          <div class="relative mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border border-accent/20 bg-accent/10">
+            <span class="absolute -top-2 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-accent text-sm font-bold text-white">
+              {step.number}
+            </span>
+            <svg class="h-8 w-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={stepIcons[i]} />
+            </svg>
+          </div>
+
+          <h3 class="text-lg font-semibold">{step.title}</h3>
+          <p class="mt-2 text-sm text-text-muted">{step.description}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

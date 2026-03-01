@@ -1,0 +1,37 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+---
+
+<BaseLayout title="Privacy Policy — ProxyCraft" noindex>
+  <Header />
+  <main class="pt-28 pb-20">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6">
+      <h1 class="text-3xl font-bold">Privacy Policy</h1>
+      <div class="prose-invert mt-8 space-y-6 text-text-muted">
+        <p>Last updated: March 2026</p>
+
+        <h2 class="text-xl font-semibold text-text">1. Data We Collect</h2>
+        <p>ProxyCraft collects the minimum data necessary to provide the service:</p>
+        <ul class="list-disc space-y-1 pl-6">
+          <li>Telegram ID for account identification</li>
+          <li>Payment information for subscription management</li>
+          <li>Technical information for service operation (device type, platform)</li>
+        </ul>
+
+        <h2 class="text-xl font-semibold text-text">2. What We Do NOT Do</h2>
+        <ul class="list-disc space-y-1 pl-6">
+          <li>We do not log connections</li>
+          <li>We do not track visited websites</li>
+          <li>We do not sell data to third parties</li>
+          <li>We do not store activity history</li>
+        </ul>
+
+        <h2 class="text-xl font-semibold text-text">3. Contact</h2>
+        <p>For privacy questions: <a href="mailto:support@proxycraft.tech" class="text-accent hover:underline">support@proxycraft.tech</a></p>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

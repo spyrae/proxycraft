@@ -1,0 +1,74 @@
+---
+import { getLangFromUrl, t, getLocalePath, getAlternateLang } from '@/i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const i18n = t(lang);
+const altLang = getAlternateLang(lang);
+const homeUrl = lang === 'ru' ? '/' : '/en/';
+const isHome = Astro.url.pathname === '/' || Astro.url.pathname === '/en/' || Astro.url.pathname === '/en';
+const featuresHref = isHome ? '#features' : `${homeUrl}#features`;
+const pricingHref = isHome ? '#pricing' : `${homeUrl}#pricing`;
+const faqHref = isHome ? '#faq' : `${homeUrl}#faq`;
+
+const altLangUrl = lang === 'ru'
+  ? `/en${Astro.url.pathname}`
+  : Astro.url.pathname.replace(/^\/en/, '') || '/';
+const altLangLabel = altLang === 'en' ? 'EN' : 'RU';
+const botUrl = 'https://t.me/proxycraftapp_bot';
+---
+
+<header class="fixed top-0 left-0 right-0 z-50 border-b border-border bg-bg/80 backdrop-blur-lg">
+  <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+    <!-- Logo -->
+    <a href={homeUrl} class="flex items-center gap-2">
+      <img src="/favicon.svg" alt="ProxyCraft" class="h-8 w-8" />
+      <span class="text-lg font-bold text-text">ProxyCraft</span>
+    </a>
+
+    <!-- Desktop nav -->
+    <div class="hidden items-center gap-6 md:flex">
+      <a href={featuresHref} class="text-sm text-text-muted transition-colors hover:text-text">{i18n.nav.features}</a>
+      <a href={pricingHref} class="text-sm text-text-muted transition-colors hover:text-text">{i18n.nav.pricing}</a>
+      <a href={faqHref} class="text-sm text-text-muted transition-colors hover:text-text">{i18n.nav.faq}</a>
+      <a href={altLangUrl} class="text-sm text-text-muted transition-colors hover:text-text">{altLangLabel}</a>
+      <a href={botUrl} target="_blank" rel="noopener noreferrer" class="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-light">
+        {i18n.nav.getStarted}
+      </a>
+    </div>
+
+    <!-- Mobile menu button -->
+    <button id="mobile-menu-btn" class="p-2 text-text-muted hover:text-text md:hidden" aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu">
+      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+  </nav>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="hidden border-t border-border bg-bg px-4 pb-4 md:hidden">
+    <div class="flex flex-col gap-3 pt-3">
+      <a href={featuresHref} class="text-sm text-text-muted hover:text-text">{i18n.nav.features}</a>
+      <a href={pricingHref} class="text-sm text-text-muted hover:text-text">{i18n.nav.pricing}</a>
+      <a href={faqHref} class="text-sm text-text-muted hover:text-text">{i18n.nav.faq}</a>
+      <a href={altLangUrl} class="text-sm text-text-muted hover:text-text">{altLangLabel}</a>
+      <div class="pt-2">
+        <a href={botUrl} target="_blank" rel="noopener noreferrer" class="inline-block rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-light">
+          {i18n.nav.getStarted}
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<script>
+  const btn = document.getElementById('mobile-menu-btn');
+  const menu = document.getElementById('mobile-menu');
+  btn?.addEventListener('click', () => {
+    menu?.classList.toggle('hidden');
+    const isExpanded = !menu?.classList.contains('hidden');
+    btn?.setAttribute('aria-expanded', String(isExpanded));
+  });
+  menu?.querySelectorAll('a').forEach((a) => {
+    a.addEventListener('click', () => menu?.classList.add('hidden'));
+  });
+</script>

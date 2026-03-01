@@ -1,0 +1,27 @@
+---
+import { getLangFromUrl, t } from '@/i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const i18n = t(lang);
+
+const badges = [
+  { icon: '🇨🇳', label: i18n.trustBar.china },
+  { icon: '🇮🇷', label: i18n.trustBar.iran },
+  { icon: '🇷🇺', label: i18n.trustBar.russia },
+  { icon: '🔒', label: i18n.trustBar.noLogs },
+  { icon: '∞', label: i18n.trustBar.unlimited },
+];
+---
+
+<section class="fade-in border-y border-border bg-bg-card/50 py-6">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
+      {badges.map((badge) => (
+        <div class="flex items-center gap-2 text-sm text-text-muted">
+          <span class="text-lg">{badge.icon}</span>
+          <span>{badge.label}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

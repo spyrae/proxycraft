@@ -1,0 +1,33 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+---
+
+<BaseLayout title="Условия использования — ProxyCraft" noindex>
+  <Header />
+  <main class="pt-28 pb-20">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6">
+      <h1 class="text-3xl font-bold">Условия использования</h1>
+      <div class="prose-invert mt-8 space-y-6 text-text-muted">
+        <p>Последнее обновление: март 2026</p>
+
+        <h2 class="text-xl font-semibold text-text">1. Описание сервиса</h2>
+        <p>ProxyCraft предоставляет услуги VPN, Telegram Proxy и WhatsApp Proxy для обеспечения свободного доступа к интернету и мессенджерам.</p>
+
+        <h2 class="text-xl font-semibold text-text">2. Использование сервиса</h2>
+        <p>Вы обязуетесь использовать сервис в соответствии с применимым законодательством. Запрещается использование сервиса для противоправной деятельности.</p>
+
+        <h2 class="text-xl font-semibold text-text">3. Оплата и возврат</h2>
+        <p>Оплата производится через Telegram Bot. Бесплатный пробный период предоставляется однократно. Возврат средств рассматривается индивидуально.</p>
+
+        <h2 class="text-xl font-semibold text-text">4. Ограничение ответственности</h2>
+        <p>Сервис предоставляется «как есть». ProxyCraft не гарантирует 100% доступность и не несёт ответственности за действия пользователей.</p>
+
+        <h2 class="text-xl font-semibold text-text">5. Контакты</h2>
+        <p>По всем вопросам: <a href="mailto:support@proxycraft.tech" class="text-accent hover:underline">support@proxycraft.tech</a></p>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

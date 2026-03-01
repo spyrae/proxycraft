@@ -1,0 +1,243 @@
+{
+  "meta": {
+    "title": "ProxyCraft — VPN, Telegram & WhatsApp Without Limits",
+    "description": "Fast VLESS VPN, Telegram Proxy and WhatsApp Proxy. Works in Russia, China and Iran. Free trial available.",
+    "ogTitle": "ProxyCraft — Internet Freedom Without Compromise",
+    "ogDescription": "VLESS VPN, Telegram Proxy and WhatsApp Proxy. Bypass blocks in any country. Try for free."
+  },
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "getStarted": "Try Free"
+  },
+  "hero": {
+    "title": "VPN, Telegram & WhatsApp",
+    "titleHighlight": "without limits",
+    "subtitle": "Fast and reliable access to the internet, messengers and calls. Works where others give up.",
+    "cta": "Try Free",
+    "ctaSecondary": "See Pricing"
+  },
+  "trustBar": {
+    "china": "Works in China",
+    "iran": "Works in Iran",
+    "russia": "Works in Russia",
+    "noLogs": "No Logs",
+    "unlimited": "Unlimited Traffic"
+  },
+  "problem": {
+    "title": "Sound familiar?",
+    "items": [
+      {
+        "icon": "block",
+        "title": "Telegram is blocked",
+        "description": "Can't send messages, make calls or access channels"
+      },
+      {
+        "icon": "phone",
+        "title": "WhatsApp doesn't work",
+        "description": "Calls drop, messages don't arrive, video calls are impossible"
+      },
+      {
+        "icon": "shield",
+        "title": "VPNs are detected and blocked",
+        "description": "Regular VPNs stopped working — ISPs learned to detect them"
+      },
+      {
+        "icon": "speed",
+        "title": "Painfully slow",
+        "description": "Free solutions are slow and disconnect constantly"
+      }
+    ]
+  },
+  "products": {
+    "title": "Three products — one solution",
+    "subtitle": "Choose what you need. Or get everything at once.",
+    "vpn": {
+      "name": "Full VPN",
+      "badge": "7 days free",
+      "price": "249",
+      "period": "₽/mo",
+      "description": "Full protection for all internet traffic",
+      "features": [
+        "VLESS + WebSocket protocol",
+        "Cloudflare CDN",
+        "Unlimited traffic",
+        "All platforms",
+        "High speed"
+      ]
+    },
+    "mtproto": {
+      "name": "Telegram Proxy",
+      "badge": "3 days free",
+      "price": "49",
+      "period": "₽/mo",
+      "description": "Unrestricted access to Telegram",
+      "features": [
+        "MTProto protocol",
+        "Instant connection",
+        "All devices",
+        "Calls and video",
+        "Channels and bots"
+      ]
+    },
+    "whatsapp": {
+      "name": "WhatsApp Proxy",
+      "badge": "3 days free",
+      "price": "69",
+      "period": "₽/mo",
+      "description": "Calls and messages in WhatsApp",
+      "features": [
+        "SOCKS5 proxy",
+        "Stable calls",
+        "Video calls",
+        "All devices",
+        "No limits"
+      ]
+    }
+  },
+  "features": {
+    "title": "Why ProxyCraft?",
+    "subtitle": "Technologies that make the difference",
+    "items": [
+      {
+        "icon": "vless",
+        "title": "VLESS Protocol",
+        "description": "Modern protocol undetectable by ISP DPI systems"
+      },
+      {
+        "icon": "cdn",
+        "title": "Cloudflare CDN",
+        "description": "Traffic routes through a legitimate CDN network — impossible to block"
+      },
+      {
+        "icon": "unlimited",
+        "title": "Unlimited Traffic",
+        "description": "No data caps — stream, download, work without restrictions"
+      },
+      {
+        "icon": "speed",
+        "title": "High Speed",
+        "description": "European servers with low latency and wide bandwidth"
+      },
+      {
+        "icon": "platforms",
+        "title": "All Platforms",
+        "description": "iOS, Android, Windows, macOS, Linux and even routers"
+      },
+      {
+        "icon": "nologs",
+        "title": "No Logs",
+        "description": "We don't store connection history or track your activity"
+      },
+      {
+        "icon": "auto",
+        "title": "Auto-Renewal",
+        "description": "Subscription renews automatically — you're always connected"
+      },
+      {
+        "icon": "support",
+        "title": "24/7 Support",
+        "description": "Help via Telegram bot anytime, day or night"
+      }
+    ]
+  },
+  "platforms": {
+    "title": "Works on all devices",
+    "subtitle": "Connect ProxyCraft on any device in minutes",
+    "items": [
+      { "name": "iOS", "description": "iPhone and iPad" },
+      { "name": "Android", "description": "Phones and tablets" },
+      { "name": "Windows", "description": "PCs and laptops" },
+      { "name": "macOS", "description": "MacBook and iMac" },
+      { "name": "Linux", "description": "Ubuntu, Fedora etc." },
+      { "name": "Router", "description": "Protect entire network" }
+    ]
+  },
+  "howItWorks": {
+    "title": "How to start?",
+    "subtitle": "Three simple steps — and you're online",
+    "steps": [
+      {
+        "number": "1",
+        "title": "Open the bot",
+        "description": "Launch @proxycraftapp_bot in Telegram"
+      },
+      {
+        "number": "2",
+        "title": "Choose a product",
+        "description": "VPN, Telegram Proxy or WhatsApp Proxy"
+      },
+      {
+        "number": "3",
+        "title": "Connect",
+        "description": "Get your config and set up in 1 minute"
+      }
+    ]
+  },
+  "pricing": {
+    "title": "Transparent pricing",
+    "subtitle": "Longer plans save more. Pay in rubles or Telegram Stars.",
+    "popular": "Popular",
+    "perMonth": "/mo",
+    "save": "save",
+    "periods": {
+      "1": "1 month",
+      "3": "3 months",
+      "6": "6 months",
+      "12": "12 months"
+    },
+    "products": {
+      "vpn": "Full VPN",
+      "mtproto": "Telegram Proxy",
+      "whatsapp": "WhatsApp Proxy",
+      "bundle_msg": "Messengers",
+      "bundle_all": "All-in-One"
+    },
+    "cta": "Choose Plan",
+    "trial": "Free trial included",
+    "stars": "We also accept Telegram Stars"
+  },
+  "referral": {
+    "title": "Share and earn",
+    "subtitle": "Invite friends and get bonus subscription days",
+    "level1": {
+      "title": "Level 1",
+      "description": "Each invited friend",
+      "reward": "+10 days"
+    },
+    "level2": {
+      "title": "Level 2",
+      "description": "Friends of friends count too",
+      "reward": "+3 days"
+    },
+    "cta": "Get referral link"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions"
+  },
+  "finalCta": {
+    "title": "Ready for internet freedom?",
+    "subtitle": "Start with a free trial — no credit card required",
+    "cta": "Start Free",
+    "ctaSecondary": "Ask a Question"
+  },
+  "footer": {
+    "tagline": "Internet freedom without compromise",
+    "product": "Product",
+    "features": "Features",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "support": "Support",
+    "copyright": "ProxyCraft. All rights reserved.",
+    "cookieSettings": "Cookie Settings"
+  },
+  "cookieConsent": {
+    "text": "We use analytics cookies (Google Analytics) to understand how visitors use this site.",
+    "accept": "Accept",
+    "decline": "Decline"
+  }
+}

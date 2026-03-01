@@ -1,0 +1,89 @@
+---
+import '@/styles/global.css';
+import { getLangFromUrl, t, getAlternateUrl } from '@/i18n/utils';
+import CookieConsent from '@/components/CookieConsent.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  noindex?: boolean;
+}
+
+const lang = getLangFromUrl(Astro.url);
+const i18n = t(lang);
+const { title = i18n.meta.title, description = i18n.meta.description, noindex = false } = Astro.props;
+
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+const alternateUrl = new URL(getAlternateUrl(lang, Astro.url.pathname), Astro.site);
+const alternateLang = lang === 'ru' ? 'en' : 'ru';
+---
+
+<!doctype html>
+<html lang={lang} class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" hreflang={lang} href={canonicalUrl} />
+    <link rel="alternate" hreflang={alternateLang} href={alternateUrl} />
+    <link rel="alternate" hreflang="x-default" href={new URL('/', Astro.site)} />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#0A0E17" />
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="ProxyCraft" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={i18n.meta.ogTitle} />
+    <meta property="og:description" content={i18n.meta.ogDescription} />
+    <meta property="og:image" content={new URL('/og-image.png', Astro.site)} />
+    <meta property="og:locale" content={lang === 'ru' ? 'ru_RU' : 'en_US'} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={i18n.meta.ogTitle} />
+    <meta name="twitter:description" content={i18n.meta.ogDescription} />
+    <meta name="twitter:image" content={new URL('/og-image.png', Astro.site)} />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Schema.org Organization -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "ProxyCraft",
+      "url": Astro.site?.href,
+      "description": i18n.meta.description,
+    })} />
+  </head>
+  <body class="min-h-screen bg-bg text-text antialiased">
+    <slot />
+    <CookieConsent />
+
+    <!-- Intersection Observer for fade-in animations -->
+    <script>
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+      );
+      document.querySelectorAll('.fade-in').forEach((el) => observer.observe(el));
+    </script>
+  </body>
+</html>

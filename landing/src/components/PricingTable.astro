@@ -1,0 +1,140 @@
+---
+import { getLangFromUrl, t } from '@/i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const i18n = t(lang);
+const botUrl = 'https://t.me/proxycraftapp_bot';
+
+// Prices from products.json (in kopecks → rubles)
+const products = [
+  { key: 'mtproto' as const, base: 4900, trial: 3 },
+  { key: 'whatsapp' as const, base: 6900, trial: 3 },
+  { key: 'vpn' as const, base: 24900, trial: 7, popular: true },
+  { key: 'bundle_msg' as const, base: 9900, trial: 3 },
+  { key: 'bundle_all' as const, base: 27900, trial: 7 },
+];
+
+const discounts: Record<string, number> = {
+  '30': 0,
+  '90': 0.13,
+  '180': 0.20,
+  '365': 0.33,
+};
+
+const periods = [
+  { days: 30, key: '1' as const },
+  { days: 90, key: '3' as const },
+  { days: 180, key: '6' as const },
+  { days: 365, key: '12' as const },
+];
+
+function calcPrice(baseCopecks: number, days: number): number {
+  const discount = discounts[String(days)] || 0;
+  const months = days / 30;
+  const total = (baseCopecks / 100) * months * (1 - discount);
+  return Math.round(total);
+}
+
+function calcMonthly(baseCopecks: number, days: number): number {
+  const total = calcPrice(baseCopecks, days);
+  return Math.round(total / (days / 30));
+}
+---
+
+<section id="pricing" class="py-20 sm:py-28">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="fade-in text-center">
+      <h2 class="text-3xl font-bold sm:text-4xl">{i18n.pricing.title}</h2>
+      <p class="mt-4 text-lg text-text-muted">{i18n.pricing.subtitle}</p>
+    </div>
+
+    <!-- Desktop table -->
+    <div class="fade-in mt-12 hidden overflow-x-auto md:block" style="transition-delay: 100ms">
+      <table class="w-full border-collapse">
+        <thead>
+          <tr>
+            <th class="border-b border-border p-4 text-left text-sm font-semibold text-text-muted"></th>
+            {periods.map((p) => (
+              <th class="border-b border-border p-4 text-center text-sm font-semibold text-text-muted">
+                {i18n.pricing.periods[p.key]}
+                {discounts[String(p.days)] > 0 && (
+                  <span class="ml-1 text-accent">-{Math.round(discounts[String(p.days)] * 100)}%</span>
+                )}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {products.map((product) => (
+            <tr class:list={[
+              'transition-colors hover:bg-bg-card/50',
+              product.popular && 'bg-accent/5',
+            ]}>
+              <td class="border-b border-border p-4">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold">{i18n.pricing.products[product.key]}</span>
+                  {product.popular && (
+                    <span class="rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium text-accent">{i18n.pricing.popular}</span>
+                  )}
+                </div>
+                <span class="text-xs text-text-dim">{product.trial} {lang === 'ru' ? 'дней бесплатно' : 'days free'}</span>
+              </td>
+              {periods.map((p) => (
+                <td class="border-b border-border p-4 text-center">
+                  <div class="text-lg font-bold">{calcPrice(product.base, p.days)} ₽</div>
+                  {p.days > 30 && (
+                    <div class="text-xs text-text-dim">{calcMonthly(product.base, p.days)} ₽{i18n.pricing.perMonth}</div>
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile cards -->
+    <div class="mt-12 space-y-4 md:hidden">
+      {products.map((product, i) => (
+        <div class:list={[
+          'fade-in rounded-xl border p-4',
+          product.popular ? 'border-accent/50 bg-bg-card' : 'border-border bg-bg-card',
+        ]} style={`transition-delay: ${i * 50}ms`}>
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="font-semibold">{i18n.pricing.products[product.key]}</span>
+              {product.popular && (
+                <span class="ml-2 rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium text-accent">{i18n.pricing.popular}</span>
+              )}
+            </div>
+            <span class="text-xs text-accent">{product.trial} {lang === 'ru' ? 'дней free' : 'days free'}</span>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            {periods.map((p) => (
+              <div class="rounded-lg bg-bg/50 p-2 text-center">
+                <div class="text-xs text-text-dim">{i18n.pricing.periods[p.key]}</div>
+                <div class="text-sm font-bold">{calcPrice(product.base, p.days)} ₽</div>
+                {discounts[String(p.days)] > 0 && (
+                  <div class="text-xs text-accent">-{Math.round(discounts[String(p.days)] * 100)}%</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- CTA + notes -->
+    <div class="fade-in mt-10 text-center" style="transition-delay: 200ms">
+      <a
+        href={botUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-accent px-8 py-3 text-base font-semibold text-white shadow-lg shadow-accent/25 transition-all hover:bg-accent-light hover:shadow-xl hover:shadow-accent/30"
+      >
+        {i18n.pricing.cta}
+      </a>
+      <p class="mt-4 text-sm text-text-dim">{i18n.pricing.stars}</p>
+    </div>
+  </div>
+</section>

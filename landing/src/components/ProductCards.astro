@@ -1,0 +1,85 @@
+---
+import { getLangFromUrl, t } from '@/i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const i18n = t(lang);
+const botUrl = 'https://t.me/proxycraftapp_bot';
+
+const products = [
+  { key: 'vpn' as const, popular: true, icon: '🛡' },
+  { key: 'mtproto' as const, popular: false, icon: '📱' },
+  { key: 'whatsapp' as const, popular: false, icon: '💬' },
+];
+---
+
+<section id="products" class="py-20 sm:py-28">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6">
+    <div class="fade-in text-center">
+      <h2 class="text-3xl font-bold sm:text-4xl">{i18n.products.title}</h2>
+      <p class="mt-4 text-lg text-text-muted">{i18n.products.subtitle}</p>
+    </div>
+
+    <div class="mt-12 grid gap-6 md:grid-cols-3">
+      {products.map((product, i) => {
+        const data = i18n.products[product.key];
+        return (
+          <div
+            class:list={[
+              'fade-in card-glow relative rounded-xl border p-6',
+              product.popular
+                ? 'border-accent/50 bg-bg-card ring-1 ring-accent/20'
+                : 'border-border bg-bg-card',
+            ]}
+            style={`transition-delay: ${i * 100}ms`}
+          >
+            {product.popular && (
+              <div class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-white">
+                {i18n.pricing.popular}
+              </div>
+            )}
+
+            <div class="text-center">
+              <span class="text-4xl">{product.icon}</span>
+              <h3 class="mt-4 text-xl font-bold">{data.name}</h3>
+              <p class="mt-2 text-sm text-text-muted">{data.description}</p>
+
+              <div class="mt-6">
+                <span class="text-4xl font-extrabold">{data.price}</span>
+                <span class="text-text-muted">{data.period}</span>
+              </div>
+
+              <div class="mt-2 inline-block rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+                {data.badge}
+              </div>
+            </div>
+
+            <ul class="mt-6 space-y-3">
+              {data.features.map((feature) => (
+                <li class="flex items-start gap-2 text-sm text-text-muted">
+                  <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  {feature}
+                </li>
+              ))}
+            </ul>
+
+            <a
+              href={botUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class:list={[
+                'mt-6 block w-full rounded-lg py-3 text-center text-sm font-semibold transition-colors',
+                product.popular
+                  ? 'bg-accent text-white hover:bg-accent-light'
+                  : 'border border-border text-text-muted hover:border-text-muted hover:text-text',
+              ]}
+            >
+              {i18n.pricing.cta}
+            </a>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+</section>

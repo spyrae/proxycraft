@@ -1,0 +1,243 @@
+{
+  "meta": {
+    "title": "ProxyCraft — VPN, Telegram и WhatsApp без ограничений",
+    "description": "Быстрый VPN на базе VLESS, Telegram Proxy и WhatsApp Proxy. Работает в России, Китае и Иране. Бесплатный пробный период.",
+    "ogTitle": "ProxyCraft — Свобода интернета без компромиссов",
+    "ogDescription": "VLESS VPN, Telegram Proxy и WhatsApp Proxy. Обходит блокировки в любой стране. Попробуйте бесплатно."
+  },
+  "nav": {
+    "features": "Возможности",
+    "pricing": "Цены",
+    "faq": "FAQ",
+    "getStarted": "Попробовать бесплатно"
+  },
+  "hero": {
+    "title": "VPN, Telegram и WhatsApp",
+    "titleHighlight": "без ограничений",
+    "subtitle": "Быстрый и надёжный доступ к интернету, мессенджерам и звонкам. Работает там, где другие сдаются.",
+    "cta": "Попробовать бесплатно",
+    "ctaSecondary": "Узнать цены"
+  },
+  "trustBar": {
+    "china": "Работает в Китае",
+    "iran": "Работает в Иране",
+    "russia": "Работает в России",
+    "noLogs": "Без логов",
+    "unlimited": "Безлимитный трафик"
+  },
+  "problem": {
+    "title": "Знакомые проблемы?",
+    "items": [
+      {
+        "icon": "block",
+        "title": "Telegram заблокирован",
+        "description": "Не можете отправить сообщение, сделать звонок или зайти в канал"
+      },
+      {
+        "icon": "phone",
+        "title": "WhatsApp не работает",
+        "description": "Звонки обрываются, сообщения не доходят, видеосвязь невозможна"
+      },
+      {
+        "icon": "shield",
+        "title": "VPN детектируют и блокируют",
+        "description": "Обычные VPN перестали работать — провайдеры научились их определять"
+      },
+      {
+        "icon": "speed",
+        "title": "Скорость черепашья",
+        "description": "Бесплатные решения работают медленно и постоянно отключаются"
+      }
+    ]
+  },
+  "products": {
+    "title": "Три продукта — одно решение",
+    "subtitle": "Выберите то, что вам нужно. Или возьмите всё сразу.",
+    "vpn": {
+      "name": "Full VPN",
+      "badge": "7 дней бесплатно",
+      "price": "249",
+      "period": "₽/мес",
+      "description": "Полная защита всего интернет-трафика",
+      "features": [
+        "Протокол VLESS + WebSocket",
+        "Cloudflare CDN",
+        "Безлимитный трафик",
+        "Все платформы",
+        "Высокая скорость"
+      ]
+    },
+    "mtproto": {
+      "name": "Telegram Proxy",
+      "badge": "3 дня бесплатно",
+      "price": "49",
+      "period": "₽/мес",
+      "description": "Доступ к Telegram без ограничений",
+      "features": [
+        "Протокол MTProto",
+        "Мгновенное подключение",
+        "Все устройства",
+        "Звонки и видео",
+        "Каналы и боты"
+      ]
+    },
+    "whatsapp": {
+      "name": "WhatsApp Proxy",
+      "badge": "3 дня бесплатно",
+      "price": "69",
+      "period": "₽/мес",
+      "description": "Звонки и сообщения в WhatsApp",
+      "features": [
+        "SOCKS5 прокси",
+        "Стабильные звонки",
+        "Видеосвязь",
+        "Все устройства",
+        "Без ограничений"
+      ]
+    }
+  },
+  "features": {
+    "title": "Почему ProxyCraft?",
+    "subtitle": "Технологии, которые делают разницу",
+    "items": [
+      {
+        "icon": "vless",
+        "title": "Протокол VLESS",
+        "description": "Современный протокол, который не детектируется DPI-системами провайдеров"
+      },
+      {
+        "icon": "cdn",
+        "title": "Cloudflare CDN",
+        "description": "Трафик идёт через легитимную CDN-сеть — заблокировать невозможно"
+      },
+      {
+        "icon": "unlimited",
+        "title": "Безлимитный трафик",
+        "description": "Никаких ограничений по объёму данных — стримьте, скачивайте, работайте"
+      },
+      {
+        "icon": "speed",
+        "title": "Высокая скорость",
+        "description": "Серверы в Европе с низким пингом и широким каналом"
+      },
+      {
+        "icon": "platforms",
+        "title": "Все платформы",
+        "description": "iOS, Android, Windows, macOS, Linux и даже роутеры"
+      },
+      {
+        "icon": "nologs",
+        "title": "Без логов",
+        "description": "Мы не храним историю подключений и не отслеживаем активность"
+      },
+      {
+        "icon": "auto",
+        "title": "Автопродление",
+        "description": "Подписка продлевается автоматически — вы всегда на связи"
+      },
+      {
+        "icon": "support",
+        "title": "Поддержка 24/7",
+        "description": "Помощь в Telegram-боте в любое время дня и ночи"
+      }
+    ]
+  },
+  "platforms": {
+    "title": "Работает на всех устройствах",
+    "subtitle": "Подключите ProxyCraft на любом устройстве за пару минут",
+    "items": [
+      { "name": "iOS", "description": "iPhone и iPad" },
+      { "name": "Android", "description": "Смартфоны и планшеты" },
+      { "name": "Windows", "description": "ПК и ноутбуки" },
+      { "name": "macOS", "description": "MacBook и iMac" },
+      { "name": "Linux", "description": "Ubuntu, Fedora и др." },
+      { "name": "Router", "description": "Защита всей сети" }
+    ]
+  },
+  "howItWorks": {
+    "title": "Как начать?",
+    "subtitle": "Три простых шага — и вы в сети",
+    "steps": [
+      {
+        "number": "1",
+        "title": "Откройте бота",
+        "description": "Запустите @proxycraftapp_bot в Telegram"
+      },
+      {
+        "number": "2",
+        "title": "Выберите продукт",
+        "description": "VPN, Telegram Proxy или WhatsApp Proxy"
+      },
+      {
+        "number": "3",
+        "title": "Подключитесь",
+        "description": "Получите конфиг и настройте за 1 минуту"
+      }
+    ]
+  },
+  "pricing": {
+    "title": "Прозрачные цены",
+    "subtitle": "Чем дольше срок — тем выгоднее. Оплата в рублях или Telegram Stars.",
+    "popular": "Популярный",
+    "perMonth": "/мес",
+    "save": "экономия",
+    "periods": {
+      "1": "1 месяц",
+      "3": "3 месяца",
+      "6": "6 месяцев",
+      "12": "12 месяцев"
+    },
+    "products": {
+      "vpn": "Full VPN",
+      "mtproto": "Telegram Proxy",
+      "whatsapp": "WhatsApp Proxy",
+      "bundle_msg": "Мессенджеры",
+      "bundle_all": "Всё включено"
+    },
+    "cta": "Выбрать план",
+    "trial": "Бесплатный пробный период",
+    "stars": "Также принимаем Telegram Stars"
+  },
+  "referral": {
+    "title": "Делись и зарабатывай",
+    "subtitle": "Приглашайте друзей и получайте бонусы к подписке",
+    "level1": {
+      "title": "Уровень 1",
+      "description": "Каждый приглашённый друг",
+      "reward": "+10 дней"
+    },
+    "level2": {
+      "title": "Уровень 2",
+      "description": "Друг друга тоже считается",
+      "reward": "+3 дня"
+    },
+    "cta": "Получить реферальную ссылку"
+  },
+  "faq": {
+    "title": "Часто задаваемые вопросы"
+  },
+  "finalCta": {
+    "title": "Готовы к свободному интернету?",
+    "subtitle": "Начните с бесплатного пробного периода — без привязки карты",
+    "cta": "Начать бесплатно",
+    "ctaSecondary": "Задать вопрос"
+  },
+  "footer": {
+    "tagline": "Свобода интернета без компромиссов",
+    "product": "Продукт",
+    "features": "Возможности",
+    "pricing": "Цены",
+    "faq": "FAQ",
+    "legal": "Юридическое",
+    "privacy": "Политика конфиденциальности",
+    "terms": "Условия использования",
+    "support": "Поддержка",
+    "copyright": "ProxyCraft. Все права защищены.",
+    "cookieSettings": "Настройки cookie"
+  },
+  "cookieConsent": {
+    "text": "Мы используем аналитические cookie (Яндекс.Метрика) для анализа посещаемости.",
+    "accept": "Принять",
+    "decline": "Отклонить"
+  }
+}
