@@ -103,6 +103,42 @@ class ReferrerReward(Base):
         return query.scalar() or Decimal(0)
 
     @classmethod
+    async def get_total_rewards_sum(
+        cls,
+        session: AsyncSession,
+        tg_id: int,
+        reward_type: ReferrerRewardType,
+    ) -> Decimal:
+        filters = [
+            ReferrerReward.user_tg_id == tg_id,
+            ReferrerReward.reward_type == reward_type,
+        ]
+
+        query = await session.execute(
+            select(func.coalesce(func.sum(ReferrerReward.amount), 0)).where(*filters)
+        )
+
+        return query.scalar() or Decimal(0)
+
+    @classmethod
+    async def get_rewards_count(
+        cls,
+        session: AsyncSession,
+        tg_id: int,
+        reward_level: ReferrerRewardLevel,
+    ) -> int:
+        filters = [
+            ReferrerReward.user_tg_id == tg_id,
+            ReferrerReward.reward_level == reward_level,
+        ]
+
+        query = await session.execute(
+            select(func.count()).select_from(ReferrerReward).where(*filters)
+        )
+
+        return query.scalar_one()
+
+    @classmethod
     async def create_referrer_reward(
         cls,
         session: AsyncSession,

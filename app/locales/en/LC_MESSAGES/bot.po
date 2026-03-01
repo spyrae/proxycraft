@@ -933,6 +933,21 @@ msgstr ""
 "❌ <i>Failed to your trial period, please try again later or contact "
 "administrator.</i>"
 
+#: app/bot/routers/referral/handler.py
+msgid "referral:message:stats"
+msgstr ""
+"📊 <b>Referral program statistics</b>\n"
+"\n"
+"👥 Invited: {referrals_count}\n"
+"💰 With payment: {paid_referrals_count}\n"
+"\n"
+"🎁 <b>Bonus received:</b> {total_days}\n"
+"📏 Remaining to limit ({max_days} days): {remaining_days}\n"
+
+#: app/bot/tasks/referral.py
+msgid "referral:ntf:referrer_reward_received"
+msgstr "🎉 Your referral paid for a subscription! You received <b>+{duration}</b> to your subscription."
+
 #: app/bot/routers/referral/keyboard.py:14
 #: app/bot/routers/subscription/keyboard.py:185
 msgid "subscription:button:connect"

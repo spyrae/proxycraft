@@ -944,6 +944,21 @@ msgstr ""
 "❌ <i>Не удалось активировать пробный период, пожалуйста попробуйте позже,"
 " либо обратитесь к администратору</i>"
 
+#: app/bot/routers/referral/handler.py
+msgid "referral:message:stats"
+msgstr ""
+"📊 <b>Статистика реферальной программы</b>\n"
+"\n"
+"👥 Приглашено: {referrals_count}\n"
+"💰 С оплатой: {paid_referrals_count}\n"
+"\n"
+"🎁 <b>Начислено бонусов:</b> {total_days}\n"
+"📏 Осталось до лимита ({max_days} дн.): {remaining_days}\n"
+
+#: app/bot/tasks/referral.py
+msgid "referral:ntf:referrer_reward_received"
+msgstr "🎉 Ваш реферал оплатил подписку! Вам начислено <b>+{duration}</b> к подписке."
+
 #: app/bot/routers/referral/keyboard.py:14
 #: app/bot/routers/subscription/keyboard.py:185
 msgid "subscription:button:connect"

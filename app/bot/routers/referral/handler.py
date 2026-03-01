@@ -1,12 +1,14 @@
 import logging
 
 from aiogram import F, Router
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, Message
 from aiogram.utils.i18n import gettext as _
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.models import ServicesContainer
+from app.bot.services.referral import REFERRER_MAX_REWARD_DAYS
 from app.bot.utils.constants import (
     MAIN_MESSAGE_ID_KEY,
     PREVIOUS_CALLBACK_KEY,
@@ -97,6 +99,50 @@ async def generate_referral_summary_text(
         )
 
     return text
+
+
+@router.message(Command("ref"))
+async def command_ref(
+    message: Message,
+    user: User,
+    session: AsyncSession,
+    config: Config,
+) -> None:
+    args = (message.text or "").split()
+    is_stats = len(args) > 1 and args[1].lower() == "stats"
+
+    bot_username = (await message.bot.get_me()).username
+
+    if is_stats:
+        reward_type = ReferrerRewardType.from_str(config.shop.REFERRER_REWARD_TYPE)
+        referrals_count = await Referral.get_referral_count(
+            session=session, referrer_tg_id=user.tg_id,
+        )
+        paid_referrals_count = await ReferrerReward.get_rewards_count(
+            session=session, tg_id=user.tg_id, reward_level=ReferrerRewardLevel.FIRST_LEVEL,
+        )
+        total_rewards = await ReferrerReward.get_total_rewards_sum(
+            session=session, tg_id=user.tg_id, reward_type=reward_type,
+        )
+        total_days = int(total_rewards)
+        remaining = max(0, REFERRER_MAX_REWARD_DAYS - total_days)
+
+        text = _("referral:message:stats").format(
+            referrals_count=referrals_count,
+            paid_referrals_count=paid_referrals_count,
+            total_days=format_subscription_period(total_days),
+            remaining_days=format_subscription_period(remaining),
+            max_days=REFERRER_MAX_REWARD_DAYS,
+        )
+    else:
+        text = await generate_referral_summary_text(
+            session=session,
+            user=user,
+            config=config,
+            bot_username=bot_username,
+        )
+
+    await message.answer(text=text, reply_markup=referral_keyboard())
 
 
 @router.callback_query(F.data == NavReferral.MAIN)

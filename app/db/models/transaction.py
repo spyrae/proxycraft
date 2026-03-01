@@ -72,6 +72,18 @@ class Transaction(Base):
         return query.scalars().all()
 
     @classmethod
+    async def get_completed_count(cls, session: AsyncSession, tg_id: int) -> int:
+        query = await session.execute(
+            select(func.count())
+            .select_from(Transaction)
+            .where(
+                Transaction.tg_id == tg_id,
+                Transaction.status == TransactionStatus.COMPLETED,
+            )
+        )
+        return query.scalar_one()
+
+    @classmethod
     async def create(cls, session: AsyncSession, payment_id: str, **kwargs: Any) -> Self | None:
         transaction = await Transaction.get_by_id(session=session, payment_id=payment_id)
 
