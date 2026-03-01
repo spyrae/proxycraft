@@ -30,14 +30,14 @@ class Transaction(Base):
         user (User): Related user object.
     """
 
-    __tablename__ = "transactions"
+    __tablename__ = "vpncraft_transactions"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    tg_id: Mapped[int] = mapped_column(ForeignKey("users.tg_id"), nullable=False)
+    tg_id: Mapped[int] = mapped_column(ForeignKey("vpncraft_users.tg_id"), nullable=False)
     payment_id: Mapped[str] = mapped_column(String(length=64), unique=True, nullable=False)
     subscription: Mapped[str] = mapped_column(String(length=255), nullable=False)
     status: Mapped[TransactionStatus] = mapped_column(
-        Enum(TransactionStatus, values_callable=lambda obj: [e.value for e in obj]),
+        Enum(TransactionStatus, name="vpncraft_transactionstatus", values_callable=lambda obj: [e.value for e in obj]),
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=False)

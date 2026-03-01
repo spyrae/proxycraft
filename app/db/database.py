@@ -12,9 +12,17 @@ logger = logging.getLogger(__name__)
 
 class Database:
     def __init__(self, config: DatabaseConfig) -> None:
+        url = config.url()
+        connect_args = {}
+        if "asyncpg" in url:
+            connect_args["prepared_statement_cache_size"] = 0
+
         self.engine = create_async_engine(
-            url=config.url(),
+            url=url,
             pool_pre_ping=True,
+            pool_size=5,
+            max_overflow=10,
+            connect_args=connect_args,
         )
         self.session = async_sessionmaker(
             bind=self.engine,

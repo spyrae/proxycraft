@@ -28,13 +28,13 @@ class Promocode(Base):
         activated_user (User | None): Relationship to User model
     """
 
-    __tablename__ = "promocodes"
+    __tablename__ = "vpncraft_promocodes"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     code: Mapped[str] = mapped_column(String(length=32), unique=True, nullable=False)
     duration: Mapped[int] = mapped_column(nullable=False)
     is_activated: Mapped[bool] = mapped_column(default=False, nullable=False)
-    activated_by: Mapped[int | None] = mapped_column(ForeignKey("users.tg_id"), nullable=True)
+    activated_by: Mapped[int | None] = mapped_column(ForeignKey("vpncraft_users.tg_id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=False)
     activated_user: Mapped["User | None"] = relationship(  # type: ignore
         "User", back_populates="activated_promocodes"

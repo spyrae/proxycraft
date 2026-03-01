@@ -33,11 +33,11 @@ class WhatsAppSubscription(Base):
         is_trial_used (bool): Whether the user has used the free trial.
     """
 
-    __tablename__ = "whatsapp_subscriptions"
+    __tablename__ = "vpncraft_whatsapp_subscriptions"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_tg_id: Mapped[int] = mapped_column(
-        ForeignKey("users.tg_id", ondelete="CASCADE"), unique=True, nullable=False
+        ForeignKey("vpncraft_users.tg_id", ondelete="CASCADE"), unique=True, nullable=False
     )
     port: Mapped[int] = mapped_column(unique=True, nullable=False)
     activated_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=False)

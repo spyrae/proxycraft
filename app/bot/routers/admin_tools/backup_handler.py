@@ -25,6 +25,14 @@ async def callback_create_backup(
     services: ServicesContainer,
 ) -> None:
     logger.info(f"Admin {user.tg_id} initiated backup creation.")
+
+    if config.database.HOST:
+        await services.notification.show_popup(
+            callback=callback,
+            text=_("backup:popup:managed_by_cloud"),
+        )
+        return
+
     try:
         file = FSInputFile(
             path=f"{DEFAULT_DATA_DIR}/{config.database.NAME}.{DB_FORMAT}",

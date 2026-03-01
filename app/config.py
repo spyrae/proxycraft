@@ -174,10 +174,17 @@ class DatabaseConfig:
     USERNAME: str | None
     PASSWORD: str | None
 
-    def url(self, driver: str = "sqlite+aiosqlite") -> str:
+    def url(self, driver: str | None = None) -> str:
+        if driver is None:
+            driver = "postgresql+asyncpg" if self.HOST else "sqlite+aiosqlite"
         if driver.startswith("sqlite"):
             return f"{driver}:////{DEFAULT_DATA_DIR}/{self.NAME}.{DB_FORMAT}"
         return f"{driver}://{self.USERNAME}:{self.PASSWORD}@{self.HOST}:{self.PORT}/{self.NAME}"
+
+    def url_sync(self) -> str:
+        if not self.HOST:
+            return f"sqlite:///{DEFAULT_DATA_DIR}/{self.NAME}.{DB_FORMAT}"
+        return f"postgresql://{self.USERNAME}:{self.PASSWORD}@{self.HOST}:{self.PORT}/{self.NAME}"
 
 
 @dataclass

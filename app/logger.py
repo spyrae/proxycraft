@@ -122,6 +122,9 @@ def setup_logging(config: LoggingConfig) -> None:
     aiosqlite_logger = logging.getLogger("aiosqlite")
     aiosqlite_logger.setLevel(logging.INFO)
 
+    asyncpg_logger = logging.getLogger("asyncpg")
+    asyncpg_logger.setLevel(logging.INFO)
+
     httpcore_logger = logging.getLogger("httpcore")
     httpcore_logger.setLevel(logging.INFO)
 

@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from typing import Optional, Self
 
-from sqlalchemy import Boolean, DateTime, Integer, String, select
+from sqlalchemy import Boolean, DateTime, Integer, String, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -14,13 +14,13 @@ logger = logging.getLogger(__name__)
 
 
 class Invite(Base):
-    __tablename__ = "invites"
+    __tablename__ = "vpncraft_invites"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     hash_code: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     clicks: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     @classmethod

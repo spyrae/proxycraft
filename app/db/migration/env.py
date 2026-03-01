@@ -12,12 +12,18 @@ from app.db.models import Base
 database = load_config().database
 
 config = context.config
-config.set_main_option("sqlalchemy.url", database.url())
+config.set_main_option("sqlalchemy.url", database.url_sync())
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
+
+
+def include_name(name, type_, parent_names):
+    if type_ == "table":
+        return name.startswith("vpncraft_")
+    return True
 
 
 def run_migrations_offline() -> None:
@@ -27,7 +33,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        render_as_batch=True,
+        include_name=include_name,
     )
 
     with context.begin_transaction():
@@ -38,7 +44,7 @@ def do_run_migrations(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
-        render_as_batch=True,
+        include_name=include_name,
     )
 
     with context.begin_transaction():
