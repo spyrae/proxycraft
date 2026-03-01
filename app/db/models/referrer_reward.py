@@ -45,7 +45,12 @@ class ReferrerReward(Base):
         ForeignKey("vpncraft_users.tg_id", ondelete="CASCADE"), nullable=False
     )
     reward_type: Mapped[ReferrerRewardType] = mapped_column(
-        Enum(ReferrerRewardType, name="vpncraft_referrerrewardtype"), nullable=False
+        Enum(
+            ReferrerRewardType,
+            name="vpncraft_referrerrewardtype",
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
+        nullable=False,
     )
     reward_level: Mapped[ReferrerRewardLevel] = mapped_column(
         Enum(ReferrerRewardLevel, name="vpncraft_referrerrewardlevel"), nullable=True
