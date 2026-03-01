@@ -1,5 +1,5 @@
 # region: Web App
-WEBAPP_URL = "https://app.vpncraft.tech"
+WEBAPP_URL = "https://app.proxycraft.tech"
 # endregion
 
 # region: Download
