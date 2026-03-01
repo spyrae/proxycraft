@@ -49,8 +49,8 @@ async def callback_payment_method_selected(
         logger.info(f"User {user.tg_id} selected payment method: {method}")
         logger.info(f"User {user.tg_id} selected {devices} devices and {duration} days.")
         gateway = gateway_factory.get_gateway(method)
-        plan = services.plan.get_plan(devices)
-        price = plan.get_price(currency=gateway.currency, duration=duration)
+        product = services.product_catalog.get_vpn_product_by_devices(devices)
+        price = services.product_catalog.get_price(product.slug, gateway.currency.code, duration)
         callback_data.price = price
 
         pay_url = await gateway.create_payment(callback_data)

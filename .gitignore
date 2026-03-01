@@ -170,7 +170,4 @@ cython_debug/
 *.zip
 *.gz
 
-# Plans
-plans.json
-
 tmp_test/

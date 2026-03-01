@@ -85,7 +85,7 @@ async def callback_subscription_extend(
     client = await services.vpn.is_client_exists(user)
 
     current_devices = await services.vpn.get_limit_ip(user=user, client=client)
-    if not services.plan.get_plan(current_devices):
+    if not services.product_catalog.get_vpn_product_by_devices(current_devices):
         await services.notification.show_popup(
             callback=callback,
             text=_("subscription:popup:error_fetching_plan"),
@@ -98,7 +98,7 @@ async def callback_subscription_extend(
     await callback.message.edit_text(
         text=_("subscription:message:duration"),
         reply_markup=duration_keyboard(
-            plan_service=services.plan,
+            catalog=services.product_catalog,
             callback_data=callback_data,
             currency=config.shop.CURRENCY,
         ),
@@ -117,7 +117,7 @@ async def callback_subscription_change(
     callback_data.is_change = True
     await callback.message.edit_text(
         text=_("subscription:message:devices"),
-        reply_markup=devices_keyboard(services.plan.get_all_plans(), callback_data),
+        reply_markup=devices_keyboard(services.product_catalog.get_vpn_products(), callback_data),
     )
 
 
@@ -143,7 +143,7 @@ async def callback_subscription_process(
     callback_data.state = NavSubscription.DEVICES
     await callback.message.edit_text(
         text=_("subscription:message:devices"),
-        reply_markup=devices_keyboard(services.plan.get_all_plans(), callback_data),
+        reply_markup=devices_keyboard(services.product_catalog.get_vpn_products(), callback_data),
     )
 
 
@@ -160,7 +160,7 @@ async def callback_devices_selected(
     await callback.message.edit_text(
         text=_("subscription:message:duration"),
         reply_markup=duration_keyboard(
-            plan_service=services.plan,
+            catalog=services.product_catalog,
             callback_data=callback_data,
             currency=config.shop.CURRENCY,
         ),
@@ -176,11 +176,12 @@ async def callback_duration_selected(
     gateway_factory: GatewayFactory,
 ) -> None:
     logger.info(f"User {user.tg_id} selected duration: {callback_data.duration}")
+    product = services.product_catalog.get_vpn_product_by_devices(callback_data.devices)
     callback_data.state = NavSubscription.PAY
     await callback.message.edit_text(
         text=_("subscription:message:payment_method"),
         reply_markup=payment_method_keyboard(
-            plan=services.plan.get_plan(callback_data.devices),
+            product=product,
             callback_data=callback_data,
             gateways=gateway_factory.get_gateways(),
         ),

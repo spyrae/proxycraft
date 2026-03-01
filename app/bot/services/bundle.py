@@ -50,9 +50,11 @@ class BundleService:
                 elif component == "socks5":
                     port = await self.whatsapp.activate(user_tg_id, duration, is_trial=is_trial)
                     results["whatsapp"] = {"success": port is not None, "port": port}
-                elif component == "vpn":
+                elif component.startswith("vpn"):
+                    product = self.catalog.get_product(component)
+                    devices = product.devices if product else 1
                     success = await self.vpn.create_subscription(
-                        user=user, devices=1, duration=duration
+                        user=user, devices=devices, duration=duration
                     )
                     results["vpn"] = {"success": success}
                 else:
@@ -87,9 +89,11 @@ class BundleService:
                 elif component == "socks5":
                     success = await self.whatsapp.extend(user_tg_id, duration)
                     results["whatsapp"] = {"success": success}
-                elif component == "vpn":
+                elif component.startswith("vpn"):
+                    product = self.catalog.get_product(component)
+                    devices = product.devices if product else 1
                     success = await self.vpn.extend_subscription(
-                        user=user, devices=1, duration=duration
+                        user=user, devices=devices, duration=duration
                     )
                     results["vpn"] = {"success": success}
                 else:

@@ -21,7 +21,7 @@ from app.bot.api.serializers import (
     serialize_bundle_plans,
     serialize_mtproto_plans,
     serialize_mtproto_subscription,
-    serialize_plans,
+    serialize_vpn_products,
     serialize_user,
     serialize_vpn_subscription,
     serialize_whatsapp_plans,
@@ -94,11 +94,12 @@ async def handle_me(request: Request) -> Response:
 
 
 async def handle_plans(request: Request) -> Response:
-    """GET /api/v1/plans — VPN plans (Stars pricing)."""
+    """GET /api/v1/plans — VPN plans (all pricing)."""
     services = _services(request)
-    plans = services.plan.get_all_plans()
-    durations = services.plan.get_durations()
-    return web.json_response({"plans": serialize_plans(plans, durations)})
+    catalog = services.product_catalog
+    products = catalog.get_vpn_products()
+    durations = catalog.get_durations()
+    return web.json_response({"plans": serialize_vpn_products(products, durations)})
 
 
 async def handle_plans_mtproto(request: Request) -> Response:
@@ -183,14 +184,15 @@ async def handle_payment_invoice(request: Request) -> Response:
     if not duration or not isinstance(duration, int) or duration <= 0:
         return web.json_response({"error": "Invalid duration"}, status=400)
 
+    catalog = services.product_catalog
+
     # Determine price and create invoice
     if product == "vpn":
-        plan = services.plan.get_plan(devices)
-        if not plan:
+        vpn_product = catalog.get_vpn_product_by_devices(devices)
+        if not vpn_product:
             return web.json_response({"error": "Plan not found"}, status=404)
-        try:
-            price = plan.get_price(Currency.XTR, duration)
-        except (KeyError, ValueError):
+        price = catalog.get_price(vpn_product.slug, Currency.XTR.code, duration)
+        if price is None:
             return web.json_response({"error": "Invalid duration for this plan"}, status=400)
         amount = int(price)
         title = f"VPN {devices} dev / {duration} days"
@@ -222,7 +224,6 @@ async def handle_payment_invoice(request: Request) -> Response:
     elif product.startswith("bundle_"):
         if not (config.shop.MTPROTO_ENABLED and config.shop.WHATSAPP_ENABLED):
             return web.json_response({"error": "Bundles require MTProto and WhatsApp"}, status=404)
-        catalog = services.product_catalog
         bundle_product = catalog.get_product(product)
         if not bundle_product or not bundle_product.is_bundle:
             return web.json_response({"error": "Invalid bundle"}, status=400)

@@ -3,14 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.bot.services import PlanService
+    from app.bot.services.product_catalog import Product, ProductCatalog
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.i18n import gettext as _
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.bot.models import SubscriptionData
-from app.bot.models.plan import Plan
 from app.bot.payment_gateways import PaymentGateway
 from app.bot.routers.misc.keyboard import (
     back_button,
@@ -62,15 +61,15 @@ def subscription_keyboard(
 
 
 def devices_keyboard(
-    plans: list[Plan],
+    products: list[Product],
     callback_data: SubscriptionData,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
-    for plan in plans:
-        callback_data.devices = plan.devices
+    for product in products:
+        callback_data.devices = product.devices
         builder.button(
-            text=format_device_count(plan.devices),
+            text=format_device_count(product.devices),
             callback_data=callback_data,
         )
 
@@ -81,21 +80,21 @@ def devices_keyboard(
 
 
 def duration_keyboard(
-    plan_service: PlanService,
+    catalog: ProductCatalog,
     callback_data: SubscriptionData,
     currency: str,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    durations = plan_service.get_durations()
-    currency: Currency = Currency.from_code(currency)
+    durations = catalog.get_durations()
+    currency_obj: Currency = Currency.from_code(currency)
+    product = catalog.get_vpn_product_by_devices(callback_data.devices)
 
     for duration in durations:
         callback_data.duration = duration
         period = format_subscription_period(duration)
-        plan = plan_service.get_plan(callback_data.devices)
-        price = plan.get_price(currency=currency, duration=duration)
+        price = catalog.get_price(product.slug, currency_obj.code, duration)
         builder.button(
-            text=f"{period} | {price} {currency.symbol}",
+            text=f"{period} | {price} {currency_obj.symbol}",
             callback_data=callback_data,
         )
 
@@ -133,13 +132,13 @@ def pay_keyboard(pay_url: str, callback_data: SubscriptionData) -> InlineKeyboar
 
 
 def payment_method_keyboard(
-    plan: Plan,
+    product: Product,
     callback_data: SubscriptionData,
     gateways: list[PaymentGateway],
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for gateway in gateways:
-        price = plan.get_price(currency=gateway.currency, duration=callback_data.duration)
+        price = product.prices.get(gateway.currency.code, {}).get(callback_data.duration) if product.prices else None
         if price is None:
             continue
 

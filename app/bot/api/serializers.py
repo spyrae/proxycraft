@@ -6,7 +6,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.bot.models import ClientData, Plan
+    from app.bot.models import ClientData
+    from app.bot.services.product_catalog import Product
     from app.db.models import MTProtoSubscription, Server, Transaction, User, WhatsAppSubscription
 
 
@@ -41,16 +42,19 @@ def serialize_user(
     }
 
 
-def serialize_plan(plan: Plan, durations: list[int]) -> dict:
+def serialize_vpn_product(product: Product, durations: list[int]) -> dict:
     return {
-        "devices": plan.devices,
-        "prices": plan.prices,
+        "devices": product.devices,
+        "prices": {
+            currency: {str(dur): price for dur, price in dur_prices.items()}
+            for currency, dur_prices in (product.prices or {}).items()
+        },
         "durations": durations,
     }
 
 
-def serialize_plans(plans: list[Plan], durations: list[int]) -> list[dict]:
-    return [serialize_plan(p, durations) for p in plans]
+def serialize_vpn_products(products: list[Product], durations: list[int]) -> list[dict]:
+    return [serialize_vpn_product(p, durations) for p in products]
 
 
 def serialize_mtproto_plans(config) -> list[dict]:

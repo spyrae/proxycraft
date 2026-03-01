@@ -16,8 +16,7 @@ Telegram bot for selling VPN & proxy subscriptions. Built on top of [3xui-shop](
 ```bash
 cp .env.example .env
 # edit .env with your values
-cp plans.example.json plans.json
-# edit plans.json with your pricing
+# edit app/data/products.json with your pricing
 
 docker compose up -d
 ```

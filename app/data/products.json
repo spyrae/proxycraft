@@ -1,9 +1,52 @@
 {
   "products": {
+    "vpn_1": {
+      "name": "VPN Personal",
+      "emoji": "\ud83d\udee1",
+      "description": "VPN \u043d\u0430 1 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e",
+      "product_type": "vpn",
+      "devices": 1,
+      "trial_days": 7,
+      "is_bundle": false,
+      "includes": [],
+      "prices": {
+        "RUB": { "30": 249, "90": 649, "180": 1199, "365": 1990 },
+        "XTR": { "30": 200, "90": 520, "180": 960, "365": 1600 }
+      }
+    },
+    "vpn_3": {
+      "name": "VPN Family",
+      "emoji": "\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc66",
+      "description": "VPN \u043d\u0430 3 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0430",
+      "product_type": "vpn",
+      "devices": 3,
+      "trial_days": 7,
+      "is_bundle": false,
+      "includes": [],
+      "prices": {
+        "RUB": { "30": 449, "90": 1169, "180": 2159, "365": 3599 },
+        "XTR": { "30": 360, "90": 936, "180": 1728, "365": 2880 }
+      }
+    },
+    "vpn_5": {
+      "name": "VPN Family+",
+      "emoji": "\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d\udc66",
+      "description": "VPN \u043d\u0430 5 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432",
+      "product_type": "vpn",
+      "devices": 5,
+      "trial_days": 7,
+      "is_bundle": false,
+      "includes": [],
+      "prices": {
+        "RUB": { "30": 649, "90": 1689, "180": 3119, "365": 5199 },
+        "XTR": { "30": 520, "90": 1352, "180": 2496, "365": 4160 }
+      }
+    },
     "mtproto": {
       "name": "Telegram Proxy",
       "emoji": "\ud83d\udcf1",
       "description": "\u0414\u043e\u0441\u0442\u0443\u043f \u043a Telegram \u0431\u0435\u0437 \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u0439",
+      "product_type": "mtproto",
       "base_price": 4900,
       "trial_days": 3,
       "is_bundle": false,
@@ -13,17 +56,9 @@
       "name": "WhatsApp Proxy",
       "emoji": "\ud83d\udcac",
       "description": "\u0417\u0432\u043e\u043d\u043a\u0438 \u0438 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u044f \u0432 WhatsApp",
+      "product_type": "whatsapp",
       "base_price": 6900,
       "trial_days": 3,
-      "is_bundle": false,
-      "includes": []
-    },
-    "vpn": {
-      "name": "Full VPN",
-      "emoji": "\ud83d\udee1",
-      "description": "\u041f\u043e\u043b\u043d\u0430\u044f \u0437\u0430\u0449\u0438\u0442\u0430 \u0432\u0441\u0435\u0433\u043e \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430",
-      "base_price": 24900,
-      "trial_days": 7,
       "is_bundle": false,
       "includes": []
     },
@@ -31,6 +66,7 @@
       "name": "\u041c\u0435\u0441\u0441\u0435\u043d\u0434\u0436\u0435\u0440\u044b",
       "emoji": "\ud83d\udcac\ud83d\udcf1",
       "description": "Telegram + WhatsApp \u0432\u043c\u0435\u0441\u0442\u0435",
+      "product_type": "bundle",
       "base_price": 9900,
       "trial_days": 3,
       "is_bundle": true,
@@ -40,10 +76,11 @@
       "name": "\u0412\u0441\u0451 \u0432\u043a\u043b\u044e\u0447\u0435\u043d\u043e",
       "emoji": "\ud83d\ude80",
       "description": "VPN + Telegram + WhatsApp",
+      "product_type": "bundle",
       "base_price": 27900,
       "trial_days": 7,
       "is_bundle": true,
-      "includes": ["vpn", "mtproto", "socks5"]
+      "includes": ["vpn_1", "mtproto", "socks5"]
     }
   },
   "durations": [30, 90, 180, 365],
