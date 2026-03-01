@@ -1644,3 +1644,7 @@ msgstr "❌ Пробный период уже был использован."
 msgid "bundle:popup:trial_failed"
 msgstr "❌ Не удалось активировать пробный период. Попробуйте позже."
 
+#: app/bot/utils/qr.py
+msgid "qr:caption:scan"
+msgstr "📱 Отсканируйте QR-код в приложении VPN"
+

@@ -19,6 +19,7 @@ from app.bot.routers.misc.keyboard import close_notification_keyboard
 from app.bot.routers.subscription.keyboard import payment_success_keyboard
 from app.bot.utils.constants import MESSAGE_EFFECT_IDS
 from app.bot.utils.formatting import format_device_count, format_subscription_period
+from app.bot.utils.qr import generate_qr
 from app.config import Config
 
 logger = logging.getLogger(__name__)
@@ -152,6 +153,26 @@ class NotificationService:
             bot=self.bot,
         )
 
+    async def send_photo_by_id(
+        self,
+        chat_id: int,
+        photo: InputFile,
+        caption: str | None = None,
+        reply_markup: ReplyMarkupType = None,
+    ) -> Message | None:
+        try:
+            message = await self.bot.send_photo(
+                chat_id=chat_id,
+                photo=photo,
+                caption=caption,
+                reply_markup=reply_markup,
+            )
+            logger.debug(f"Photo sent to {chat_id}")
+            return message
+        except Exception as exception:
+            logger.error(f"Failed to send photo to {chat_id}: {exception}")
+            return None
+
     @staticmethod
     async def show_popup(callback: CallbackQuery, text: str, cache_time: int = 0) -> None:
         try:
@@ -172,6 +193,13 @@ class NotificationService:
             message_effect_id=message_effect_id,
             reply_markup=payment_success_keyboard(),
         )
+        if key:
+            qr_photo = await generate_qr(key)
+            await self.send_photo_by_id(
+                chat_id=user_id,
+                photo=qr_photo,
+                caption=str(__("qr:caption:scan")),
+            )
 
     async def notify_extend_success(
         self,

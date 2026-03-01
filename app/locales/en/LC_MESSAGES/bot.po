@@ -1628,3 +1628,7 @@ msgstr "❌ Trial period has already been used."
 msgid "bundle:popup:trial_failed"
 msgstr "❌ Failed to activate trial. Please try later."
 
+#: app/bot/utils/qr.py
+msgid "qr:caption:scan"
+msgstr "📱 Scan the QR code in your VPN app"
+

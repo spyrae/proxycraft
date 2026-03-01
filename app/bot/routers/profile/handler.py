@@ -10,6 +10,7 @@ from app.bot.models import ClientData
 from app.bot.services import ServicesContainer
 from app.bot.utils.constants import PREVIOUS_CALLBACK_KEY
 from app.bot.utils.navigation import NavProfile
+from app.bot.utils.qr import generate_qr
 from app.db.models import User
 
 from .keyboard import buy_subscription_keyboard, profile_keyboard
@@ -82,10 +83,27 @@ async def callback_show_key(
     logger.info(f"User {user.tg_id} looked key.")
     key = await services.vpn.get_key(user)
     key_text = _("profile:message:key")
+
+    qr_message = None
+    if key:
+        qr_photo = await generate_qr(key)
+        qr_message = await callback.message.answer_photo(
+            photo=qr_photo,
+            caption=_("qr:caption:scan"),
+        )
+
     message = await callback.message.answer(key_text.format(key=key, seconds_text=_("10 seconds")))
 
     for seconds in range(9, 0, -1):
         seconds_text = _("1 second", "{} seconds", seconds).format(seconds)
         await asyncio.sleep(1)
-        await message.edit_text(text=key_text.format(key=key, seconds_text=seconds_text))
-    await message.delete()
+        try:
+            await message.edit_text(text=key_text.format(key=key, seconds_text=seconds_text))
+        except Exception:
+            return
+    try:
+        await message.delete()
+        if qr_message:
+            await qr_message.delete()
+    except Exception:
+        pass

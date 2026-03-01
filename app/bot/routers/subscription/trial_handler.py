@@ -10,6 +10,7 @@ from app.bot.routers.subscription.keyboard import trial_success_keyboard
 from app.bot.utils.constants import MAIN_MESSAGE_ID_KEY, PREVIOUS_CALLBACK_KEY
 from app.bot.utils.formatting import format_subscription_period
 from app.bot.utils.navigation import NavMain, NavSubscription
+from app.bot.utils.qr import generate_qr
 from app.config import Config
 from app.db.models import User
 
@@ -57,6 +58,14 @@ async def callback_get_trial(
             message_id=main_message_id,
             reply_markup=trial_success_keyboard(),
         )
+        key = await services.vpn.get_key(user)
+        if key:
+            qr_photo = await generate_qr(key)
+            await callback.bot.send_photo(
+                chat_id=callback.message.chat.id,
+                photo=qr_photo,
+                caption=_("qr:caption:scan"),
+            )
     else:
         text = _("subscription:popup:trial_activate_failed")
         await services.notification.show_popup(callback=callback, text=text)
