@@ -15,6 +15,7 @@ class Database:
         url = config.url()
         connect_args = {}
         if "asyncpg" in url:
+            connect_args["statement_cache_size"] = 0
             connect_args["prepared_statement_cache_size"] = 0
 
         self.engine = create_async_engine(

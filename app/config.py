@@ -179,12 +179,18 @@ class DatabaseConfig:
             driver = "postgresql+asyncpg" if self.HOST else "sqlite+aiosqlite"
         if driver.startswith("sqlite"):
             return f"{driver}:////{DEFAULT_DATA_DIR}/{self.NAME}.{DB_FORMAT}"
-        return f"{driver}://{self.USERNAME}:{self.PASSWORD}@{self.HOST}:{self.PORT}/{self.NAME}"
+        from urllib.parse import quote_plus
+        password = quote_plus(self.PASSWORD) if self.PASSWORD else ""
+        username = quote_plus(self.USERNAME) if self.USERNAME else ""
+        return f"{driver}://{username}:{password}@{self.HOST}:{self.PORT}/{self.NAME}"
 
     def url_sync(self) -> str:
         if not self.HOST:
             return f"sqlite:///{DEFAULT_DATA_DIR}/{self.NAME}.{DB_FORMAT}"
-        return f"postgresql://{self.USERNAME}:{self.PASSWORD}@{self.HOST}:{self.PORT}/{self.NAME}"
+        from urllib.parse import quote_plus
+        password = quote_plus(self.PASSWORD) if self.PASSWORD else ""
+        username = quote_plus(self.USERNAME) if self.USERNAME else ""
+        return f"postgresql://{username}:{password}@{self.HOST}:{self.PORT}/{self.NAME}"
 
 
 @dataclass

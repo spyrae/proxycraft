@@ -17,7 +17,7 @@ async def cancel_expired_transactions(
 ) -> None:
     session: AsyncSession
     async with session_factory() as session:
-        expiration_time = datetime.now(timezone.utc) - timedelta(minutes=expiration_minutes)
+        expiration_time = datetime.utcnow() - timedelta(minutes=expiration_minutes)
         stmt = select(Transaction).where(
             Transaction.status == TransactionStatus.PENDING,
             Transaction.created_at <= expiration_time,
