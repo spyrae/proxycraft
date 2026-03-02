@@ -1,106 +1,369 @@
 import { useNavigate } from 'react-router-dom';
 import { useTelegram } from '../hooks/useTelegram';
-import { useMe } from '../api/hooks';
-import { SubscriptionCard } from '../components/SubscriptionCard';
+import { useMe, useVpnSubscription } from '../api/hooks';
 
 export function HomePage() {
-  const navigate = useNavigate();
   const { user } = useTelegram();
   const { data: me, isLoading, error } = useMe();
 
-  if (isLoading) {
-    return <LoadingState />;
-  }
+  if (isLoading) return <HomeLoading />;
+  if (error || !me) return <HomeError />;
 
-  if (error || !me) {
-    return <ErrorState />;
-  }
-
-  const vpnStatus = me.subscriptions.vpn.active ? 'active' : 'none';
-  const mtprotoStatus = me.subscriptions.mtproto.active ? 'active' : 'none';
-  const whatsappStatus = me.subscriptions.whatsapp.active ? 'active' : 'none';
+  const hasActiveVpn = me.subscriptions.vpn.active;
 
   return (
-    <div>
+    <div className="animate-fade-in">
       {/* Greeting */}
-      <h1 className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
-        Hi, {user?.first_name || me.first_name}!
-      </h1>
-      <p className="text-sm mb-5" style={{ color: 'var(--text-hint)' }}>
-        Manage your VPN subscriptions
+      <p className="text-sm font-medium mb-6" style={{ color: 'var(--text-muted)' }}>
+        Hi, {user?.first_name || me.first_name}
       </p>
 
-      {/* VPN Status */}
-      <SubscriptionCard title="VPN" status={vpnStatus}>
-        {vpnStatus === 'none' && me.subscriptions.vpn.trial_available && (
-          <p className="text-xs" style={{ color: 'var(--text-link)' }}>
-            Free trial available!
-          </p>
+      {/* Hero Shield */}
+      <HeroSection active={hasActiveVpn} />
+
+      {/* Stats or Quick Setup */}
+      {hasActiveVpn ? <ActiveStats /> : <QuickSetup me={me} />}
+    </div>
+  );
+}
+
+function HeroSection({ active }: { active: boolean }) {
+  return (
+    <div className="flex flex-col items-center mb-6">
+      {/* Shield icon with glow */}
+      <div
+        className="relative w-24 h-24 flex items-center justify-center mb-4"
+        style={{
+          filter: active
+            ? 'drop-shadow(0 0 20px rgba(16, 185, 129, 0.5))'
+            : 'drop-shadow(0 0 10px rgba(107, 114, 128, 0.3))',
+        }}
+      >
+        {active && (
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: 'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)',
+              animation: 'glow-pulse 3s ease-in-out infinite',
+            }}
+          />
         )}
-      </SubscriptionCard>
-
-      {/* MTProto */}
-      {me.features.mtproto_enabled && (
-        <SubscriptionCard title="MTProto Proxy" status={mtprotoStatus}>
-          {mtprotoStatus === 'none' && me.subscriptions.mtproto.trial_available && (
-            <p className="text-xs" style={{ color: 'var(--text-link)' }}>
-              Free trial available!
-            </p>
+        <svg width="64" height="64" viewBox="0 0 32 32" fill="none">
+          <path
+            d="M16 4L6 10v10l10 8 10-8V10L16 4z"
+            stroke={active ? '#10B981' : '#4B5563'}
+            strokeWidth="1.5"
+            fill="none"
+          />
+          <path
+            d="M16 8l-6 4.5v7L16 24l6-4.5v-7L16 8z"
+            fill={active ? '#10B981' : '#4B5563'}
+            opacity="0.15"
+          />
+          {active ? (
+            <path
+              d="M13 16l3 3 5-5"
+              stroke="#10B981"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ) : (
+            <>
+              <line x1="13" y1="13" x2="19" y2="19" stroke="#4B5563" strokeWidth="2" strokeLinecap="round" />
+              <line x1="19" y1="13" x2="13" y2="19" stroke="#4B5563" strokeWidth="2" strokeLinecap="round" />
+            </>
           )}
-        </SubscriptionCard>
+        </svg>
+      </div>
+
+      {/* Status text */}
+      <h1
+        className="text-xl font-bold mb-1"
+        style={{ color: active ? '#10B981' : '#9CA3AF' }}
+      >
+        {active ? 'Protected' : 'Not Protected'}
+      </h1>
+      <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
+        {active ? 'Your connection is secure' : 'Get a plan to stay safe online'}
+      </p>
+    </div>
+  );
+}
+
+function ActiveStats() {
+  const { data: sub, isLoading } = useVpnSubscription();
+
+  if (isLoading || !sub) {
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="animate-shimmer rounded-2xl h-20" />
+        ))}
+      </div>
+    );
+  }
+
+  const daysLeft = sub.expiry_time
+    ? Math.max(0, Math.ceil((sub.expiry_time - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
+  // Progress based on typical 30-day subscription
+  const progressPercent = sub.expiry_time
+    ? Math.min(100, Math.max(0, (daysLeft / 30) * 100))
+    : 0;
+
+  return (
+    <div className="space-y-3 animate-slide-up">
+      {/* Subscription progress */}
+      {sub.expiry_time && sub.expiry_time > 0 && (
+        <div className="card-gradient-border p-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+              Subscription
+            </span>
+            <span
+              className="text-xs font-bold"
+              style={{ color: daysLeft <= 3 ? 'var(--danger)' : '#10B981' }}
+            >
+              {daysLeft} days left
+            </span>
+          </div>
+          <div
+            className="w-full h-1.5 rounded-full overflow-hidden"
+            style={{ backgroundColor: 'var(--border)' }}
+          >
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${progressPercent}%`,
+                background: daysLeft <= 3
+                  ? 'linear-gradient(90deg, #EF4444, #F59E0B)'
+                  : 'linear-gradient(90deg, #10B981, #34D399)',
+              }}
+            />
+          </div>
+          <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-dim)' }}>
+            Expires {new Date(sub.expiry_time).toLocaleDateString()}
+          </p>
+        </div>
       )}
 
-      {/* WhatsApp */}
-      {me.features.whatsapp_enabled && (
-        <SubscriptionCard title="WhatsApp Proxy" status={whatsappStatus}>
-          {whatsappStatus === 'none' && me.subscriptions.whatsapp.trial_available && (
-            <p className="text-xs" style={{ color: 'var(--text-link)' }}>
-              Free trial available!
-            </p>
-          )}
-        </SubscriptionCard>
-      )}
-
-      {/* Quick Links */}
-      <div className="grid grid-cols-2 gap-3 mt-4">
-        <QuickLink label="View Plans" onClick={() => navigate('/plans')} />
-        <QuickLink label="My VPN" onClick={() => navigate('/my-vpn')} />
+      {/* Traffic stats grid */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard
+          icon="↑"
+          label="Upload"
+          value={formatBytes(sub.traffic_up || 0)}
+          color="#06B6D4"
+        />
+        <StatCard
+          icon="↓"
+          label="Download"
+          value={formatBytes(sub.traffic_down || 0)}
+          color="#10B981"
+        />
+        <StatCard
+          icon="◎"
+          label="Total Used"
+          value={formatBytes(sub.traffic_used || 0)}
+          color="#8B5CF6"
+        />
+        <StatCard
+          icon="⊞"
+          label="Devices"
+          value={sub.max_devices === -1 ? '∞' : String(sub.max_devices || 0)}
+          color="#F59E0B"
+        />
       </div>
     </div>
   );
 }
 
-function QuickLink({ label, onClick }: { label: string; onClick: () => void }) {
+function StatCard({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  color: string;
+}) {
   return (
-    <button
-      onClick={onClick}
-      className="rounded-xl p-3 text-sm font-medium text-center"
-      style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
-    >
-      {label}
-    </button>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div className="flex items-center justify-center h-60">
-      <div className="animate-spin rounded-full h-8 w-8 border-2 border-t-transparent" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+    <div className="card-gradient-border p-3">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span
+          className="w-5 h-5 rounded-md flex items-center justify-center text-[10px]"
+          style={{ backgroundColor: `${color}20`, color }}
+        >
+          {icon}
+        </span>
+        <span className="text-[10px] font-medium" style={{ color: 'var(--text-dim)' }}>
+          {label}
+        </span>
+      </div>
+      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+        {value}
+      </p>
     </div>
   );
 }
 
-function ErrorState() {
+interface MeData {
+  subscriptions: {
+    vpn: { active: boolean; trial_available: boolean };
+    mtproto: { active: boolean; trial_available: boolean };
+    whatsapp: { active: boolean; trial_available: boolean };
+  };
+  features: {
+    mtproto_enabled: boolean;
+    whatsapp_enabled: boolean;
+    stars_enabled: boolean;
+  };
+  first_name: string;
+}
+
+function QuickSetup({ me }: { me: MeData }) {
+  const navigate = useNavigate();
+
+  const steps = [
+    {
+      num: '1',
+      title: 'Choose a Plan',
+      desc: 'Select the plan that fits your needs',
+      action: () => navigate('/plans'),
+      color: '#10B981',
+    },
+    {
+      num: '2',
+      title: 'Pay with Stars',
+      desc: 'Quick payment via Telegram Stars',
+      color: '#06B6D4',
+    },
+    {
+      num: '3',
+      title: 'Connect',
+      desc: 'Scan QR or copy the config link',
+      color: '#8B5CF6',
+    },
+  ];
+
   return (
-    <div className="flex flex-col items-center justify-center h-60 gap-2">
-      <p className="text-sm" style={{ color: 'var(--text-hint)' }}>Failed to load profile</p>
+    <div className="space-y-3 animate-slide-up">
+      <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>
+        Get Started
+      </h2>
+
+      {steps.map((step, i) => (
+        <button
+          key={i}
+          onClick={step.action}
+          disabled={!step.action}
+          className="w-full card-gradient-border p-4 text-left flex items-center gap-3 transition-all"
+          style={{ opacity: step.action ? 1 : 0.6 }}
+        >
+          <span
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
+            style={{ backgroundColor: `${step.color}20`, color: step.color }}
+          >
+            {step.num}
+          </span>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              {step.title}
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-dim)' }}>
+              {step.desc}
+            </p>
+          </div>
+          {step.action && (
+            <svg
+              className="ml-auto shrink-0"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={step.color}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          )}
+        </button>
+      ))}
+
+      {me.subscriptions.vpn.trial_available && (
+        <div
+          className="card-gradient-border p-4 text-center"
+          style={{ borderColor: 'rgba(16, 185, 129, 0.3)' }}
+        >
+          <p className="text-sm font-semibold" style={{ color: '#10B981' }}>
+            Free 7-day trial available!
+          </p>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>
+            No payment required to start
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HomeLoading() {
+  return (
+    <div className="space-y-4">
+      <div className="animate-shimmer rounded-xl h-6 w-32" />
+      <div className="flex flex-col items-center gap-4 my-8">
+        <div className="animate-shimmer rounded-full w-24 h-24" />
+        <div className="animate-shimmer rounded-xl h-6 w-36" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="animate-shimmer rounded-2xl h-20" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HomeError() {
+  return (
+    <div className="flex flex-col items-center justify-center h-60 gap-3 animate-fade-in">
+      <div
+        className="w-12 h-12 rounded-full flex items-center justify-center"
+        style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="15" y1="9" x2="9" y2="15" />
+          <line x1="9" y1="9" x2="15" y2="15" />
+        </svg>
+      </div>
+      <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
+        Failed to load profile
+      </p>
       <button
         onClick={() => window.location.reload()}
-        className="text-sm font-medium px-4 py-2 rounded-lg"
-        style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
+        className="text-sm font-semibold px-5 py-2.5 rounded-xl transition-all"
+        style={{
+          backgroundColor: '#10B981',
+          color: '#ffffff',
+        }}
       >
         Retry
       </button>
     </div>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / Math.pow(1024, i);
+  return `${value.toFixed(value < 10 ? 2 : 1)} ${units[i]}`;
 }

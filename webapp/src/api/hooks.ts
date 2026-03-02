@@ -19,7 +19,7 @@ export function useMe() {
   return useQuery<UserProfile>({
     queryKey: ['me'],
     queryFn: () => api('/api/v1/me'),
-    staleTime: 30_000,
+    staleTime: 60_000,
   });
 }
 
@@ -51,7 +51,7 @@ export function useVpnSubscription() {
   return useQuery<VpnSubscription>({
     queryKey: ['subscription', 'vpn'],
     queryFn: () => api('/api/v1/subscription'),
-    staleTime: 15_000,
+    staleTime: 60_000,
   });
 }
 
@@ -59,7 +59,7 @@ export function useMtprotoSubscription() {
   return useQuery<MtprotoSubscription>({
     queryKey: ['subscription', 'mtproto'],
     queryFn: () => api('/api/v1/subscription/mtproto'),
-    staleTime: 15_000,
+    staleTime: 60_000,
   });
 }
 
@@ -67,7 +67,7 @@ export function useWhatsappSubscription() {
   return useQuery<WhatsappSubscription>({
     queryKey: ['subscription', 'whatsapp'],
     queryFn: () => api('/api/v1/subscription/whatsapp'),
-    staleTime: 15_000,
+    staleTime: 60_000,
   });
 }
 
@@ -122,4 +122,3 @@ export function useTrialWhatsapp() {
     },
   });
 }
-

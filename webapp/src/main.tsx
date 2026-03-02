@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   init,
   restoreInitData,
-  bindThemeParamsCssVars,
   bindMiniAppCssVars,
   mountMiniApp,
   miniAppReady,
@@ -13,6 +12,7 @@ import {
 } from '@telegram-apps/sdk-react';
 import './styles/globals.css';
 import App from './App';
+import { api } from './api/client';
 
 // Initialize Telegram Mini App SDK
 try {
@@ -20,10 +20,9 @@ try {
   mountMiniApp();
   mountThemeParams();
   restoreInitData();
-  bindThemeParamsCssVars();
   bindMiniAppCssVars();
   miniAppReady();
-  setMiniAppHeaderColor('secondary_bg_color');
+  setMiniAppHeaderColor('#0A0E17' as any);
 } catch (e) {
   console.warn('TMA SDK init failed (outside Telegram?):', e);
 }
@@ -37,10 +36,26 @@ const queryClient = new QueryClient({
   },
 });
 
+// Prefetch user profile immediately
+queryClient.prefetchQuery({
+  queryKey: ['me'],
+  queryFn: () => api('/api/v1/me'),
+  staleTime: 60_000,
+});
+
+// Hide splash after React mounts + short delay for data fetch
+function hideSplash() {
+  const splash = document.getElementById('splash');
+  if (splash) {
+    splash.classList.add('hidden');
+    setTimeout(() => splash.remove(), 500);
+  }
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <App onReady={hideSplash} />
     </QueryClientProvider>
   </StrictMode>,
 );
