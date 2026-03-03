@@ -19,8 +19,6 @@ from app.bot.models import ServicesContainer
 from app.bot.payment_gateways import GatewayFactory
 from app.bot.utils import commands
 from app.bot.utils.constants import (
-    BOT_STARTED_TAG,
-    BOT_STOPPED_TAG,
     DEFAULT_LANGUAGE,
     I18N_DOMAIN,
     TELEGRAM_WEBHOOK,
@@ -30,7 +28,6 @@ from app.db.database import Database
 
 
 async def on_shutdown(db: Database, bot: Bot, services: ServicesContainer) -> None:
-    await services.notification.notify_developer(BOT_STOPPED_TAG)
     await commands.delete(bot)
     await bot.delete_webhook()
     await bot.session.close()
@@ -54,7 +51,6 @@ async def on_startup(
     current_webhook = await bot.get_webhook_info()
     logging.info(f"Current webhook URL: {current_webhook.url}")
 
-    await services.notification.notify_developer(BOT_STARTED_TAG)
     logging.info("Bot started.")
 
     tasks.transactions.start_scheduler(db.session)
