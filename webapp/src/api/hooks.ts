@@ -147,7 +147,7 @@ export function useActivatePromocode() {
 
 interface TopupParams {
   amount: number;
-  currency: 'stars' | 'rub';
+  currency: 'stars' | 'rub' | 'sbp';
 }
 
 export function useTopup() {

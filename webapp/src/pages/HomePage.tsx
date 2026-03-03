@@ -97,7 +97,7 @@ function BalanceCard({ balance, autoRenew }: { balance: number; autoRenew: boole
 
 function TopupModal({ onClose }: { onClose: () => void }) {
   const [selectedAmount, setSelectedAmount] = useState<number>(500);
-  const [currency, setCurrency] = useState<'stars' | 'rub'>('stars');
+  const [currency, setCurrency] = useState<'stars' | 'rub' | 'sbp'>('stars');
   const topupMutation = useTopup();
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'redirected' | 'error'>('idle');
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -183,31 +183,28 @@ function TopupModal({ onClose }: { onClose: () => void }) {
           ))}
         </div>
 
-        {/* Currency toggle */}
+        {/* Payment method toggle */}
         <div
           className="flex rounded-xl p-1 mb-4"
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
         >
-          <button
-            onClick={() => setCurrency('stars')}
-            className="flex-1 text-sm font-semibold py-2 rounded-lg transition-all"
-            style={{
-              backgroundColor: currency === 'stars' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-              color: currency === 'stars' ? '#10B981' : 'var(--text-dim)',
-            }}
-          >
-            ★ Stars
-          </button>
-          <button
-            onClick={() => setCurrency('rub')}
-            className="flex-1 text-sm font-semibold py-2 rounded-lg transition-all"
-            style={{
-              backgroundColor: currency === 'rub' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-              color: currency === 'rub' ? '#10B981' : 'var(--text-dim)',
-            }}
-          >
-            💳 Card
-          </button>
+          {([
+            { key: 'stars' as const, label: '★ Stars' },
+            { key: 'sbp' as const, label: 'SBP' },
+            { key: 'rub' as const, label: '💳 Card' },
+          ]).map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => setCurrency(opt.key)}
+              className="flex-1 text-xs font-semibold py-2 rounded-lg transition-all"
+              style={{
+                backgroundColor: currency === opt.key ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                color: currency === opt.key ? '#10B981' : 'var(--text-dim)',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
 
         {/* Conversion info for Stars */}

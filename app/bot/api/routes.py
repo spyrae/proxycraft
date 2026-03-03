@@ -544,20 +544,24 @@ async def handle_balance_topup(request: Request) -> Response:
         logger.info(f"Top-up invoice created for user {tg_id}: {amount}₽ = {stars_amount}★")
         return web.json_response({"invoice_url": invoice_url, "stars_amount": stars_amount})
 
-    # --- T-Bank (RUB) flow ---
-    if currency_choice == "rub":
+    # --- T-Bank (Card / SBP) flow ---
+    if currency_choice in ("rub", "sbp"):
         gateway_factory = request.app.get("gateway_factory")
         if not gateway_factory:
             return web.json_response({"error": "Payment gateway not available"}, status=500)
 
-        try:
-            gateway = gateway_factory.get_gateway(NavSubscription.PAY_TBANK)
-        except ValueError:
-            return web.json_response({"error": "T-Bank gateway not registered"}, status=500)
+        nav_state = (
+            NavSubscription.PAY_TBANK_SBP if currency_choice == "sbp"
+            else NavSubscription.PAY_TBANK
+        )
 
-        # Use SubscriptionData with special topup marker
+        try:
+            gateway = gateway_factory.get_gateway(nav_state)
+        except ValueError:
+            return web.json_response({"error": "Payment gateway not registered"}, status=500)
+
         sub_data = SubscriptionData(
-            state=NavSubscription.PAY_TBANK,
+            state=nav_state,
             is_extend=False,
             is_change=False,
             user_id=tg_id,
@@ -570,10 +574,10 @@ async def handle_balance_topup(request: Request) -> Response:
         try:
             payment_url = await gateway.create_payment(sub_data)
         except Exception as e:
-            logger.error(f"Failed to create T-Bank top-up payment: {e}")
+            logger.error(f"Failed to create top-up payment ({currency_choice}): {e}")
             return web.json_response({"error": "Failed to create payment"}, status=500)
 
-        logger.info(f"T-Bank top-up payment created for user {tg_id}: {amount}₽")
+        logger.info(f"Top-up payment created ({currency_choice}) for user {tg_id}: {amount}₽")
         return web.json_response({"payment_url": payment_url})
 
     return web.json_response({"error": "Invalid currency"}, status=400)
