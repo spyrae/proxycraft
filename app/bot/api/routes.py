@@ -564,7 +564,7 @@ async def handle_balance_topup(request: Request) -> Response:
             devices=0,
             duration=0,
             price=float(amount),
-            product_type=f"topup:{amount}",
+            product_type="topup",
         )
 
         try:

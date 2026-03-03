@@ -79,8 +79,8 @@ class PaymentGateway(ABC):
             )
 
         # Handle balance top-up via T-Bank
-        if data.product_type and data.product_type.startswith("topup:"):
-            amount_rub = int(data.product_type.split(":")[1])
+        if data.product_type == "topup":
+            amount_rub = int(data.price)
             amount_kopecks = amount_rub * 100
 
             async with self.session() as session:
