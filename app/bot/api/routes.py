@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 
@@ -53,44 +54,39 @@ async def handle_me(request: Request) -> Response:
     services = _services(request)
     config = _config(request)
 
-    # Check VPN status
-    client_data = await services.vpn.get_client_data(user)
-    vpn_active = client_data is not None and not client_data.has_subscription_expired
-
-    # Check MTProto status
-    mtproto_active = False
+    # Run all checks in parallel for speed
+    tasks = {
+        "vpn_data": services.vpn.get_client_data(user),
+        "vpn_trial": services.subscription.is_trial_available(user),
+        "is_admin": IsAdmin()(user_id=tg_id),
+    }
     if config.shop.MTPROTO_ENABLED:
-        mtproto_active = await services.mtproto.is_active(tg_id)
-
-    # Check WhatsApp status
-    whatsapp_active = False
+        tasks["mtproto_active"] = services.mtproto.is_active(tg_id)
+        tasks["mtproto_trial"] = services.mtproto.is_trial_available(tg_id)
     if config.shop.WHATSAPP_ENABLED:
-        whatsapp_active = await services.whatsapp.is_active(tg_id)
+        tasks["whatsapp_active"] = services.whatsapp.is_active(tg_id)
+        tasks["whatsapp_trial"] = services.whatsapp.is_trial_available(tg_id)
 
-    # Check trial availability
-    vpn_trial = await services.subscription.is_trial_available(user)
-    mtproto_trial = (
-        await services.mtproto.is_trial_available(tg_id) if config.shop.MTPROTO_ENABLED else False
-    )
-    whatsapp_trial = (
-        await services.whatsapp.is_trial_available(tg_id) if config.shop.WHATSAPP_ENABLED else False
-    )
+    results = dict(zip(tasks.keys(), await asyncio.gather(*tasks.values())))
+
+    client_data = results["vpn_data"]
+    vpn_active = client_data is not None and not client_data.has_subscription_expired
 
     data = serialize_user(
         user=user,
         vpn_active=vpn_active,
-        mtproto_active=mtproto_active,
-        whatsapp_active=whatsapp_active,
-        vpn_trial_available=vpn_trial,
-        mtproto_trial_available=mtproto_trial,
-        whatsapp_trial_available=whatsapp_trial,
+        mtproto_active=results.get("mtproto_active", False),
+        whatsapp_active=results.get("whatsapp_active", False),
+        vpn_trial_available=results["vpn_trial"],
+        mtproto_trial_available=results.get("mtproto_trial", False),
+        whatsapp_trial_available=results.get("whatsapp_trial", False),
     )
     data["features"] = {
         "mtproto_enabled": config.shop.MTPROTO_ENABLED,
         "whatsapp_enabled": config.shop.WHATSAPP_ENABLED,
         "stars_enabled": config.shop.PAYMENT_STARS_ENABLED,
     }
-    data["is_admin"] = await IsAdmin()(user_id=tg_id)
+    data["is_admin"] = results["is_admin"]
 
     return web.json_response(data)
 
@@ -132,8 +128,10 @@ async def handle_subscription_vpn(request: Request) -> Response:
     user = request["user"]
     services = _services(request)
 
-    client_data = await services.vpn.get_client_data(user)
-    key = await services.vpn.get_key(user)
+    client_data, key = await asyncio.gather(
+        services.vpn.get_client_data(user),
+        services.vpn.get_key(user),
+    )
 
     return web.json_response(serialize_vpn_subscription(client_data, key))
 
