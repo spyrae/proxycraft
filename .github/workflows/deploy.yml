@@ -1,0 +1,36 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'docker-compose.yml'
+      - 'Dockerfile'
+      - 'pyproject.toml'
+      - 'poetry.lock'
+
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Bot
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true
+          script: |
+            cd /opt/vpncraft
+            git pull origin main
+            sudo docker compose build bot
+            sudo docker compose up -d bot
+            echo "--- Bot logs (last 10 lines) ---"
+            sleep 3
+            sudo docker logs vpncraft-bot --tail 10 2>&1
