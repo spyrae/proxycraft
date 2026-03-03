@@ -476,7 +476,7 @@ async def handle_promocode_activate(request: Request) -> Response:
     if not promocode:
         return web.json_response({"error": "Неверный или использованный промокод"}, status=400)
 
-    if promocode.is_activated:
+    if promocode.is_fully_used:
         return web.json_response({"error": "Неверный или использованный промокод"}, status=400)
 
     success = await services.vpn.activate_promocode(user, promocode)

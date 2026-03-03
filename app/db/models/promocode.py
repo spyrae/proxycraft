@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Self
+from typing import Any, Self
 
 from sqlalchemy import *
 from sqlalchemy.exc import IntegrityError
@@ -20,12 +20,11 @@ class Promocode(Base):
 
     Attributes:
         id (int): Unique identifier (primary key)
-        code (str): Unique promocode value (8 characters max)
+        code (str): Unique promocode value (32 characters max)
         duration (int): Associated subscription duration in days
-        is_activated (bool): Flag indicating activation status
-        activated_by (int | None): Telegram ID of activating user
+        max_uses (int): Maximum number of activations (1 = single-use)
         created_at (datetime): Timestamp of creation
-        activated_user (User | None): Relationship to User model
+        activations (list[ActivatedPromocode]): List of activation records
     """
 
     __tablename__ = "vpncraft_promocodes"
@@ -33,17 +32,24 @@ class Promocode(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     code: Mapped[str] = mapped_column(String(length=32), unique=True, nullable=False)
     duration: Mapped[int] = mapped_column(nullable=False)
-    is_activated: Mapped[bool] = mapped_column(default=False, nullable=False)
-    activated_by: Mapped[int | None] = mapped_column(ForeignKey("vpncraft_users.tg_id"), nullable=True)
+    max_uses: Mapped[int] = mapped_column(default=1, nullable=False)
     created_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=False)
-    activated_user: Mapped["User | None"] = relationship(  # type: ignore
-        "User", back_populates="activated_promocodes"
+    activations: Mapped[list["ActivatedPromocode"]] = relationship(  # type: ignore
+        "ActivatedPromocode", back_populates="promocode", cascade="all, delete-orphan"
     )
+
+    @property
+    def uses_count(self) -> int:
+        return len(self.activations)
+
+    @property
+    def is_fully_used(self) -> bool:
+        return self.uses_count >= self.max_uses
 
     def __repr__(self) -> str:
         return (
             f"<Promocode(id={self.id}, code='{self.code}', duration={self.duration}, "
-            f"is_activated={self.is_activated}, activated_by={self.activated_by}, "
+            f"max_uses={self.max_uses}, uses={self.uses_count}, "
             f"created_at={self.created_at})>"
         )
 
@@ -51,17 +57,18 @@ class Promocode(Base):
     async def get(cls, session: AsyncSession, code: str) -> Self | None:
         filter = [Promocode.code == code]
         query = await session.execute(
-            select(Promocode).options(selectinload(Promocode.activated_user)).where(*filter)
+            select(Promocode).options(selectinload(Promocode.activations)).where(*filter)
         )
         return query.scalar_one_or_none()
 
     @classmethod
-    async def create(cls, session: AsyncSession, **kwargs: Any) -> Self | None:
-        while True:
-            code = generate_code()
-            promocode = await Promocode.get(session=session, code=code)
-            if not promocode:
-                break
+    async def create(cls, session: AsyncSession, code: str | None = None, **kwargs: Any) -> Self | None:
+        if code is None:
+            while True:
+                code = generate_code()
+                existing = await Promocode.get(session=session, code=code)
+                if not existing:
+                    break
 
         promocode = Promocode(code=code, **kwargs)
         session.add(promocode)
@@ -82,10 +89,6 @@ class Promocode(Base):
         if not promocode:
             logger.warning(f"Promocode {code} not found for update.")
             return None
-
-        # if promocode.is_activated:
-        #     logger.warning(f"Promocode {code} is activated and cannot be updated.")
-        #     return None
 
         filter = [Promocode.code == code]
         await session.execute(update(Promocode).where(*filter).values(**kwargs))
@@ -108,30 +111,35 @@ class Promocode(Base):
 
     @classmethod
     async def set_activated(cls, session: AsyncSession, code: str, user_id: int) -> bool:
+        from .activated_promocode import ActivatedPromocode
+
         promocode = await Promocode.get(session=session, code=code)
 
         if not promocode:
             logger.warning(f"Promocode {code} not found for activation.")
             return False
 
-        if promocode.is_activated:
-            logger.warning(f"Promocode {code} is already activated.")
+        if promocode.is_fully_used:
+            logger.warning(f"Promocode {code} is fully used ({promocode.uses_count}/{promocode.max_uses}).")
             return False
 
-        await Promocode.update(session=session, code=code, is_activated=True, activated_by=user_id)
-        return True
+        if await ActivatedPromocode.has_user_activated(session, promocode.id, user_id):
+            logger.warning(f"User {user_id} already activated promocode {code}.")
+            return False
+
+        activation = await ActivatedPromocode.create(session, promocode.id, user_id)
+        return activation is not None
 
     @classmethod
-    async def set_deactivated(cls, session: AsyncSession, code: str) -> bool:
+    async def set_deactivated(cls, session: AsyncSession, code: str, user_id: int) -> bool:
+        from .activated_promocode import ActivatedPromocode
+
         promocode = await Promocode.get(session=session, code=code)
 
         if not promocode:
             logger.warning(f"Promocode {code} not found for deactivation.")
             return False
 
-        if not promocode.is_activated:
-            logger.warning(f"Promocode {code} is already deactivated.")
-            return False
-
-        await Promocode.update(session=session, code=code, is_activated=False, activated_by=None)
-        return True
+        return await ActivatedPromocode.delete_by_promocode_and_user(
+            session, promocode.id, user_id
+        )
