@@ -9,6 +9,8 @@ export interface UserProfile {
   username: string | null;
   created_at: string | null;
   is_admin: boolean;
+  balance: number;
+  auto_renew: boolean;
   subscriptions: {
     vpn: SubscriptionStatus;
     mtproto: SubscriptionStatus;
@@ -87,7 +89,25 @@ export interface PromocodeResponse {
   duration: number;
 }
 
+export interface TopupResponse {
+  invoice_url?: string;
+  payment_url?: string;
+  stars_amount?: number;
+}
+
+export interface BuyPlanResponse {
+  success: boolean;
+  product: string;
+  duration: number;
+}
+
+export interface AutoRenewResponse {
+  auto_renew: boolean;
+}
+
 export interface ApiError {
   error: string;
+  required?: number;
+  balance?: number;
 }
 

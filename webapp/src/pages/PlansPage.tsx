@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   useMe,
   usePlans,
@@ -8,37 +9,16 @@ import {
   useTrialMtproto,
   useTrialWhatsapp,
   useActivatePromocode,
+  useBuyPlan,
 } from '../api/hooks';
 import { ApiRequestError } from '../api/client';
-import { usePayment } from '../hooks/usePayment';
 import { PlanCard } from '../components/PlanCard';
 
 type Tab = 'vpn' | 'mtproto' | 'whatsapp';
-type Currency = 'stars' | 'rub';
-
-function useSavedCurrency(): [Currency, (c: Currency) => void] {
-  const [currency, setCurrency] = useState<Currency>(() => {
-    try {
-      return (localStorage.getItem('vpncraft_currency') as Currency) || 'stars';
-    } catch {
-      return 'stars';
-    }
-  });
-
-  const save = (c: Currency) => {
-    setCurrency(c);
-    try {
-      localStorage.setItem('vpncraft_currency', c);
-    } catch {}
-  };
-
-  return [currency, save];
-}
 
 export function PlansPage() {
   const { data: me } = useMe();
   const [tab, setTab] = useState<Tab>('vpn');
-  const [currency, setCurrency] = useSavedCurrency();
 
   const tabs: { key: Tab; label: string }[] = useMemo(() => {
     const t: { key: Tab; label: string }[] = [{ key: 'vpn', label: 'VPN' }];
@@ -53,22 +33,10 @@ export function PlansPage() {
         Plans
       </h1>
 
-      {/* Currency toggle */}
-      <div
-        className="flex rounded-xl p-1 mb-4"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-      >
-        <CurrencyButton
-          active={currency === 'stars'}
-          onClick={() => setCurrency('stars')}
-          label="★ Stars"
-        />
-        <CurrencyButton
-          active={currency === 'rub'}
-          onClick={() => setCurrency('rub')}
-          label="₽ Рубли"
-        />
-      </div>
+      {/* Balance info */}
+      {me && (
+        <BalanceBanner balance={me.balance} />
+      )}
 
       {/* Segment control */}
       {tabs.length > 1 && (
@@ -92,43 +60,44 @@ export function PlansPage() {
         </div>
       )}
 
-      {tab === 'vpn' && <VpnPlans currency={currency} />}
-      {tab === 'mtproto' && <ServicePlans product="mtproto" currency={currency} />}
-      {tab === 'whatsapp' && <ServicePlans product="whatsapp" currency={currency} />}
-
-      {currency === 'rub' && (
-        <p className="text-[10px] text-center mt-3" style={{ color: 'var(--text-dim)' }}>
-          Оплата через Т-Банк
-        </p>
-      )}
+      {tab === 'vpn' && <VpnPlans />}
+      {tab === 'mtproto' && <ServicePlans product="mtproto" />}
+      {tab === 'whatsapp' && <ServicePlans product="whatsapp" />}
     </div>
   );
 }
 
-function CurrencyButton({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
+function BalanceBanner({ balance }: { balance: number }) {
+  const navigate = useNavigate();
+
   return (
-    <button
-      onClick={onClick}
-      className="flex-1 text-sm font-semibold py-2 rounded-lg transition-all duration-200"
+    <div
+      className="flex items-center justify-between rounded-2xl p-3 mb-4"
       style={{
-        backgroundColor: active ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-        color: active ? '#10B981' : 'var(--text-dim)',
+        backgroundColor: 'var(--bg-card)',
+        border: '1px solid var(--border)',
       }}
     >
-      {label}
-    </button>
+      <div className="flex items-center gap-2">
+        <span className="text-xs" style={{ color: 'var(--text-dim)' }}>
+          Balance:
+        </span>
+        <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+          {balance.toFixed(0)} ₽
+        </span>
+      </div>
+      <button
+        onClick={() => navigate('/')}
+        className="text-xs font-semibold px-3 py-1 rounded-lg"
+        style={{ color: '#10B981' }}
+      >
+        Top up
+      </button>
+    </div>
   );
 }
 
-function PaymentPendingBanner({ onDismiss }: { onDismiss: () => void }) {
+function PurchaseSuccessBanner({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div
       className="rounded-2xl p-4 mb-4 text-center"
@@ -138,50 +107,85 @@ function PaymentPendingBanner({ onDismiss }: { onDismiss: () => void }) {
       }}
     >
       <p className="text-sm font-semibold mb-1" style={{ color: '#10B981' }}>
-        Оплата обрабатывается
+        Subscription activated!
       </p>
       <p className="text-xs mb-3" style={{ color: 'var(--text-dim)' }}>
-        После подтверждения платежа подписка активируется автоматически
+        Your plan is now active
       </p>
       <button
         onClick={onDismiss}
         className="text-xs font-medium px-3 py-1 rounded-lg"
         style={{ color: 'var(--text-dim)' }}
       >
-        Скрыть
+        Dismiss
       </button>
     </div>
   );
 }
 
-function VpnPlans({ currency }: { currency: Currency }) {
+function InsufficientBalanceBanner() {
+  const navigate = useNavigate();
+
+  return (
+    <div
+      className="rounded-2xl p-4 mb-4 text-center"
+      style={{
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        border: '1px solid rgba(239, 68, 68, 0.3)',
+      }}
+    >
+      <p className="text-sm font-semibold mb-1" style={{ color: '#EF4444' }}>
+        Insufficient balance
+      </p>
+      <p className="text-xs mb-3" style={{ color: 'var(--text-dim)' }}>
+        Top up your balance to purchase this plan
+      </p>
+      <button
+        onClick={() => navigate('/')}
+        className="text-xs font-semibold px-4 py-2 rounded-xl"
+        style={{ backgroundColor: '#10B981', color: '#ffffff' }}
+      >
+        Top up balance
+      </button>
+    </div>
+  );
+}
+
+function VpnPlans() {
   const { data, isLoading } = usePlans();
   const { data: me } = useMe();
-  const { pay, status: paymentStatus, isLoading: paying } = usePayment();
+  const buyPlan = useBuyPlan();
   const trialVpn = useTrialVpn();
   const [selectedDevices, setSelectedDevices] = useState<number | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
-  const [showPending, setShowPending] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
 
   if (isLoading || !data) {
     return <LoadingSkeleton />;
   }
 
   const plans = data.plans;
-  const isExtend = me?.subscriptions.vpn.active || false;
   const trialAvailable = me?.subscriptions.vpn.trial_available || false;
 
   const handleBuy = async () => {
     if (!selectedDevices || !selectedDuration) return;
-    const result = await pay({
-      product: 'vpn',
-      devices: selectedDevices,
-      duration: selectedDuration,
-      is_extend: isExtend,
-      currency,
-    });
-    if (result === 'pending') {
-      setShowPending(true);
+    setShowInsufficientBalance(false);
+
+    try {
+      await buyPlan.mutateAsync({
+        product: 'vpn',
+        devices: selectedDevices,
+        duration: selectedDuration,
+      });
+      setShowSuccess(true);
+    } catch (err) {
+      if (err instanceof ApiRequestError) {
+        const body = err.body as { error?: string } | undefined;
+        if (body?.error === 'Insufficient balance') {
+          setShowInsufficientBalance(true);
+        }
+      }
     }
   };
 
@@ -189,11 +193,21 @@ function VpnPlans({ currency }: { currency: Currency }) {
     await trialVpn.mutateAsync();
   };
 
+  // Get price for selected plan in RUB
+  const getSelectedPrice = () => {
+    if (!selectedDevices || !selectedDuration) return null;
+    const plan = plans.find((p) => p.devices === selectedDevices);
+    if (!plan) return null;
+    const rubPrices = plan.prices['RUB'] || {};
+    return rubPrices[selectedDuration] || null;
+  };
+
+  const selectedPrice = getSelectedPrice();
+
   return (
     <div>
-      {(showPending || paymentStatus === 'pending_external') && (
-        <PaymentPendingBanner onDismiss={() => setShowPending(false)} />
-      )}
+      {showSuccess && <PurchaseSuccessBanner onDismiss={() => setShowSuccess(false)} />}
+      {showInsufficientBalance && <InsufficientBalanceBanner />}
 
       {trialAvailable && (
         <button
@@ -214,26 +228,23 @@ function VpnPlans({ currency }: { currency: Currency }) {
         Select devices
       </p>
       {plans.map((plan, idx) => {
-        const durations = plan.durations;
-        const firstDuration = durations[0];
-        const starsPrice = (plan.prices['XTR'] || {})[firstDuration] || 0;
-        const rubPrice = (plan.prices['RUB'] || {})[firstDuration] || 0;
-        const displayPrice = currency === 'rub' ? rubPrice : starsPrice;
-        const displayCurrency = currency === 'rub' ? '₽' : '★';
+        const rubPrices = plan.prices['RUB'] || {};
+        const firstDuration = plan.durations[0];
+        const displayPrice = rubPrices[firstDuration] || 0;
 
         return (
           <PlanCard
             key={plan.devices}
             title={`${plan.devices} device${plan.devices > 1 ? 's' : ''}`}
-            description={`from ${displayPrice} ${displayCurrency}`}
+            description={`from ${displayPrice} ₽`}
             price={displayPrice}
-            currency={displayCurrency}
+            currency="₽"
             popular={idx === 1}
             selected={selectedDevices === plan.devices}
             onSelect={() => {
               setSelectedDevices(plan.devices);
-              if (!selectedDuration && durations.length > 0) {
-                setSelectedDuration(durations[0]);
+              if (!selectedDuration && plan.durations.length > 0) {
+                setSelectedDuration(plan.durations[0]);
               }
             }}
           />
@@ -248,18 +259,16 @@ function VpnPlans({ currency }: { currency: Currency }) {
           {(() => {
             const plan = plans.find((p) => p.devices === selectedDevices);
             if (!plan) return null;
-            const starsPrices = plan.prices['XTR'] || {};
             const rubPrices = plan.prices['RUB'] || {};
             return plan.durations.map((d) => {
-              const displayPrice = currency === 'rub' ? (rubPrices[d] || 0) : (starsPrices[d] || 0);
-              const displayCurrency = currency === 'rub' ? '₽' : '★';
+              const displayPrice = rubPrices[d] || 0;
               return (
                 <PlanCard
                   key={d}
                   title={`${d} days`}
                   description=""
                   price={displayPrice}
-                  currency={displayCurrency}
+                  currency="₽"
                   selected={selectedDuration === d}
                   onSelect={() => setSelectedDuration(d)}
                 />
@@ -269,18 +278,18 @@ function VpnPlans({ currency }: { currency: Currency }) {
         </>
       )}
 
-      {selectedDevices && selectedDuration && (
+      {selectedDevices && selectedDuration && selectedPrice !== null && (
         <button
           onClick={handleBuy}
-          disabled={paying}
+          disabled={buyPlan.isPending}
           className="w-full rounded-2xl p-4 mt-4 text-center text-sm font-bold transition-all duration-200"
           style={{
-            backgroundColor: paying ? 'rgba(16, 185, 129, 0.5)' : '#10B981',
+            backgroundColor: buyPlan.isPending ? 'rgba(16, 185, 129, 0.5)' : '#10B981',
             color: '#ffffff',
-            boxShadow: paying ? 'none' : '0 4px 15px rgba(16, 185, 129, 0.3)',
+            boxShadow: buyPlan.isPending ? 'none' : '0 4px 15px rgba(16, 185, 129, 0.3)',
           }}
         >
-          {paying ? 'Processing...' : currency === 'rub' ? 'Pay ₽' : 'Pay with Stars ★'}
+          {buyPlan.isPending ? 'Processing...' : `Buy for ${selectedPrice} ₽`}
         </button>
       )}
 
@@ -312,7 +321,7 @@ function PromoCodeSection() {
         }}
       >
         <p className="text-sm font-semibold" style={{ color: '#10B981' }}>
-          Промокод активирован! +{activate.data.duration} дней
+          Promo activated! +{activate.data.duration} days
         </p>
       </div>
     );
@@ -325,16 +334,16 @@ function PromoCodeSection() {
         className="w-full mt-3 text-xs text-center transition-colors"
         style={{ color: 'var(--text-dim)' }}
       >
-        Есть промокод?
+        Have a promo code?
       </button>
     );
   }
 
   const errorMessage =
     activate.error instanceof ApiRequestError
-      ? ((activate.error.body as { error?: string })?.error || 'Неверный или использованный промокод')
+      ? ((activate.error.body as { error?: string })?.error || 'Invalid or used promo code')
       : activate.error
-        ? 'Неверный или использованный промокод'
+        ? 'Invalid or used promo code'
         : null;
 
   return (
@@ -345,7 +354,7 @@ function PromoCodeSection() {
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === 'Enter' && handleActivate()}
-          placeholder="Введите промокод"
+          placeholder="Enter promo code"
           className="flex-1 rounded-xl px-3 py-2 text-sm outline-none transition-colors"
           style={{
             backgroundColor: 'var(--bg-card)',
@@ -364,7 +373,7 @@ function PromoCodeSection() {
             color: '#ffffff',
           }}
         >
-          {activate.isPending ? '...' : 'Применить'}
+          {activate.isPending ? '...' : 'Apply'}
         </button>
       </div>
       {activate.isError && (
@@ -376,15 +385,16 @@ function PromoCodeSection() {
   );
 }
 
-function ServicePlans({ product, currency }: { product: 'mtproto' | 'whatsapp'; currency: Currency }) {
+function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
   const mtproto = useMtprotoPlans();
   const whatsapp = useWhatsappPlans();
   const { data: me } = useMe();
-  const { pay, status: paymentStatus, isLoading: paying } = usePayment();
+  const buyPlan = useBuyPlan();
   const trialMtproto = useTrialMtproto();
   const trialWhatsapp = useTrialWhatsapp();
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
-  const [showPending, setShowPending] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
 
   const query = product === 'mtproto' ? mtproto : whatsapp;
   const trialMutation = product === 'mtproto' ? trialMtproto : trialWhatsapp;
@@ -398,21 +408,24 @@ function ServicePlans({ product, currency }: { product: 'mtproto' | 'whatsapp'; 
     product === 'mtproto'
       ? me?.subscriptions.mtproto.trial_available
       : me?.subscriptions.whatsapp.trial_available;
-  const isExtend =
-    product === 'mtproto'
-      ? me?.subscriptions.mtproto.active
-      : me?.subscriptions.whatsapp.active;
 
   const handleBuy = async () => {
     if (!selectedDuration) return;
-    const result = await pay({
-      product,
-      duration: selectedDuration,
-      is_extend: isExtend || false,
-      currency,
-    });
-    if (result === 'pending') {
-      setShowPending(true);
+    setShowInsufficientBalance(false);
+
+    try {
+      await buyPlan.mutateAsync({
+        product,
+        duration: selectedDuration,
+      });
+      setShowSuccess(true);
+    } catch (err) {
+      if (err instanceof ApiRequestError) {
+        const body = err.body as { error?: string } | undefined;
+        if (body?.error === 'Insufficient balance') {
+          setShowInsufficientBalance(true);
+        }
+      }
     }
   };
 
@@ -422,9 +435,8 @@ function ServicePlans({ product, currency }: { product: 'mtproto' | 'whatsapp'; 
 
   return (
     <div>
-      {(showPending || paymentStatus === 'pending_external') && (
-        <PaymentPendingBanner onDismiss={() => setShowPending(false)} />
-      )}
+      {showSuccess && <PurchaseSuccessBanner onDismiss={() => setShowSuccess(false)} />}
+      {showInsufficientBalance && <InsufficientBalanceBanner />}
 
       {trialAvailable && (
         <button
@@ -444,36 +456,36 @@ function ServicePlans({ product, currency }: { product: 'mtproto' | 'whatsapp'; 
       <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
         Select duration
       </p>
-      {plans.map((plan) => {
-        const displayPrice = currency === 'rub' ? plan.price_rub : plan.price_stars;
-        const displayCurrency = currency === 'rub' ? '₽' : '★';
-        return (
-          <PlanCard
-            key={plan.duration}
-            title={`${plan.duration} days`}
-            description={currency === 'rub' ? `${plan.price_stars} ★` : `${plan.price_rub} ₽`}
-            price={displayPrice}
-            currency={displayCurrency}
-            selected={selectedDuration === plan.duration}
-            onSelect={() => setSelectedDuration(plan.duration)}
-          />
-        );
-      })}
+      {plans.map((plan) => (
+        <PlanCard
+          key={plan.duration}
+          title={`${plan.duration} days`}
+          description=""
+          price={plan.price_rub}
+          currency="₽"
+          selected={selectedDuration === plan.duration}
+          onSelect={() => setSelectedDuration(plan.duration)}
+        />
+      ))}
 
-      {selectedDuration && (
-        <button
-          onClick={handleBuy}
-          disabled={paying}
-          className="w-full rounded-2xl p-4 mt-4 text-center text-sm font-bold transition-all duration-200"
-          style={{
-            backgroundColor: paying ? 'rgba(16, 185, 129, 0.5)' : '#10B981',
-            color: '#ffffff',
-            boxShadow: paying ? 'none' : '0 4px 15px rgba(16, 185, 129, 0.3)',
-          }}
-        >
-          {paying ? 'Processing...' : currency === 'rub' ? 'Pay ₽' : 'Pay with Stars ★'}
-        </button>
-      )}
+      {selectedDuration && (() => {
+        const selectedPlan = plans.find((p) => p.duration === selectedDuration);
+        if (!selectedPlan) return null;
+        return (
+          <button
+            onClick={handleBuy}
+            disabled={buyPlan.isPending}
+            className="w-full rounded-2xl p-4 mt-4 text-center text-sm font-bold transition-all duration-200"
+            style={{
+              backgroundColor: buyPlan.isPending ? 'rgba(16, 185, 129, 0.5)' : '#10B981',
+              color: '#ffffff',
+              boxShadow: buyPlan.isPending ? 'none' : '0 4px 15px rgba(16, 185, 129, 0.3)',
+            }}
+          >
+            {buyPlan.isPending ? 'Processing...' : `Buy for ${selectedPlan.price_rub} ₽`}
+          </button>
+        );
+      })()}
     </div>
   );
 }

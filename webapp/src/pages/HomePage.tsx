@@ -1,6 +1,12 @@
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { openInvoice } from '@telegram-apps/sdk-react';
+import { openLink } from '@telegram-apps/sdk';
 import { useTelegram } from '../hooks/useTelegram';
-import { useMe, useVpnSubscription } from '../api/hooks';
+import { useMe, useVpnSubscription, useTopup, useAutoRenew } from '../api/hooks';
+
+const STARS_RATE = 1.8;
+const TOPUP_AMOUNTS = [250, 500, 1000, 2000];
 
 export function HomePage() {
   const { user } = useTelegram();
@@ -14,15 +20,235 @@ export function HomePage() {
   return (
     <div className="animate-fade-in">
       {/* Greeting */}
-      <p className="text-sm font-medium mb-6" style={{ color: 'var(--text-muted)' }}>
+      <p className="text-sm font-medium mb-4" style={{ color: 'var(--text-muted)' }}>
         Hi, {user?.first_name || me.first_name}
       </p>
+
+      {/* Balance Card */}
+      <BalanceCard balance={me.balance} autoRenew={me.auto_renew} />
 
       {/* Hero Shield */}
       <HeroSection active={hasActiveVpn} />
 
       {/* Stats or Quick Setup */}
       {hasActiveVpn ? <ActiveStats /> : <QuickSetup me={me} />}
+    </div>
+  );
+}
+
+function BalanceCard({ balance, autoRenew }: { balance: number; autoRenew: boolean }) {
+  const [showTopup, setShowTopup] = useState(false);
+  const autoRenewMutation = useAutoRenew();
+
+  const handleToggleAutoRenew = () => {
+    autoRenewMutation.mutate({ enabled: !autoRenew });
+  };
+
+  return (
+    <>
+      <div className="card-gradient-border p-4 mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
+              Balance
+            </span>
+            <span className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+              {balance.toFixed(0)} ₽
+            </span>
+          </div>
+          <button
+            onClick={() => setShowTopup(true)}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold transition-all"
+            style={{
+              backgroundColor: 'rgba(16, 185, 129, 0.15)',
+              color: '#10B981',
+            }}
+          >
+            +
+          </button>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs" style={{ color: 'var(--text-dim)' }}>
+            Auto-renewal
+          </span>
+          <button
+            onClick={handleToggleAutoRenew}
+            disabled={autoRenewMutation.isPending}
+            className="relative w-10 h-5 rounded-full transition-all duration-200"
+            style={{
+              backgroundColor: autoRenew ? '#10B981' : 'var(--border)',
+              opacity: autoRenewMutation.isPending ? 0.5 : 1,
+            }}
+          >
+            <span
+              className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200"
+              style={{
+                left: autoRenew ? '22px' : '2px',
+              }}
+            />
+          </button>
+        </div>
+      </div>
+
+      {showTopup && <TopupModal onClose={() => setShowTopup(false)} />}
+    </>
+  );
+}
+
+function TopupModal({ onClose }: { onClose: () => void }) {
+  const [selectedAmount, setSelectedAmount] = useState<number>(500);
+  const [currency, setCurrency] = useState<'stars' | 'rub'>('stars');
+  const topupMutation = useTopup();
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'redirected' | 'error'>('idle');
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const starsAmount = Math.max(1, Math.round(selectedAmount / STARS_RATE));
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
+
+  const handleTopup = useCallback(async () => {
+    setStatus('loading');
+    try {
+      const response = await topupMutation.mutateAsync({
+        amount: selectedAmount,
+        currency,
+      });
+
+      if (response.invoice_url) {
+        const result = await openInvoice(response.invoice_url, 'url');
+        if (result === 'paid') {
+          setStatus('success');
+          closeTimerRef.current = setTimeout(onClose, 1500);
+        } else {
+          setStatus('idle');
+        }
+      } else if (response.payment_url) {
+        openLink(response.payment_url, { tryBrowser: 'chrome' });
+        // T-Bank: payment happens externally, we can't confirm it here
+        setStatus('redirected');
+      } else {
+        setStatus('error');
+      }
+    } catch {
+      setStatus('error');
+    }
+  }, [selectedAmount, currency, topupMutation, onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className="w-full max-w-md rounded-t-3xl p-6 animate-slide-up"
+        style={{ backgroundColor: 'var(--bg-primary)' }}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+            Top up balance
+          </h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-dim)' }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Amount selection */}
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          {TOPUP_AMOUNTS.map((amount) => (
+            <button
+              key={amount}
+              onClick={() => setSelectedAmount(amount)}
+              className="py-2.5 rounded-xl text-sm font-semibold transition-all"
+              style={{
+                backgroundColor:
+                  selectedAmount === amount ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-card)',
+                color: selectedAmount === amount ? '#10B981' : 'var(--text-muted)',
+                border: `1px solid ${
+                  selectedAmount === amount ? 'rgba(16, 185, 129, 0.3)' : 'var(--border)'
+                }`,
+              }}
+            >
+              {amount}₽
+            </button>
+          ))}
+        </div>
+
+        {/* Currency toggle */}
+        <div
+          className="flex rounded-xl p-1 mb-4"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        >
+          <button
+            onClick={() => setCurrency('stars')}
+            className="flex-1 text-sm font-semibold py-2 rounded-lg transition-all"
+            style={{
+              backgroundColor: currency === 'stars' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+              color: currency === 'stars' ? '#10B981' : 'var(--text-dim)',
+            }}
+          >
+            ★ Stars
+          </button>
+          <button
+            onClick={() => setCurrency('rub')}
+            className="flex-1 text-sm font-semibold py-2 rounded-lg transition-all"
+            style={{
+              backgroundColor: currency === 'rub' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+              color: currency === 'rub' ? '#10B981' : 'var(--text-dim)',
+            }}
+          >
+            💳 Card
+          </button>
+        </div>
+
+        {/* Conversion info for Stars */}
+        {currency === 'stars' && (
+          <p className="text-xs text-center mb-4" style={{ color: 'var(--text-dim)' }}>
+            {selectedAmount}₽ = {starsAmount} ★
+          </p>
+        )}
+
+        {/* Submit button */}
+        <button
+          onClick={status === 'redirected' ? onClose : handleTopup}
+          disabled={status === 'loading'}
+          className="w-full rounded-2xl p-4 text-center text-sm font-bold transition-all"
+          style={{
+            backgroundColor: status === 'loading' ? 'rgba(16, 185, 129, 0.5)' : '#10B981',
+            color: '#ffffff',
+            boxShadow: status === 'loading' ? 'none' : '0 4px 15px rgba(16, 185, 129, 0.3)',
+          }}
+        >
+          {status === 'loading'
+            ? 'Processing...'
+            : status === 'success'
+              ? 'Success!'
+              : status === 'redirected'
+                ? 'Done'
+                : `Top up ${selectedAmount}₽`}
+        </button>
+
+        {status === 'redirected' && (
+          <p className="text-xs text-center mt-2" style={{ color: 'var(--text-dim)' }}>
+            Complete the payment in the opened page. Balance will update automatically.
+          </p>
+        )}
+
+        {status === 'error' && (
+          <p className="text-xs text-center mt-2" style={{ color: 'var(--danger, #EF4444)' }}>
+            Failed to create payment. Try again.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -214,16 +440,17 @@ function QuickSetup({ me }: { me: MeData }) {
   const steps = [
     {
       num: '1',
+      title: 'Top up balance',
+      desc: 'Add funds via Stars or card',
+      action: undefined as (() => void) | undefined,
+      color: '#F59E0B',
+    },
+    {
+      num: '2',
       title: 'Choose a Plan',
       desc: 'Select the plan that fits your needs',
       action: () => navigate('/plans'),
       color: '#10B981',
-    },
-    {
-      num: '2',
-      title: 'Pay with Stars',
-      desc: 'Quick payment via Telegram Stars',
-      color: '#06B6D4',
     },
     {
       num: '3',
@@ -300,6 +527,7 @@ function HomeLoading() {
   return (
     <div className="space-y-4">
       <div className="animate-shimmer rounded-xl h-6 w-32" />
+      <div className="animate-shimmer rounded-2xl h-20" />
       <div className="flex flex-col items-center gap-4 my-8">
         <div className="animate-shimmer rounded-full w-24 h-24" />
         <div className="animate-shimmer rounded-xl h-6 w-36" />

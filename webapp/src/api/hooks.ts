@@ -12,6 +12,9 @@ import type {
   TrialMtprotoResponse,
   TrialWhatsappResponse,
   PromocodeResponse,
+  TopupResponse,
+  BuyPlanResponse,
+  AutoRenewResponse,
 } from './types';
 
 // ---------- Queries ----------
@@ -136,6 +139,58 @@ export function useActivatePromocode() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['me'] });
       qc.invalidateQueries({ queryKey: ['subscription', 'vpn'] });
+    },
+  });
+}
+
+// ---------- Balance ----------
+
+interface TopupParams {
+  amount: number;
+  currency: 'stars' | 'rub';
+}
+
+export function useTopup() {
+  return useMutation<TopupResponse, Error, TopupParams>({
+    mutationFn: (params) =>
+      api('/api/v1/balance/topup', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      }),
+  });
+}
+
+interface BuyPlanParams {
+  product: 'vpn' | 'mtproto' | 'whatsapp';
+  devices?: number;
+  duration: number;
+}
+
+export function useBuyPlan() {
+  const qc = useQueryClient();
+  return useMutation<BuyPlanResponse, Error, BuyPlanParams>({
+    mutationFn: (params) =>
+      api('/api/v1/plans/buy', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['me'] });
+      qc.invalidateQueries({ queryKey: ['subscription'] });
+    },
+  });
+}
+
+export function useAutoRenew() {
+  const qc = useQueryClient();
+  return useMutation<AutoRenewResponse, Error, { enabled: boolean }>({
+    mutationFn: ({ enabled }) =>
+      api('/api/v1/balance/auto-renew', {
+        method: 'POST',
+        body: JSON.stringify({ enabled }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['me'] });
     },
   });
 }
