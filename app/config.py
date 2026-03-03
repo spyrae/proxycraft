@@ -174,6 +174,12 @@ class TBankConfig:
 
 
 @dataclass
+class ResendConfig:
+    API_KEY: str | None
+    FROM_EMAIL: str
+
+
+@dataclass
 class DatabaseConfig:
     HOST: str | None
     PORT: int | None
@@ -231,6 +237,7 @@ class Config:
     yookassa: YooKassaConfig
     yoomoney: YooMoneyConfig
     tbank: TBankConfig
+    resend: ResendConfig
     database: DatabaseConfig
     redis: RedisConfig
     logging: LoggingConfig
@@ -504,6 +511,10 @@ def load_config() -> Config:
         tbank=TBankConfig(
             TERMINAL_KEY=env.str("TBANK_TERMINAL_KEY", default=None),
             PASSWORD=env.str("TBANK_PASSWORD", default=None),
+        ),
+        resend=ResendConfig(
+            API_KEY=env.str("RESEND_API_KEY", default=None),
+            FROM_EMAIL=env.str("RESEND_FROM_EMAIL", default="noreply@proxycraft.tech"),
         ),
         database=DatabaseConfig(
             HOST=env.str("DB_HOST", default=None),

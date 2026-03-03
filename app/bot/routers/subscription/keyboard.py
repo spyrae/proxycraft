@@ -238,6 +238,18 @@ def change_operator_keyboard(operators: list[Operator]) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
+def renew_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(
+            text=_("task:button:renew"),
+            callback_data=NavSubscription.EXTEND,
+        )
+    )
+    builder.row(close_notification_button())
+    return builder.as_markup()
+
+
 def promocode_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(back_button(NavSubscription.MAIN))

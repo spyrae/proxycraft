@@ -61,9 +61,8 @@ async def on_startup(
             bot=bot,
             i18n=i18n,
         )
-    tasks.subscription_expiry.start_scheduler(
+    tasks.subscription_chain.start_scheduler(
         session_factory=db.session,
-        redis=redis,
         i18n=i18n,
         vpn_service=services.vpn,
         notification_service=services.notification,

@@ -1695,3 +1695,51 @@ msgstr "❌ Не удалось активировать пробный пери
 msgid "qr:caption:scan"
 msgstr "📱 Отсканируйте QR-код в приложении VPN"
 
+#: app/bot/tasks/subscription_chain.py
+msgid "task:message:expiry_5d"
+msgstr ""
+"⏳ <b>Подписка заканчивается через 5 дней</b>\n"
+"\n"
+"Продлите сейчас, чтобы не потерять доступ к VPN."
+
+#: app/bot/tasks/subscription_chain.py
+msgid "task:message:expiry_3d"
+msgstr ""
+"⚠️ <b>Осталось 3 дня до окончания подписки</b>\n"
+"\n"
+"Продлите сейчас, чтобы интернет продолжал работать без перебоев."
+
+#: app/bot/tasks/subscription_chain.py
+msgid "task:message:expiry_1d"
+msgstr ""
+"🔴 <b>Завтра подписка закончится!</b>\n"
+"\n"
+"Без VPN интернет перестанет работать через привычные приложения. "
+"Продлите прямо сейчас."
+
+#: app/bot/tasks/subscription_chain.py
+msgid "task:message:expiry_0"
+msgstr ""
+"❌ <b>Подписка закончилась</b>\n"
+"\n"
+"VPN отключён. Продлите подписку, чтобы восстановить доступ."
+
+#: app/bot/tasks/subscription_chain.py
+msgid "task:message:winback_3d"
+msgstr ""
+"👋 <b>Мы скучаем!</b>\n"
+"\n"
+"Продлите подписку сейчас и получите <b>5 бонусных дней</b> бесплатно."
+
+#: app/bot/tasks/subscription_chain.py
+msgid "task:message:winback_14d"
+msgstr ""
+"🎁 <b>Специальное предложение!</b>\n"
+"\n"
+"Продлите подписку сегодня и получите <b>15 бонусных дней</b> бесплатно. "
+"Это последнее напоминание."
+
+#: app/bot/routers/subscription/keyboard.py
+msgid "task:button:renew"
+msgstr "🔄 Продлить подписку"
+

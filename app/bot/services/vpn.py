@@ -337,6 +337,71 @@ class VPNService:
             logger.error(f"Failed to change operator for user {user.tg_id}: {e}")
             return False
 
+    async def disable_client(self, user: User) -> bool:
+        """Disable a client in 3X-UI (set enable=False)."""
+        connection = await self.server_pool_service.get_connection(user)
+
+        if not connection:
+            return False
+
+        try:
+            client = await connection.api.client.get_by_email(str(user.tg_id))
+
+            if client is None:
+                logger.warning(f"Client {user.tg_id} not found for disabling.")
+                return False
+
+            client.enable = False
+            await connection.api.client.update(client_uuid=client.id, client=client)
+            logger.info(f"Client {user.tg_id} disabled successfully.")
+            return True
+        except Exception as e:
+            logger.error(f"Error disabling client {user.tg_id}: {e}")
+            return False
+
+    async def get_all_clients_data(self) -> dict[str, ClientData]:
+        """Fetch all clients from all servers in batch (1 API call per server).
+
+        Returns:
+            dict mapping email (tg_id as string) to ClientData.
+        """
+        result: dict[str, ClientData] = {}
+
+        for server_id, connection in self.server_pool_service._servers.items():
+            try:
+                inbounds = await connection.api.inbound.get_list()
+            except Exception as e:
+                logger.error(f"Failed to fetch inbounds from server {connection.server.name}: {e}")
+                continue
+
+            for inbound in inbounds:
+                for client in inbound.settings.clients:
+                    email = client.email
+                    limit_ip = client.limit_ip
+                    max_devices = -1 if limit_ip == 0 else limit_ip
+                    traffic_total = client.total
+                    expiry_time = -1 if client.expiry_time == 0 else client.expiry_time
+
+                    if traffic_total <= 0:
+                        traffic_remaining = -1
+                        traffic_total = -1
+                    else:
+                        traffic_remaining = client.total - (client.up + client.down)
+
+                    traffic_used = client.up + client.down
+                    result[email] = ClientData(
+                        max_devices=max_devices,
+                        traffic_total=traffic_total,
+                        traffic_remaining=traffic_remaining,
+                        traffic_used=traffic_used,
+                        traffic_up=client.up,
+                        traffic_down=client.down,
+                        expiry_time=expiry_time,
+                    )
+
+        logger.info(f"Batch fetched {len(result)} clients from {len(self.server_pool_service._servers)} servers.")
+        return result
+
     async def activate_promocode(self, user: User, promocode: Promocode) -> bool:
         # TODO: consider moving to some 'promocode module services' with usage of vpn-service methods.
 

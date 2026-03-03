@@ -1679,3 +1679,51 @@ msgstr "❌ Failed to activate trial. Please try later."
 msgid "qr:caption:scan"
 msgstr "📱 Scan the QR code in your VPN app"
 
+#: app/bot/tasks/subscription_chain.py
+msgid "task:message:expiry_5d"
+msgstr ""
+"⏳ <b>Your subscription expires in 5 days</b>\n"
+"\n"
+"Renew now to keep your VPN access."
+
+#: app/bot/tasks/subscription_chain.py
+msgid "task:message:expiry_3d"
+msgstr ""
+"⚠️ <b>3 days left until your subscription expires</b>\n"
+"\n"
+"Renew now to keep your internet working smoothly."
+
+#: app/bot/tasks/subscription_chain.py
+msgid "task:message:expiry_1d"
+msgstr ""
+"🔴 <b>Your subscription expires tomorrow!</b>\n"
+"\n"
+"Without VPN, your internet will stop working through usual apps. "
+"Renew right now."
+
+#: app/bot/tasks/subscription_chain.py
+msgid "task:message:expiry_0"
+msgstr ""
+"❌ <b>Your subscription has expired</b>\n"
+"\n"
+"VPN is disabled. Renew your subscription to restore access."
+
+#: app/bot/tasks/subscription_chain.py
+msgid "task:message:winback_3d"
+msgstr ""
+"👋 <b>We miss you!</b>\n"
+"\n"
+"Renew your subscription now and get <b>5 bonus days</b> for free."
+
+#: app/bot/tasks/subscription_chain.py
+msgid "task:message:winback_14d"
+msgstr ""
+"🎁 <b>Special offer!</b>\n"
+"\n"
+"Renew your subscription today and get <b>15 bonus days</b> for free. "
+"This is your last reminder."
+
+#: app/bot/routers/subscription/keyboard.py
+msgid "task:button:renew"
+msgstr "🔄 Renew subscription"
+
