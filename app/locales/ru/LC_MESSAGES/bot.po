@@ -1739,6 +1739,19 @@ msgstr ""
 "Продлите подписку сегодня и получите <b>15 бонусных дней</b> бесплатно. "
 "Это последнее напоминание."
 
+#: app/bot/tasks/auto_renew.py
+msgid "task:message:auto_renew_success"
+msgstr ""
+"✅ Подписка автоматически продлена на 30 дней.\n"
+"Списано: {price}₽. Баланс: {balance}₽"
+
+#: app/bot/tasks/auto_renew.py
+msgid "task:message:auto_renew_insufficient"
+msgstr ""
+"⚠️ Не удалось автопродлить подписку: недостаточно средств.\n"
+"Баланс: {balance}₽, требуется: {price}₽.\n"
+"Пополните баланс, чтобы подписка не прервалась."
+
 #: app/bot/routers/subscription/keyboard.py
 msgid "task:button:renew"
 msgstr "🔄 Продлить подписку"

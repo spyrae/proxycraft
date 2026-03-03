@@ -104,6 +104,39 @@ async def successful_payment(
 
     payload = message.successful_payment.invoice_payload
 
+    # Balance top-up — payload format: "topup:{amount_rub}"
+    if payload.startswith("topup:"):
+        amount_rub = int(payload.split(":")[1])
+        amount_kopecks = amount_rub * 100
+
+        await Transaction.create(
+            session=session,
+            tg_id=user.tg_id,
+            subscription=payload,
+            payment_id=message.successful_payment.telegram_payment_charge_id,
+            status=TransactionStatus.COMPLETED,
+        )
+
+        # Credit balance
+        from app.db.models import BalanceLog
+        await User.update(session=session, tg_id=user.tg_id, balance=user.balance + amount_kopecks)
+        await BalanceLog.create(
+            session=session,
+            tg_id=user.tg_id,
+            amount=amount_kopecks,
+            type="topup",
+            description=f"Stars top-up {amount_rub}₽",
+            payment_id=message.successful_payment.telegram_payment_charge_id,
+        )
+
+        await services.notification.notify_by_id(
+            chat_id=user.tg_id,
+            text=f"Баланс пополнен на {amount_rub}₽",
+        )
+
+        logger.info(f"Balance top-up via Stars: user={user.tg_id}, amount={amount_rub}₽")
+        return
+
     # Bundle payment — payload format: "bundle:{slug}:{duration}:{is_extend}"
     if payload.startswith("bundle:"):
         parts = payload.split(":")

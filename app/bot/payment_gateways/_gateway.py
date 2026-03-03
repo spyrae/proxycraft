@@ -20,7 +20,7 @@ from app.bot.utils.constants import (
 )
 from app.bot.utils.formatting import format_device_count, format_subscription_period
 from app.config import Config
-from app.db.models import Transaction, User
+from app.db.models import BalanceLog, Transaction, User
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +77,37 @@ class PaymentGateway(ABC):
                 payment_id=payment_id,
                 status=TransactionStatus.COMPLETED,
             )
+
+        # Handle balance top-up via T-Bank
+        if data.product_type and data.product_type.startswith("topup:"):
+            amount_rub = int(data.product_type.split(":")[1])
+            amount_kopecks = amount_rub * 100
+
+            async with self.session() as session:
+                user = await User.get(session=session, tg_id=data.user_id)
+                await User.update(
+                    session=session,
+                    tg_id=data.user_id,
+                    balance=user.balance + amount_kopecks,
+                )
+                await BalanceLog.create(
+                    session=session,
+                    tg_id=data.user_id,
+                    amount=amount_kopecks,
+                    type="topup",
+                    description=f"T-Bank top-up {amount_rub}₽",
+                    payment_id=payment_id,
+                )
+
+            locale = user.language_code if user else DEFAULT_LANGUAGE
+            with self.i18n.use_locale(locale):
+                await self.services.notification.notify_by_id(
+                    chat_id=data.user_id,
+                    text=f"Баланс пополнен на {amount_rub}₽",
+                )
+
+            logger.info(f"Balance top-up via T-Bank: user={data.user_id}, amount={amount_rub}₽")
+            return
 
         if self.config.shop.REFERRER_REWARD_ENABLED:
             await self.services.referral.add_referrers_rewards_on_payment(

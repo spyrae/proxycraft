@@ -26,6 +26,8 @@ def serialize_user(
         "username": user.username,
         "operator": user.operator,
         "created_at": user.created_at.isoformat() if user.created_at else None,
+        "balance": user.balance / 100,  # kopecks → rubles
+        "auto_renew": user.auto_renew,
         "subscriptions": {
             "vpn": {
                 "active": vpn_active,

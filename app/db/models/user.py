@@ -71,6 +71,8 @@ class User(Base):
     )
     source_invite_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     operator: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    balance: Mapped[int] = mapped_column(default=0, nullable=False)
+    auto_renew: Mapped[bool] = mapped_column(default=True, nullable=False)
 
     def __repr__(self) -> str:
         return (

@@ -33,7 +33,7 @@ from app.bot.filters.is_admin import IsAdmin
 from app.bot.models import ServicesContainer, SubscriptionData
 from app.bot.utils.constants import Currency, TransactionStatus
 from app.bot.utils.navigation import NavSubscription, NavMTProto, NavWhatsApp
-from app.db.models import Server, Transaction, User
+from app.db.models import BalanceLog, Server, Transaction, User
 from app.db.models.promocode import Promocode
 
 logger = logging.getLogger(__name__)
@@ -485,6 +485,244 @@ async def handle_promocode_activate(request: Request) -> Response:
     return web.json_response({"success": True, "duration": promocode.duration})
 
 
+# ---------- Balance endpoints ----------
+
+
+STARS_RATE = 1.8  # 1 Star ≈ 1.8 RUB
+TOPUP_AMOUNTS = [250, 500, 1000, 2000]  # allowed top-up amounts in RUB
+
+
+async def handle_balance_topup(request: Request) -> Response:
+    """POST /api/v1/balance/topup — Create top-up invoice (Stars or T-Bank).
+
+    Body: {"amount": 500, "currency": "stars" | "rub"}
+    amount — sum in rubles (integer)
+    """
+    user = request["user"]
+    tg_id = request["tg_id"]
+    config = _config(request)
+    bot = request.app["bot"]
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    amount = body.get("amount")
+    currency_choice = body.get("currency", "stars")
+
+    if not amount or not isinstance(amount, int) or amount <= 0:
+        return web.json_response({"error": "Invalid amount"}, status=400)
+
+    if amount not in TOPUP_AMOUNTS:
+        return web.json_response(
+            {"error": f"Amount must be one of {TOPUP_AMOUNTS}"}, status=400
+        )
+
+    # --- Stars flow ---
+    if currency_choice == "stars":
+        stars_amount = max(1, round(amount / STARS_RATE))
+
+        # Dev users pay 1 star
+        from app.bot.filters.is_dev import IsDev
+        if await IsDev()(user_id=tg_id):
+            stars_amount = 1
+
+        prices = [LabeledPrice(label="XTR", amount=stars_amount)]
+        try:
+            invoice_url = await bot.create_invoice_link(
+                title=f"Top-up {amount}₽",
+                description=f"Balance top-up: {amount} RUB",
+                prices=prices,
+                payload=f"topup:{amount}",
+                currency="XTR",
+            )
+        except Exception as e:
+            logger.error(f"Failed to create top-up invoice: {e}")
+            return web.json_response({"error": "Failed to create invoice"}, status=500)
+
+        logger.info(f"Top-up invoice created for user {tg_id}: {amount}₽ = {stars_amount}★")
+        return web.json_response({"invoice_url": invoice_url, "stars_amount": stars_amount})
+
+    # --- T-Bank (RUB) flow ---
+    if currency_choice == "rub":
+        gateway_factory = request.app.get("gateway_factory")
+        if not gateway_factory:
+            return web.json_response({"error": "Payment gateway not available"}, status=500)
+
+        try:
+            gateway = gateway_factory.get_gateway(NavSubscription.PAY_TBANK)
+        except ValueError:
+            return web.json_response({"error": "T-Bank gateway not registered"}, status=500)
+
+        # Use SubscriptionData with special topup marker
+        sub_data = SubscriptionData(
+            state=NavSubscription.PAY_TBANK,
+            is_extend=False,
+            is_change=False,
+            user_id=tg_id,
+            devices=0,
+            duration=0,
+            price=float(amount),
+            product_type=f"topup:{amount}",
+        )
+
+        try:
+            payment_url = await gateway.create_payment(sub_data)
+        except Exception as e:
+            logger.error(f"Failed to create T-Bank top-up payment: {e}")
+            return web.json_response({"error": "Failed to create payment"}, status=500)
+
+        logger.info(f"T-Bank top-up payment created for user {tg_id}: {amount}₽")
+        return web.json_response({"payment_url": payment_url})
+
+    return web.json_response({"error": "Invalid currency"}, status=400)
+
+
+async def handle_balance_buy(request: Request) -> Response:
+    """POST /api/v1/plans/buy — Purchase a plan from balance.
+
+    Body: {"product": "vpn", "devices": 1, "duration": 30}
+    """
+    user = request["user"]
+    tg_id = request["tg_id"]
+    services = _services(request)
+    config = _config(request)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    product = body.get("product", "vpn")
+    duration = body.get("duration")
+    devices = body.get("devices", 1)
+
+    if not duration or not isinstance(duration, int) or duration <= 0:
+        return web.json_response({"error": "Invalid duration"}, status=400)
+
+    catalog = services.product_catalog
+
+    # Calculate price in kopecks
+    if product == "vpn":
+        vpn_product = catalog.get_vpn_product_by_devices(devices)
+        if not vpn_product:
+            return web.json_response({"error": "Plan not found"}, status=404)
+        price_rub = catalog.get_price(vpn_product.slug, Currency.RUB.code, duration)
+        if price_rub is None:
+            return web.json_response({"error": "Invalid duration for this plan"}, status=400)
+        price_kopecks = int(round(float(price_rub) * 100))
+        description = f"VPN {devices} dev / {duration}d"
+
+    elif product == "mtproto":
+        if not config.shop.MTPROTO_ENABLED:
+            return web.json_response({"error": "MTProto is not enabled"}, status=404)
+        price_rub = services.mtproto.get_price(duration)
+        if price_rub is None:
+            return web.json_response({"error": "Invalid duration"}, status=400)
+        price_kopecks = int(round(float(price_rub) * 100))
+        devices = 1
+        description = f"MTProto / {duration}d"
+
+    elif product == "whatsapp":
+        if not config.shop.WHATSAPP_ENABLED:
+            return web.json_response({"error": "WhatsApp is not enabled"}, status=404)
+        price_rub = services.whatsapp.get_price(duration)
+        if price_rub is None:
+            return web.json_response({"error": "Invalid duration"}, status=400)
+        price_kopecks = int(round(float(price_rub) * 100))
+        devices = 1
+        description = f"WhatsApp / {duration}d"
+
+    else:
+        return web.json_response({"error": "Invalid product type"}, status=400)
+
+    # Check balance
+    if user.balance < price_kopecks:
+        return web.json_response(
+            {
+                "error": "Insufficient balance",
+                "required": price_kopecks / 100,
+                "balance": user.balance / 100,
+            },
+            status=400,
+        )
+
+    # Atomic deduction + activation
+    session_factory = request.app["session"]
+    async with session_factory() as session:
+        # Re-fetch user inside session for atomicity
+        db_user = await User.get(session=session, tg_id=tg_id)
+        if db_user.balance < price_kopecks:
+            return web.json_response({"error": "Insufficient balance"}, status=400)
+
+        await User.update(session=session, tg_id=tg_id, balance=db_user.balance - price_kopecks)
+
+        await BalanceLog.create(
+            session=session,
+            tg_id=tg_id,
+            amount=-price_kopecks,
+            type="purchase",
+            description=description,
+        )
+
+    # Activate subscription
+    is_extend = False
+    if product == "vpn":
+        client_data = await services.vpn.get_client_data(user)
+        is_extend = client_data is not None and not client_data.has_subscription_expired
+
+        if is_extend:
+            await services.vpn.extend_subscription(user=user, devices=devices, duration=duration)
+        else:
+            await services.vpn.create_subscription(user=user, devices=devices, duration=duration)
+
+    elif product == "mtproto":
+        is_active = await services.mtproto.is_active(tg_id)
+        if is_active:
+            await services.mtproto.extend(tg_id, duration)
+        else:
+            await services.mtproto.activate(tg_id, duration)
+
+    elif product == "whatsapp":
+        is_active = await services.whatsapp.is_active(tg_id)
+        if is_active:
+            await services.whatsapp.extend(tg_id, duration)
+        else:
+            await services.whatsapp.activate(tg_id, duration)
+
+    logger.info(
+        f"Balance purchase: user={tg_id}, product={product}, "
+        f"duration={duration}d, price={price_kopecks/100}₽"
+    )
+
+    return web.json_response({"success": True, "product": product, "duration": duration})
+
+
+async def handle_balance_auto_renew(request: Request) -> Response:
+    """POST /api/v1/balance/auto-renew — Toggle auto-renewal.
+
+    Body: {"enabled": true | false}
+    """
+    tg_id = request["tg_id"]
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    enabled = body.get("enabled")
+    if not isinstance(enabled, bool):
+        return web.json_response({"error": "enabled must be boolean"}, status=400)
+
+    session_factory = request.app["session"]
+    async with session_factory() as session:
+        await User.update(session=session, tg_id=tg_id, auto_renew=enabled)
+
+    logger.info(f"Auto-renew {'enabled' if enabled else 'disabled'} for user {tg_id}")
+    return web.json_response({"auto_renew": enabled})
+
+
 # ---------- Admin endpoints ----------
 
 
@@ -691,6 +929,11 @@ def register_routes(app: Application) -> None:
     app.router.add_get("/api/v1/plans/bundles", handle_plans_bundles)
     app.router.add_post("/api/v1/trial/bundle", handle_trial_bundle)
     app.router.add_post("/api/v1/promocode/activate", handle_promocode_activate)
+
+    # Balance endpoints
+    app.router.add_post("/api/v1/balance/topup", handle_balance_topup)
+    app.router.add_post("/api/v1/plans/buy", handle_balance_buy)
+    app.router.add_post("/api/v1/balance/auto-renew", handle_balance_auto_renew)
 
     # Admin endpoints
     app.router.add_post("/api/v1/admin/auth", handle_admin_auth)

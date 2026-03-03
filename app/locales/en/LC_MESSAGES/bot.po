@@ -1723,6 +1723,19 @@ msgstr ""
 "Renew your subscription today and get <b>15 bonus days</b> for free. "
 "This is your last reminder."
 
+#: app/bot/tasks/auto_renew.py
+msgid "task:message:auto_renew_success"
+msgstr ""
+"✅ Subscription auto-renewed for 30 days.\n"
+"Deducted: {price}₽. Balance: {balance}₽"
+
+#: app/bot/tasks/auto_renew.py
+msgid "task:message:auto_renew_insufficient"
+msgstr ""
+"⚠️ Auto-renewal failed: insufficient balance.\n"
+"Balance: {balance}₽, required: {price}₽.\n"
+"Top up your balance to keep the subscription active."
+
 #: app/bot/routers/subscription/keyboard.py
 msgid "task:button:renew"
 msgstr "🔄 Renew subscription"

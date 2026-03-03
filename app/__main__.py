@@ -83,6 +83,14 @@ async def on_startup(
             whatsapp_service=services.whatsapp,
             notification_service=services.notification,
         )
+    tasks.auto_renew.start_scheduler(
+        session_factory=db.session,
+        redis=redis,
+        i18n=i18n,
+        vpn_service=services.vpn,
+        notification_service=services.notification,
+        product_catalog=services.product_catalog,
+    )
 
 
 async def main() -> None:
