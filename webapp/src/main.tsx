@@ -36,19 +36,24 @@ const queryClient = new QueryClient({
   },
 });
 
-// Prefetch user profile immediately
+// Prefetch critical data immediately (before React renders)
 queryClient.prefetchQuery({
   queryKey: ['me'],
   queryFn: () => api('/api/v1/me'),
   staleTime: 60_000,
 });
+queryClient.prefetchQuery({
+  queryKey: ['plans'],
+  queryFn: () => api('/api/v1/plans'),
+  staleTime: 5 * 60_000,
+});
 
-// Hide splash after React mounts + short delay for data fetch
+// Hide splash when React mounts (data prefetch already started)
 function hideSplash() {
   const splash = document.getElementById('splash');
   if (splash) {
     splash.classList.add('hidden');
-    setTimeout(() => splash.remove(), 500);
+    setTimeout(() => splash.remove(), 400);
   }
 }
 
