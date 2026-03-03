@@ -161,6 +161,7 @@ function VpnPlans({ currency }: { currency: Currency }) {
   const trialVpn = useTrialVpn();
   const [selectedDevices, setSelectedDevices] = useState<number | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
+  const [showPending, setShowPending] = useState(false);
 
   if (isLoading || !data) {
     return <LoadingSkeleton />;
@@ -169,8 +170,6 @@ function VpnPlans({ currency }: { currency: Currency }) {
   const plans = data.plans;
   const isExtend = me?.subscriptions.vpn.active || false;
   const trialAvailable = me?.subscriptions.vpn.trial_available || false;
-
-  const [showPending, setShowPending] = useState(false);
 
   const handleBuy = async () => {
     if (!selectedDevices || !selectedDuration) return;
@@ -385,6 +384,7 @@ function ServicePlans({ product, currency }: { product: 'mtproto' | 'whatsapp'; 
   const trialMtproto = useTrialMtproto();
   const trialWhatsapp = useTrialWhatsapp();
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
+  const [showPending, setShowPending] = useState(false);
 
   const query = product === 'mtproto' ? mtproto : whatsapp;
   const trialMutation = product === 'mtproto' ? trialMtproto : trialWhatsapp;
@@ -402,8 +402,6 @@ function ServicePlans({ product, currency }: { product: 'mtproto' | 'whatsapp'; 
     product === 'mtproto'
       ? me?.subscriptions.mtproto.active
       : me?.subscriptions.whatsapp.active;
-
-  const [showPending, setShowPending] = useState(false);
 
   const handleBuy = async () => {
     if (!selectedDuration) return;
