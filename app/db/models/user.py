@@ -28,7 +28,7 @@ class User(Base):
         created_at (datetime): Timestamp when the user was created.
         server (Server | None): Associated server object.
         transactions (list[Transaction]): List of transactions associated with the user.
-        activated_promocodes (list[Promocode]): List of promocodes activated by the user.
+        promocode_activations (list[ActivatedPromocode]): List of promocode activations by the user.
         referrals_sent (list[Referral]): List of Referrals sent by the user and applied by referred users.
         referral (Referral | None): The Referral record if this user was invited.
     """
@@ -51,8 +51,8 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=False)
     server: Mapped["Server | None"] = relationship("Server", back_populates="users", uselist=False)  # type: ignore
     transactions: Mapped[list["Transaction"]] = relationship("Transaction", back_populates="user")  # type: ignore
-    activated_promocodes: Mapped[list["Promocode"]] = relationship(  # type: ignore
-        "Promocode", back_populates="activated_user"
+    promocode_activations: Mapped[list["ActivatedPromocode"]] = relationship(  # type: ignore
+        "ActivatedPromocode", back_populates="user"
     )
     is_trial_used: Mapped[bool] = mapped_column(default=False, nullable=False)
     referrals_sent: Mapped[list["Referral"]] = relationship(  # type: ignore
@@ -87,7 +87,7 @@ class User(Base):
             select(User)
             .options(
                 selectinload(User.transactions),
-                selectinload(User.activated_promocodes),
+                selectinload(User.promocode_activations),
                 selectinload(User.server),
             )
             .where(*filter)
