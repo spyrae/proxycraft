@@ -11,6 +11,7 @@ from ._gateway import PaymentGateway
 from .cryptomus import Cryptomus
 from .heleket import Heleket
 from .telegram_stars import TelegramStars
+from .tbank import TBank, TBankSBP
 from .yookassa import Yookassa
 from .yoomoney import Yoomoney
 
@@ -49,6 +50,8 @@ class GatewayFactory:
             (config.shop.PAYMENT_HELEKET_ENABLED, Heleket),
             (config.shop.PAYMENT_YOOKASSA_ENABLED, Yookassa),
             (config.shop.PAYMENT_YOOMONEY_ENABLED, Yoomoney),
+            (config.shop.PAYMENT_TBANK_ENABLED, TBank),
+            (config.shop.PAYMENT_TBANK_ENABLED, TBankSBP),
         ]
 
         for enabled, gateway_cls in gateways:

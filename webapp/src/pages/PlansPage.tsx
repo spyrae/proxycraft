@@ -7,7 +7,9 @@ import {
   useTrialVpn,
   useTrialMtproto,
   useTrialWhatsapp,
+  useActivatePromocode,
 } from '../api/hooks';
+import { ApiRequestError } from '../api/client';
 import { usePayment } from '../hooks/usePayment';
 import { PlanCard } from '../components/PlanCard';
 
@@ -96,7 +98,7 @@ export function PlansPage() {
 
       {currency === 'rub' && (
         <p className="text-[10px] text-center mt-3" style={{ color: 'var(--text-dim)' }}>
-          Payment is processed via Telegram Stars
+          Оплата через Т-Банк
         </p>
       )}
     </div>
@@ -126,10 +128,36 @@ function CurrencyButton({
   );
 }
 
+function PaymentPendingBanner({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div
+      className="rounded-2xl p-4 mb-4 text-center"
+      style={{
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        border: '1px solid rgba(16, 185, 129, 0.3)',
+      }}
+    >
+      <p className="text-sm font-semibold mb-1" style={{ color: '#10B981' }}>
+        Оплата обрабатывается
+      </p>
+      <p className="text-xs mb-3" style={{ color: 'var(--text-dim)' }}>
+        После подтверждения платежа подписка активируется автоматически
+      </p>
+      <button
+        onClick={onDismiss}
+        className="text-xs font-medium px-3 py-1 rounded-lg"
+        style={{ color: 'var(--text-dim)' }}
+      >
+        Скрыть
+      </button>
+    </div>
+  );
+}
+
 function VpnPlans({ currency }: { currency: Currency }) {
   const { data, isLoading } = usePlans();
   const { data: me } = useMe();
-  const { pay, isLoading: paying } = usePayment();
+  const { pay, status: paymentStatus, isLoading: paying } = usePayment();
   const trialVpn = useTrialVpn();
   const [selectedDevices, setSelectedDevices] = useState<number | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
@@ -142,14 +170,20 @@ function VpnPlans({ currency }: { currency: Currency }) {
   const isExtend = me?.subscriptions.vpn.active || false;
   const trialAvailable = me?.subscriptions.vpn.trial_available || false;
 
+  const [showPending, setShowPending] = useState(false);
+
   const handleBuy = async () => {
     if (!selectedDevices || !selectedDuration) return;
-    await pay({
+    const result = await pay({
       product: 'vpn',
       devices: selectedDevices,
       duration: selectedDuration,
       is_extend: isExtend,
+      currency,
     });
+    if (result === 'pending') {
+      setShowPending(true);
+    }
   };
 
   const handleTrial = async () => {
@@ -158,6 +192,10 @@ function VpnPlans({ currency }: { currency: Currency }) {
 
   return (
     <div>
+      {(showPending || paymentStatus === 'pending_external') && (
+        <PaymentPendingBanner onDismiss={() => setShowPending(false)} />
+      )}
+
       {trialAvailable && (
         <button
           onClick={handleTrial}
@@ -243,8 +281,97 @@ function VpnPlans({ currency }: { currency: Currency }) {
             boxShadow: paying ? 'none' : '0 4px 15px rgba(16, 185, 129, 0.3)',
           }}
         >
-          {paying ? 'Processing...' : 'Pay with Stars ★'}
+          {paying ? 'Processing...' : currency === 'rub' ? 'Pay ₽' : 'Pay with Stars ★'}
         </button>
+      )}
+
+      <PromoCodeSection />
+    </div>
+  );
+}
+
+function PromoCodeSection() {
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState('');
+  const activate = useActivatePromocode();
+
+  const handleActivate = async () => {
+    if (!code.trim()) return;
+    activate.mutate(
+      { code: code.trim() },
+      { onSuccess: () => setCode('') },
+    );
+  };
+
+  if (activate.isSuccess) {
+    return (
+      <div
+        className="rounded-2xl p-3 mt-4 text-center"
+        style={{
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          border: '1px solid rgba(16, 185, 129, 0.3)',
+        }}
+      >
+        <p className="text-sm font-semibold" style={{ color: '#10B981' }}>
+          Промокод активирован! +{activate.data.duration} дней
+        </p>
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full mt-3 text-xs text-center transition-colors"
+        style={{ color: 'var(--text-dim)' }}
+      >
+        Есть промокод?
+      </button>
+    );
+  }
+
+  const errorMessage =
+    activate.error instanceof ApiRequestError
+      ? ((activate.error.body as { error?: string })?.error || 'Неверный или использованный промокод')
+      : activate.error
+        ? 'Неверный или использованный промокод'
+        : null;
+
+  return (
+    <div className="mt-4">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          onKeyDown={(e) => e.key === 'Enter' && handleActivate()}
+          placeholder="Введите промокод"
+          className="flex-1 rounded-xl px-3 py-2 text-sm outline-none transition-colors"
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: `1px solid ${activate.isError ? 'var(--danger, #EF4444)' : 'var(--border)'}`,
+          }}
+          disabled={activate.isPending}
+          autoFocus
+        />
+        <button
+          onClick={handleActivate}
+          disabled={activate.isPending || !code.trim()}
+          className="rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200"
+          style={{
+            backgroundColor: activate.isPending || !code.trim() ? 'rgba(16, 185, 129, 0.5)' : '#10B981',
+            color: '#ffffff',
+          }}
+        >
+          {activate.isPending ? '...' : 'Применить'}
+        </button>
+      </div>
+      {activate.isError && (
+        <p className="text-xs mt-1.5 ml-1" style={{ color: 'var(--danger, #EF4444)' }}>
+          {errorMessage}
+        </p>
       )}
     </div>
   );
@@ -254,7 +381,7 @@ function ServicePlans({ product, currency }: { product: 'mtproto' | 'whatsapp'; 
   const mtproto = useMtprotoPlans();
   const whatsapp = useWhatsappPlans();
   const { data: me } = useMe();
-  const { pay, isLoading: paying } = usePayment();
+  const { pay, status: paymentStatus, isLoading: paying } = usePayment();
   const trialMtproto = useTrialMtproto();
   const trialWhatsapp = useTrialWhatsapp();
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
@@ -276,13 +403,19 @@ function ServicePlans({ product, currency }: { product: 'mtproto' | 'whatsapp'; 
       ? me?.subscriptions.mtproto.active
       : me?.subscriptions.whatsapp.active;
 
+  const [showPending, setShowPending] = useState(false);
+
   const handleBuy = async () => {
     if (!selectedDuration) return;
-    await pay({
+    const result = await pay({
       product,
       duration: selectedDuration,
       is_extend: isExtend || false,
+      currency,
     });
+    if (result === 'pending') {
+      setShowPending(true);
+    }
   };
 
   const handleTrial = async () => {
@@ -291,6 +424,10 @@ function ServicePlans({ product, currency }: { product: 'mtproto' | 'whatsapp'; 
 
   return (
     <div>
+      {(showPending || paymentStatus === 'pending_external') && (
+        <PaymentPendingBanner onDismiss={() => setShowPending(false)} />
+      )}
+
       {trialAvailable && (
         <button
           onClick={handleTrial}
@@ -336,7 +473,7 @@ function ServicePlans({ product, currency }: { product: 'mtproto' | 'whatsapp'; 
             boxShadow: paying ? 'none' : '0 4px 15px rgba(16, 185, 129, 0.3)',
           }}
         >
-          {paying ? 'Processing...' : 'Pay with Stars ★'}
+          {paying ? 'Processing...' : currency === 'rub' ? 'Pay ₽' : 'Pay with Stars ★'}
         </button>
       )}
     </div>

@@ -134,16 +134,6 @@ async def main() -> None:
     # Sync servers
     await services_container.server_pool.sync_servers()
 
-    # Register Mini App API routes
-    from app.bot.api import register_api_routes
-    register_api_routes(
-        app=app,
-        config=config,
-        session=db.session,
-        bot=bot,
-        services=services_container,
-    )
-
     # Register payment gateways
     gateway_factory = GatewayFactory()
     gateway_factory.register_gateways(
@@ -154,6 +144,17 @@ async def main() -> None:
         bot=bot,
         i18n=i18n,
         services=services_container,
+    )
+
+    # Register Mini App API routes
+    from app.bot.api import register_api_routes
+    register_api_routes(
+        app=app,
+        config=config,
+        session=db.session,
+        bot=bot,
+        services=services_container,
+        gateway_factory=gateway_factory,
     )
 
     # Create the dispatcher

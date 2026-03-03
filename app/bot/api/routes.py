@@ -33,6 +33,7 @@ from app.bot.models import ServicesContainer, SubscriptionData
 from app.bot.utils.constants import Currency, TransactionStatus
 from app.bot.utils.navigation import NavSubscription, NavMTProto, NavWhatsApp
 from app.db.models import Server, Transaction, User
+from app.db.models.promocode import Promocode
 
 logger = logging.getLogger(__name__)
 
@@ -169,9 +170,9 @@ async def handle_subscription_whatsapp(request: Request) -> Response:
 
 
 async def handle_payment_invoice(request: Request) -> Response:
-    """POST /api/v1/payment/invoice — Create Stars invoice link.
+    """POST /api/v1/payment/invoice — Create payment link (Stars or T-Bank).
 
-    Body: {"product": "vpn|mtproto|whatsapp", "devices": 3, "duration": 30, "is_extend": false}
+    Body: {"product": "vpn|mtproto|whatsapp", "devices": 3, "duration": 30, "is_extend": false, "currency": "stars"|"rub"}
     """
     user = request["user"]
     tg_id = request["tg_id"]
@@ -188,45 +189,52 @@ async def handle_payment_invoice(request: Request) -> Response:
     duration = body.get("duration")
     devices = body.get("devices", 1)
     is_extend = body.get("is_extend", False)
+    currency_choice = body.get("currency", "stars")  # "stars" or "rub"
 
     if not duration or not isinstance(duration, int) or duration <= 0:
         return web.json_response({"error": "Invalid duration"}, status=400)
 
     catalog = services.product_catalog
+    use_rub = currency_choice == "rub" and config.shop.PAYMENT_TBANK_ENABLED
 
-    # Determine price and create invoice
+    # Determine currency code for price lookup
+    price_currency = Currency.RUB.code if use_rub else Currency.XTR.code
+
+    # Determine price and product info
     if product == "vpn":
         vpn_product = catalog.get_vpn_product_by_devices(devices)
         if not vpn_product:
             return web.json_response({"error": "Plan not found"}, status=404)
-        price = catalog.get_price(vpn_product.slug, Currency.XTR.code, duration)
+        price = catalog.get_price(vpn_product.slug, price_currency, duration)
         if price is None:
             return web.json_response({"error": "Invalid duration for this plan"}, status=400)
-        amount = int(price)
-        title = f"VPN {devices} dev / {duration} days"
-        description = f"VPN subscription: {devices} devices for {duration} days"
+        amount = int(price) if not use_rub else float(price)
         product_type = "vpn"
 
     elif product == "mtproto":
         if not config.shop.MTPROTO_ENABLED:
             return web.json_response({"error": "MTProto is not enabled"}, status=404)
-        amount = services.mtproto.get_price_stars(duration)
+        if use_rub:
+            amount = services.mtproto.get_price(duration)
+        else:
+            amount = services.mtproto.get_price_stars(duration)
         if amount is None:
             return web.json_response({"error": "Invalid duration"}, status=400)
+        amount = float(amount)
         devices = 1
-        title = f"MTProto Proxy / {duration} days"
-        description = f"MTProto proxy subscription for {duration} days"
         product_type = "mtproto"
 
     elif product == "whatsapp":
         if not config.shop.WHATSAPP_ENABLED:
             return web.json_response({"error": "WhatsApp is not enabled"}, status=404)
-        amount = services.whatsapp.get_price_stars(duration)
+        if use_rub:
+            amount = services.whatsapp.get_price(duration)
+        else:
+            amount = services.whatsapp.get_price_stars(duration)
         if amount is None:
             return web.json_response({"error": "Invalid duration"}, status=400)
+        amount = float(amount)
         devices = 1
-        title = f"WhatsApp Proxy / {duration} days"
-        description = f"WhatsApp proxy subscription for {duration} days"
         product_type = "whatsapp"
 
     elif product.startswith("bundle_"):
@@ -237,14 +245,43 @@ async def handle_payment_invoice(request: Request) -> Response:
             return web.json_response({"error": "Invalid bundle"}, status=400)
         amount = catalog.calculate_price_stars(product, duration)
         devices = 1
-        title = f"{bundle_product.name} / {duration} days"
-        description = f"{bundle_product.description} for {duration} days"
         product_type = product
 
     else:
         return web.json_response({"error": "Invalid product type"}, status=400)
 
-    # Build SubscriptionData payload (same as bot flow)
+    # --- T-Bank (RUB) payment flow ---
+    if use_rub:
+        gateway_factory = request.app.get("gateway_factory")
+        if not gateway_factory:
+            return web.json_response({"error": "Payment gateway not available"}, status=500)
+
+        try:
+            gateway = gateway_factory.get_gateway(NavSubscription.PAY_TBANK)
+        except ValueError:
+            return web.json_response({"error": "T-Bank gateway not registered"}, status=500)
+
+        sub_data = SubscriptionData(
+            state=NavSubscription.PAY_TBANK,
+            is_extend=is_extend,
+            is_change=False,
+            user_id=tg_id,
+            devices=devices,
+            duration=duration,
+            price=float(amount),
+            product_type=product_type,
+        )
+
+        try:
+            payment_url = await gateway.create_payment(sub_data)
+        except Exception as e:
+            logger.error(f"Failed to create T-Bank payment: {e}")
+            return web.json_response({"error": "Failed to create payment"}, status=500)
+
+        logger.info(f"T-Bank payment created for user {tg_id}: {payment_url}")
+        return web.json_response({"payment_url": payment_url})
+
+    # --- Stars payment flow ---
     sub_data = SubscriptionData(
         state=NavSubscription.PAY_TELEGRAM_STARS,
         is_extend=is_extend,
@@ -274,11 +311,11 @@ async def handle_payment_invoice(request: Request) -> Response:
     if await IsDev()(user_id=tg_id):
         amount = 1
 
-    prices = [LabeledPrice(label=Currency.XTR.code, amount=amount)]
+    prices = [LabeledPrice(label=Currency.XTR.code, amount=int(amount))]
     try:
         invoice_url = await bot.create_invoice_link(
-            title=title,
-            description=description,
+            title=f"{product_type} / {duration} days",
+            description=f"Subscription for {duration} days",
             prices=prices,
             payload=payload,
             currency=Currency.XTR.code,
@@ -413,6 +450,41 @@ async def handle_trial_bundle(request: Request) -> Response:
         return web.json_response({"error": "Failed to activate bundle trial", "details": results}, status=500)
 
     return web.json_response({"success": True, "slug": slug, "trial_days": product.trial_days})
+
+
+async def handle_promocode_activate(request: Request) -> Response:
+    """POST /api/v1/promocode/activate — Activate a promocode for VPN subscription.
+
+    Body: {"code": "ABC123"}
+    """
+    user = request["user"]
+    services = _services(request)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    code = body.get("code", "").strip()
+    if not code:
+        return web.json_response({"error": "Промокод не указан"}, status=400)
+
+    session_factory = request.app["session"]
+    async with session_factory() as session:
+        promocode = await Promocode.get(session=session, code=code)
+
+    if not promocode:
+        return web.json_response({"error": "Неверный или использованный промокод"}, status=400)
+
+    if promocode.is_activated:
+        return web.json_response({"error": "Неверный или использованный промокод"}, status=400)
+
+    success = await services.vpn.activate_promocode(user, promocode)
+    if not success:
+        return web.json_response({"error": "Не удалось активировать промокод"}, status=500)
+
+    logger.info(f"Promocode {code} activated via Mini App for user {user.tg_id}")
+    return web.json_response({"success": True, "duration": promocode.duration})
 
 
 # ---------- Admin endpoints ----------
@@ -620,6 +692,7 @@ def register_routes(app: Application) -> None:
     app.router.add_post("/api/v1/trial/whatsapp", handle_trial_whatsapp)
     app.router.add_get("/api/v1/plans/bundles", handle_plans_bundles)
     app.router.add_post("/api/v1/trial/bundle", handle_trial_bundle)
+    app.router.add_post("/api/v1/promocode/activate", handle_promocode_activate)
 
     # Admin endpoints
     app.router.add_post("/api/v1/admin/auth", handle_admin_auth)

@@ -39,6 +39,7 @@ DEFAULT_SHOP_PAYMENT_CRYPTOMUS_ENABLED = False
 DEFAULT_SHOP_PAYMENT_HELEKET_ENABLED = False
 DEFAULT_SHOP_PAYMENT_YOOKASSA_ENABLED = False
 DEFAULT_SHOP_PAYMENT_YOOMONEY_ENABLED = False
+DEFAULT_SHOP_PAYMENT_TBANK_ENABLED = False
 
 DEFAULT_SHOP_MTPROTO_ENABLED = False
 DEFAULT_SHOP_MTPROTO_HOST = "141.227.131.165"
@@ -111,6 +112,7 @@ class ShopConfig:
     PAYMENT_HELEKET_ENABLED: bool
     PAYMENT_YOOKASSA_ENABLED: bool
     PAYMENT_YOOMONEY_ENABLED: bool
+    PAYMENT_TBANK_ENABLED: bool
     MTPROTO_ENABLED: bool
     MTPROTO_HOST: str
     MTPROTO_PORT: int
@@ -163,6 +165,12 @@ class YooKassaConfig:
 class YooMoneyConfig:
     NOTIFICATION_SECRET: str | None
     WALLET_ID: str | None
+
+
+@dataclass
+class TBankConfig:
+    TERMINAL_KEY: str | None
+    PASSWORD: str | None
 
 
 @dataclass
@@ -222,6 +230,7 @@ class Config:
     heleket: HeleketConfig
     yookassa: YooKassaConfig
     yoomoney: YooMoneyConfig
+    tbank: TBankConfig
     database: DatabaseConfig
     redis: RedisConfig
     logging: LoggingConfig
@@ -296,12 +305,26 @@ def load_config() -> Config:
             )
             payment_yoomoney_enabled = False
 
+    payment_tbank_enabled = env.bool(
+        "SHOP_PAYMENT_TBANK_ENABLED",
+        default=DEFAULT_SHOP_PAYMENT_TBANK_ENABLED,
+    )
+    if payment_tbank_enabled:
+        tbank_terminal_key = env.str("TBANK_TERMINAL_KEY", default=None)
+        tbank_password = env.str("TBANK_PASSWORD", default=None)
+        if not tbank_terminal_key or not tbank_password:
+            logger.error(
+                "TBANK_TERMINAL_KEY or TBANK_PASSWORD is not set. Payment T-Bank is disabled."
+            )
+            payment_tbank_enabled = False
+
     if (
         not payment_stars_enabled
         and not payment_cryptomus_enabled
         and not payment_heleket_enabled
         and not payment_yookassa_enabled
         and not payment_yoomoney_enabled
+        and not payment_tbank_enabled
     ):
         logger.warning("No payment methods are enabled. Enabling Stars payment method.")
         payment_stars_enabled = True
@@ -391,6 +414,7 @@ def load_config() -> Config:
             PAYMENT_HELEKET_ENABLED=payment_heleket_enabled,
             PAYMENT_YOOKASSA_ENABLED=payment_yookassa_enabled,
             PAYMENT_YOOMONEY_ENABLED=payment_yoomoney_enabled,
+            PAYMENT_TBANK_ENABLED=payment_tbank_enabled,
             MTPROTO_ENABLED=env.bool(
                 "SHOP_MTPROTO_ENABLED", default=DEFAULT_SHOP_MTPROTO_ENABLED
             ),
@@ -476,6 +500,10 @@ def load_config() -> Config:
         yoomoney=YooMoneyConfig(
             NOTIFICATION_SECRET=env.str("YOOMONEY_NOTIFICATION_SECRET", default=None),
             WALLET_ID=env.str("YOOMONEY_WALLET_ID", default=None),
+        ),
+        tbank=TBankConfig(
+            TERMINAL_KEY=env.str("TBANK_TERMINAL_KEY", default=None),
+            PASSWORD=env.str("TBANK_PASSWORD", default=None),
         ),
         database=DatabaseConfig(
             HOST=env.str("DB_HOST", default=None),

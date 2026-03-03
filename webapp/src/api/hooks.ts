@@ -11,6 +11,7 @@ import type {
   TrialVpnResponse,
   TrialMtprotoResponse,
   TrialWhatsappResponse,
+  PromocodeResponse,
 } from './types';
 
 // ---------- Queries ----------
@@ -78,6 +79,7 @@ interface InvoiceParams {
   devices?: number;
   duration: number;
   is_extend?: boolean;
+  currency?: 'stars' | 'rub';
 }
 
 export function useCreateInvoice() {
@@ -119,6 +121,21 @@ export function useTrialWhatsapp() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['me'] });
       qc.invalidateQueries({ queryKey: ['subscription', 'whatsapp'] });
+    },
+  });
+}
+
+export function useActivatePromocode() {
+  const qc = useQueryClient();
+  return useMutation<PromocodeResponse, Error, { code: string }>({
+    mutationFn: ({ code }) =>
+      api('/api/v1/promocode/activate', {
+        method: 'POST',
+        body: JSON.stringify({ code }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['me'] });
+      qc.invalidateQueries({ queryKey: ['subscription', 'vpn'] });
     },
   });
 }

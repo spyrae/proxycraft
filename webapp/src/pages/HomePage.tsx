@@ -48,33 +48,16 @@ function HeroSection({ active }: { active: boolean }) {
             }}
           />
         )}
-        <svg width="64" height="64" viewBox="0 0 32 32" fill="none">
-          <path
-            d="M16 4L6 10v10l10 8 10-8V10L16 4z"
-            stroke={active ? '#10B981' : '#4B5563'}
-            strokeWidth="1.5"
-            fill="none"
-          />
-          <path
-            d="M16 8l-6 4.5v7L16 24l6-4.5v-7L16 8z"
-            fill={active ? '#10B981' : '#4B5563'}
-            opacity="0.15"
-          />
-          {active ? (
-            <path
-              d="M13 16l3 3 5-5"
-              stroke="#10B981"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          ) : (
-            <>
-              <line x1="13" y1="13" x2="19" y2="19" stroke="#4B5563" strokeWidth="2" strokeLinecap="round" />
-              <line x1="19" y1="13" x2="13" y2="19" stroke="#4B5563" strokeWidth="2" strokeLinecap="round" />
-            </>
-          )}
-        </svg>
+        <img
+          src="/favicon.svg?v=2"
+          width="64"
+          height="64"
+          alt="ProxyCraft"
+          style={{
+            opacity: active ? 1 : 0.45,
+            transition: 'opacity 0.3s ease',
+          }}
+        />
       </div>
 
       {/* Status text */}

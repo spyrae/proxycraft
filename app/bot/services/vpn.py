@@ -171,7 +171,7 @@ class VPNService:
             sub_id=user.vpn_id,
             total_gb=total_gb,
         )
-        inbound_id = await self.server_pool_service.get_inbound_id(connection.api, remark=operator_remark)
+        inbound_id = await self.server_pool_service.get_inbound_id(connection, remark=operator_remark)
 
         try:
             await connection.api.client.add(inbound_id=inbound_id, clients=[new_client])
@@ -288,7 +288,7 @@ class VPNService:
         if user.operator and self.catalog:
             old_remark = self.catalog.get_operator_inbound_remark(user.operator)
         old_inbound_id = await self.server_pool_service.get_inbound_id(
-            connection.api, remark=old_remark
+            connection, remark=old_remark
         )
 
         # Find new inbound
@@ -296,7 +296,7 @@ class VPNService:
         if self.catalog:
             new_remark = self.catalog.get_operator_inbound_remark(new_operator)
         new_inbound_id = await self.server_pool_service.get_inbound_id(
-            connection.api, remark=new_remark
+            connection, remark=new_remark
         )
 
         if old_inbound_id == new_inbound_id:

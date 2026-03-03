@@ -70,6 +70,14 @@ msgstr "YooKassa"
 msgid "payment:gateway:yoomoney"
 msgstr "YooMoney"
 
+#: app/bot/payment_gateways/tbank.py:49
+msgid "payment:gateway:tbank"
+msgstr "T-Bank (card)"
+
+#: app/bot/payment_gateways/tbank.py:170
+msgid "payment:gateway:tbank_sbp"
+msgstr "SBP (T-Bank)"
+
 #: app/bot/routers/admin_tools/admin_tools_handler.py:23
 msgid "admin_tools:message:main"
 msgstr "🛠 <b>Admin tools:</b>"

@@ -62,7 +62,8 @@ export interface WhatsappSubscription {
 }
 
 export interface InvoiceResponse {
-  invoice_url: string;
+  invoice_url?: string;
+  payment_url?: string;
 }
 
 export interface TrialVpnResponse {
@@ -79,6 +80,11 @@ export interface TrialWhatsappResponse {
   success: boolean;
   host: string;
   port: number;
+}
+
+export interface PromocodeResponse {
+  success: boolean;
+  duration: number;
 }
 
 export interface ApiError {

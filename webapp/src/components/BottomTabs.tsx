@@ -34,10 +34,13 @@ export function BottomTabs() {
   return (
     <nav className="fixed bottom-4 left-4 right-4 z-50">
       <div
-        className="glass flex justify-around items-center h-14 rounded-2xl"
+        className="flex justify-around items-center h-14 rounded-full"
         style={{
-          border: '1px solid rgba(16, 185, 129, 0.15)',
-          boxShadow: '0 4px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(16, 185, 129, 0.08)',
+          background: 'rgba(17, 24, 39, 0.92)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(16, 185, 129, 0.12)',
+          boxShadow: '0 4px 30px rgba(0, 0, 0, 0.5)',
         }}
       >
         {tabs.map((tab, i) => {
@@ -46,25 +49,22 @@ export function BottomTabs() {
             <button
               key={tab.path}
               onClick={() => handleTap(tab.path)}
-              className="flex flex-col items-center justify-center flex-1 h-full gap-0.5 relative transition-all duration-200"
-              style={{ color: active ? '#10B981' : '#6B7280' }}
+              className="flex flex-col items-center justify-center flex-1 h-full gap-0.5"
+              style={{
+                color: active ? '#10B981' : '#6B7280',
+                transition: 'color 0.3s ease',
+              }}
             >
               <tab.icon active={active} />
               <span
-                className="text-[10px] font-semibold transition-all duration-200"
-                style={{ opacity: active ? 1 : 0.7 }}
+                className="text-[10px] font-semibold"
+                style={{
+                  opacity: active ? 1 : 0.6,
+                  transition: 'opacity 0.3s ease, color 0.3s ease',
+                }}
               >
                 {tab.label}
               </span>
-              {active && (
-                <span
-                  className="absolute -bottom-0 w-5 h-0.5 rounded-full"
-                  style={{
-                    backgroundColor: '#10B981',
-                    boxShadow: '0 0 6px rgba(16, 185, 129, 0.6)',
-                  }}
-                />
-              )}
             </button>
           );
         })}

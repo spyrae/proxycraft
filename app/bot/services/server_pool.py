@@ -1,6 +1,7 @@
 import logging
 from dataclasses import dataclass
 
+from httpx import HTTPStatusError
 from py3xui import AsyncApi
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
@@ -23,16 +24,18 @@ class ServerPoolService:
         self._servers: dict[int, Connection] = {}
         logger.info("Server Pool Service initialized.")
 
+    def _create_api(self, server: Server) -> AsyncApi:
+        return AsyncApi(
+            host=server.host,
+            username=self.config.xui.USERNAME,
+            password=self.config.xui.PASSWORD,
+            token=self.config.xui.TOKEN,
+            logger=logging.getLogger(f"xui_{server.name}"),
+        )
+
     async def _add_server(self, server: Server) -> None:
         if server.id not in self._servers:
-            api = AsyncApi(
-                host=server.host,
-                username=self.config.xui.USERNAME,
-                password=self.config.xui.PASSWORD,
-                token=self.config.xui.TOKEN,
-                # use_tls_verify=False,
-                logger=logging.getLogger(f"xui_{server.name}"),
-            )
+            api = self._create_api(server)
             try:
                 await api.login()
                 server.online = True
@@ -45,6 +48,21 @@ class ServerPoolService:
 
             async with self.session() as session:
                 await Server.update(session=session, name=server.name, online=server.online)
+
+    async def _relogin(self, connection: Connection) -> bool:
+        server = connection.server
+        logger.info(f"Re-login to server {server.name} ({server.host})...")
+        api = self._create_api(server)
+        try:
+            await api.login()
+            connection.api = api
+            server.online = True
+            logger.info(f"Re-login to server {server.name} successful.")
+            return True
+        except Exception as exception:
+            server.online = False
+            logger.error(f"Re-login to server {server.name} failed: {exception}")
+            return False
 
     def _remove_server(self, server: Server) -> None:
         if server.id in self._servers:
@@ -60,11 +78,13 @@ class ServerPoolService:
         await self._add_server(server)
         logger.info(f"Server {server.name} reinitialized successfully.")
 
-    async def get_inbound_id(self, api: AsyncApi, remark: str | None = None) -> int | None:
+    async def get_inbound_id(self, connection: Connection, remark: str | None = None) -> int | None:
         try:
-            inbounds = await api.inbound.get_list()
+            inbounds = await self._api_call_with_relogin(
+                connection, lambda: connection.api.inbound.get_list()
+            )
         except Exception as exception:
-            logger.error(f"Failed to fetch inbounds: {exception}")
+            logger.error(f"Failed to fetch inbounds for {connection.server.name}: {exception}")
             return None
 
         target_remark = remark or self.config.xui.INBOUND_REMARK
@@ -86,7 +106,7 @@ class ServerPoolService:
 
         if not connection:
             available_servers = list(self._servers.keys())
-            logger.critical(
+            logger.warning(
                 f"Server {user.server_id} not found in pool. "
                 f"User assigned server: {user.server_id}, "
                 f"Available servers in pool: {available_servers}"
@@ -96,8 +116,12 @@ class ServerPoolService:
                 server = await Server.get_by_id(session=session, id=user.server_id)
 
             if server:
-                logger.debug(f"Server {server.name} ({server.host}) found in database.")
-                # TODO: Try to add server to pool
+                logger.info(f"Server {server.name} ({server.host}) found in database, recovering to pool...")
+                await self._add_server(server)
+                connection = self._servers.get(user.server_id)
+                if connection:
+                    return connection
+                logger.error(f"Failed to recover server {server.name} to pool.")
             else:
                 logger.error(f"Server {user.server_id} not found in database.")
 
@@ -108,6 +132,22 @@ class ServerPoolService:
 
         connection.server = server
         return connection
+
+    async def _api_call_with_relogin(self, connection: Connection, coro_factory):
+        """Execute an API call with automatic re-login on auth failure.
+
+        coro_factory is a callable that returns a coroutine, e.g.:
+            lambda: connection.api.client.get_by_email(email)
+        """
+        try:
+            return await coro_factory()
+        except (HTTPStatusError, ValueError) as exc:
+            err_msg = str(exc).lower()
+            if "401" in err_msg or "unauthorized" in err_msg or "login" in err_msg or "session" in err_msg:
+                logger.warning(f"Auth error on {connection.server.name}, attempting re-login: {exc}")
+                if await self._relogin(connection):
+                    return await coro_factory()
+            raise
 
     async def sync_servers(self) -> None:
         async with self.session() as session:
