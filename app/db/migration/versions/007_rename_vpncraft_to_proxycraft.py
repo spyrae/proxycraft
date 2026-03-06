@@ -1,13 +1,13 @@
 """Rename all vpncraft_ tables, constraints and enum types to proxycraft_.
 
-Revision ID: 007_rename_vpncraft_to_proxycraft
+Revision ID: 007_rename_to_proxycraft
 Revises: 006_add_user_balance
 Create Date: 2026-03-06
 """
 
 from alembic import op
 
-revision = "007_rename_vpncraft_to_proxycraft"
+revision = "007_rename_to_proxycraft"
 down_revision = "006_add_user_balance"
 branch_labels = None
 depends_on = None
