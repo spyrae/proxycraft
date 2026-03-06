@@ -7,6 +7,7 @@ on:
       - 'app/**'
       - 'mtproto/**'
       - 'whatsapp/**'
+      - '.github/workflows/deploy.yml'
       - 'docker-compose.yml'
       - 'Dockerfile'
       - 'pyproject.toml'
