@@ -15,6 +15,7 @@ import type {
   TopupResponse,
   BuyPlanResponse,
   AutoRenewResponse,
+  CancelSubscriptionResponse,
 } from './types';
 
 // ---------- Queries ----------
@@ -200,6 +201,20 @@ export function useAutoRenew() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['me'] });
+    },
+  });
+}
+
+export function useCancelSubscription() {
+  const qc = useQueryClient();
+  return useMutation<CancelSubscriptionResponse, Error, { product: 'vpn' | 'mtproto' | 'whatsapp' }>({
+    mutationFn: ({ product }) =>
+      api('/api/v1/subscription/cancel', {
+        method: 'POST',
+        body: JSON.stringify({ product }),
+      }),
+    onSuccess: (_, { product }) => {
+      qc.invalidateQueries({ queryKey: ['subscription', product] });
     },
   });
 }

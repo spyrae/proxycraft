@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { openLink } from '@telegram-apps/sdk';
-import { useMe, useVpnSubscription, useMtprotoSubscription, useWhatsappSubscription } from '../api/hooks';
+import { useMe, useVpnSubscription, useMtprotoSubscription, useWhatsappSubscription, useCancelSubscription } from '../api/hooks';
 import { SubscriptionCard } from '../components/SubscriptionCard';
 import { QRCode } from '../components/QRCode';
 import { CopyButton } from '../components/CopyButton';
@@ -96,6 +96,91 @@ function ExpiryBadge({ date }: { date: string }) {
       </svg>
       {t('expires_date', { date })}
     </div>
+  );
+}
+
+function CancelButton({
+  product,
+  cancelledAt,
+  expiryDate,
+}: {
+  product: 'vpn' | 'mtproto' | 'whatsapp';
+  cancelledAt?: string | null;
+  expiryDate?: string;
+}) {
+  const { t } = useLanguage();
+  const cancel = useCancelSubscription();
+  const [confirming, setConfirming] = useState(false);
+
+  if (cancelledAt) {
+    return (
+      <div
+        className="text-xs px-3 py-2 rounded-xl text-center"
+        style={{
+          backgroundColor: 'rgba(239, 68, 68, 0.08)',
+          color: '#EF4444',
+          border: '1px solid rgba(239, 68, 68, 0.2)',
+        }}
+      >
+        {expiryDate ? t('cancelled_until', { date: expiryDate }) : t('cancelling')}
+      </div>
+    );
+  }
+
+  if (confirming) {
+    return (
+      <div
+        className="rounded-xl p-3 space-y-2"
+        style={{
+          backgroundColor: 'rgba(239, 68, 68, 0.08)',
+          border: '1px solid rgba(239, 68, 68, 0.2)',
+        }}
+      >
+        <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+          {t('cancel_confirm')}
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setConfirming(false)}
+            className="flex-1 rounded-xl py-2 text-xs font-semibold transition-all"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            {t('cancel_confirm_no')}
+          </button>
+          <button
+            onClick={() => {
+              cancel.mutate({ product }, { onSuccess: () => setConfirming(false) });
+            }}
+            disabled={cancel.isPending}
+            className="flex-1 rounded-xl py-2 text-xs font-semibold transition-all"
+            style={{
+              backgroundColor: cancel.isPending ? 'rgba(239, 68, 68, 0.5)' : '#EF4444',
+              color: '#ffffff',
+            }}
+          >
+            {cancel.isPending ? t('cancelling') : t('cancel_confirm_yes')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setConfirming(true)}
+      className="w-full text-xs py-2 rounded-xl transition-all"
+      style={{
+        color: '#EF4444',
+        backgroundColor: 'rgba(239, 68, 68, 0.08)',
+        border: '1px solid rgba(239, 68, 68, 0.15)',
+      }}
+    >
+      {t('cancel_sub')}
+    </button>
   );
 }
 
@@ -202,6 +287,12 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
                   <QRCode value={sub.key} />
                 </div>
               )}
+
+              <CancelButton
+                product="vpn"
+                cancelledAt={sub.cancelled_at}
+                expiryDate={sub.expiry_time ? new Date(sub.expiry_time).toLocaleDateString() : undefined}
+              />
             </>
           )}
         </div>
@@ -235,11 +326,20 @@ function MtprotoSection({ sub }: { sub: MtprotoSubscription }) {
           {sub.expires_at && (
             <ExpiryBadge date={new Date(sub.expires_at).toLocaleDateString()} />
           )}
-          {expanded && sub.link && (
-            <ConnectionRow
-              value={sub.link}
-              onOpen={() => openLink(sub.link!)}
-            />
+          {expanded && (
+            <>
+              {sub.link && (
+                <ConnectionRow
+                  value={sub.link}
+                  onOpen={() => openLink(sub.link!)}
+                />
+              )}
+              <CancelButton
+                product="mtproto"
+                cancelledAt={sub.cancelled_at}
+                expiryDate={sub.expires_at ? new Date(sub.expires_at).toLocaleDateString() : undefined}
+              />
+            </>
           )}
         </div>
       )}
@@ -272,8 +372,15 @@ function WhatsappSection({ sub }: { sub: WhatsappSubscription }) {
           {sub.expires_at && (
             <ExpiryBadge date={new Date(sub.expires_at).toLocaleDateString()} />
           )}
-          {expanded && connectionString && (
-            <ConnectionRow value={connectionString} />
+          {expanded && (
+            <>
+              {connectionString && <ConnectionRow value={connectionString} />}
+              <CancelButton
+                product="whatsapp"
+                cancelledAt={sub.cancelled_at}
+                expiryDate={sub.expires_at ? new Date(sub.expires_at).toLocaleDateString() : undefined}
+              />
+            </>
           )}
         </div>
       )}

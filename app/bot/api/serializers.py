@@ -102,6 +102,7 @@ def serialize_vpn_subscription(
     client_data: ClientData | None,
     key: str | None,
     location: str | None = None,
+    cancelled_at: datetime | None = None,
 ) -> dict:
     if not client_data:
         return {"active": False}
@@ -118,6 +119,7 @@ def serialize_vpn_subscription(
         "expiry_time": client_data._expiry_time,
         "key": key,
         "location": location,
+        "cancelled_at": cancelled_at.isoformat() if cancelled_at else None,
     }
 
 
@@ -136,6 +138,7 @@ def serialize_mtproto_subscription(
         "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
         "link": link,
         "location": location,
+        "cancelled_at": sub.cancelled_at.isoformat() if sub.cancelled_at else None,
     }
 
 
@@ -155,6 +158,7 @@ def serialize_whatsapp_subscription(
         "host": host,
         "port": sub.port,
         "location": location,
+        "cancelled_at": sub.cancelled_at.isoformat() if sub.cancelled_at else None,
     }
 
 

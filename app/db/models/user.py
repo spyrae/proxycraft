@@ -73,6 +73,7 @@ class User(Base):
     operator: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     balance: Mapped[int] = mapped_column(default=0, nullable=False)
     auto_renew: Mapped[bool] = mapped_column(default=True, nullable=False)
+    vpn_cancelled_at: Mapped[datetime | None] = mapped_column(nullable=True, default=None)
 
     def __repr__(self) -> str:
         return (
@@ -145,6 +146,20 @@ class User(Base):
     @classmethod
     async def exists(cls, session: AsyncSession, tg_id: int) -> bool:
         return await User.get(session=session, tg_id=tg_id) is not None
+
+    @classmethod
+    async def cancel_vpn(cls, session: AsyncSession, tg_id: int) -> Self | None:
+        """Mark VPN subscription as cancelled (stops auto-renew; stays active until 3X-UI expiry)."""
+        user = await cls.get(session=session, tg_id=tg_id)
+        if not user or user.vpn_cancelled_at is not None:
+            return user
+
+        await session.execute(
+            update(User).where(User.tg_id == tg_id).values(vpn_cancelled_at=datetime.utcnow())
+        )
+        await session.commit()
+        logger.info(f"VPN subscription cancelled for user {tg_id}")
+        return user
 
     @classmethod
     async def update_trial_status(cls, session: AsyncSession, tg_id: int, used: bool) -> bool:

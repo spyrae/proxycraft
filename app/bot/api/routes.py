@@ -135,7 +135,7 @@ async def handle_subscription_vpn(request: Request) -> Response:
     )
 
     location = user.server.location if user.server else None
-    return web.json_response(serialize_vpn_subscription(client_data, key, location))
+    return web.json_response(serialize_vpn_subscription(client_data, key, location, user.vpn_cancelled_at))
 
 
 async def handle_subscription_mtproto(request: Request) -> Response:
@@ -730,6 +730,66 @@ async def handle_balance_auto_renew(request: Request) -> Response:
     return web.json_response({"auto_renew": enabled})
 
 
+# ---------- Cancel subscription ----------
+
+
+async def handle_subscription_cancel(request: Request) -> Response:
+    """POST /api/v1/subscription/cancel — Cancel a subscription (disable auto-renew).
+
+    Body: {"product": "vpn" | "mtproto" | "whatsapp"}
+    The subscription stays active until the end of the paid period.
+    """
+    user = request["user"]
+    tg_id = request["tg_id"]
+    config = _config(request)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    product = body.get("product")
+    if product not in ("vpn", "mtproto", "whatsapp"):
+        return web.json_response({"error": "Invalid product"}, status=400)
+
+    session_factory = request.app["session"]
+
+    if product == "vpn":
+        async with session_factory() as session:
+            updated = await User.cancel_vpn(session=session, tg_id=tg_id)
+        if not updated:
+            return web.json_response({"error": "VPN subscription not found"}, status=404)
+        return web.json_response({"success": True, "product": "vpn"})
+
+    if product == "mtproto":
+        if not config.shop.MTPROTO_ENABLED:
+            return web.json_response({"error": "MTProto is not enabled"}, status=404)
+        from app.db.models.mtproto_subscription import MTProtoSubscription
+        async with session_factory() as session:
+            sub = await MTProtoSubscription.cancel(session=session, user_tg_id=tg_id)
+        if not sub:
+            return web.json_response({"error": "MTProto subscription not found"}, status=404)
+        return web.json_response({
+            "success": True,
+            "product": "mtproto",
+            "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
+        })
+
+    if product == "whatsapp":
+        if not config.shop.WHATSAPP_ENABLED:
+            return web.json_response({"error": "WhatsApp is not enabled"}, status=404)
+        from app.db.models.whatsapp_subscription import WhatsAppSubscription
+        async with session_factory() as session:
+            sub = await WhatsAppSubscription.cancel(session=session, user_tg_id=tg_id)
+        if not sub:
+            return web.json_response({"error": "WhatsApp subscription not found"}, status=404)
+        return web.json_response({
+            "success": True,
+            "product": "whatsapp",
+            "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
+        })
+
+
 # ---------- Locations ----------
 
 
@@ -1056,6 +1116,9 @@ def register_routes(app: Application) -> None:
     app.router.add_post("/api/v1/balance/topup", handle_balance_topup)
     app.router.add_post("/api/v1/plans/buy", handle_balance_buy)
     app.router.add_post("/api/v1/balance/auto-renew", handle_balance_auto_renew)
+
+    # Cancel subscription
+    app.router.add_post("/api/v1/subscription/cancel", handle_subscription_cancel)
 
     # Locations
     app.router.add_get("/api/v1/locations", handle_locations)

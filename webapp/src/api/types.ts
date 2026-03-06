@@ -47,6 +47,7 @@ export interface VpnSubscription {
   expiry_time?: number;
   key?: string | null;
   location?: string | null;
+  cancelled_at?: string | null;
 }
 
 export interface MtprotoSubscription {
@@ -55,6 +56,7 @@ export interface MtprotoSubscription {
   expires_at?: string | null;
   link?: string | null;
   location?: string | null;
+  cancelled_at?: string | null;
 }
 
 export interface WhatsappSubscription {
@@ -64,6 +66,13 @@ export interface WhatsappSubscription {
   host?: string;
   port?: number;
   location?: string | null;
+  cancelled_at?: string | null;
+}
+
+export interface CancelSubscriptionResponse {
+  success: boolean;
+  product: string;
+  expires_at?: string | null;
 }
 
 export interface InvoiceResponse {

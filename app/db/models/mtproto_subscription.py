@@ -37,6 +37,7 @@ class MTProtoSubscription(Base):
     expires_at: Mapped[datetime] = mapped_column(nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     is_trial_used: Mapped[bool] = mapped_column(default=False, nullable=False)
+    cancelled_at: Mapped[datetime | None] = mapped_column(nullable=True, default=None)
 
     def __repr__(self) -> str:
         return (
@@ -127,6 +128,23 @@ class MTProtoSubscription(Base):
             )
         )
         return list(query.scalars().all())
+
+    @classmethod
+    async def cancel(cls, session: AsyncSession, user_tg_id: int) -> Self | None:
+        """Mark subscription as cancelled (stops auto-renew; stays active until expires_at)."""
+        sub = await cls.get_by_user(session=session, user_tg_id=user_tg_id)
+        if not sub or sub.cancelled_at is not None:
+            return sub
+
+        await session.execute(
+            update(MTProtoSubscription)
+            .where(MTProtoSubscription.user_tg_id == user_tg_id)
+            .values(cancelled_at=datetime.utcnow())
+        )
+        await session.commit()
+        await session.refresh(sub)
+        logger.info(f"MTProto subscription cancelled for user {user_tg_id}")
+        return sub
 
     @classmethod
     async def mark_trial_used(cls, session: AsyncSession, user_tg_id: int) -> bool:

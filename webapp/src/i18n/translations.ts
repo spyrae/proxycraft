@@ -122,6 +122,12 @@ const translations = {
     no_subscriptions_yet: 'No active subscriptions yet',
     show_details: 'Details',
     hide_details: 'Hide',
+    cancel_sub: 'Cancel subscription',
+    cancel_confirm: 'Cancel subscription? Access remains until the end of the paid period.',
+    cancel_confirm_yes: 'Yes, cancel',
+    cancel_confirm_no: 'Keep',
+    cancelling: 'Cancelling...',
+    cancelled_until: 'Cancels on {date}',
 
     // Location display names
     loc_amsterdam: 'Amsterdam',
@@ -249,6 +255,12 @@ const translations = {
     no_subscriptions_yet: 'Нет активных подписок',
     show_details: 'Подробнее',
     hide_details: 'Скрыть',
+    cancel_sub: 'Отменить подписку',
+    cancel_confirm: 'Отменить подписку? Доступ сохранится до конца оплаченного периода.',
+    cancel_confirm_yes: 'Да, отменить',
+    cancel_confirm_no: 'Оставить',
+    cancelling: 'Отмена...',
+    cancelled_until: 'Отменяется {date}',
 
     // Location display names
     loc_amsterdam: 'Амстердам',
