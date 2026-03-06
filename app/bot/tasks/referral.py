@@ -38,26 +38,33 @@ async def reward_pending_referrals_after_payment(
                 continue
 
             # Send notification to the rewarded user
-            if reward.reward_type == ReferrerRewardType.DAYS:
-                try:
-                    user = await User.get(session=session, tg_id=reward.user_tg_id)
-                    locale = user.language_code if user else "en"
-                    days = int(reward.amount)
-                    duration = format_subscription_period(days)
+            try:
+                user = await User.get(session=session, tg_id=reward.user_tg_id)
+                locale = user.language_code if user else "en"
 
+                if reward.reward_type == ReferrerRewardType.DAYS:
+                    duration = format_subscription_period(int(reward.amount))
                     text = i18n.gettext(
                         "referral:ntf:referrer_reward_received",
                         locale=locale,
                     ).format(duration=duration)
+                elif reward.reward_type == ReferrerRewardType.MONEY:
+                    text = i18n.gettext(
+                        "referral:ntf:referrer_balance_reward_received",
+                        locale=locale,
+                    ).format(amount=int(reward.amount))
+                else:
+                    text = None
 
+                if text:
                     await bot.send_message(chat_id=reward.user_tg_id, text=text)
                     logger.info(
                         f"[Background check] Sent reward notification to user {reward.user_tg_id}."
                     )
-                except Exception as e:
-                    logger.warning(
-                        f"[Background check] Failed to notify user {reward.user_tg_id}: {e}"
-                    )
+            except Exception as e:
+                logger.warning(
+                    f"[Background check] Failed to notify user {reward.user_tg_id}: {e}"
+                )
 
         logger.info("[Background check] Referrer rewards check finished.")
 

@@ -247,10 +247,13 @@ class ReferralService:
                 logger.info(f"Gave {days} days to a referrer user {reward.user_tg_id}")
 
             elif reward.reward_type == ReferrerRewardType.MONEY:
-                # TODO: add balance processing
-                logger.critical(
-                    f"Tried to give money {reward.amount} reward to a referrer user {reward.user_tg_id}"
-                )
+                amount = int(reward.amount)
+                user = await User.get(session=session, tg_id=reward.user_tg_id)
+                if not user:
+                    return False
+                user.balance += amount
+                await session.commit()
+                logger.info(f"Added {amount} ₽ to balance of referrer user {reward.user_tg_id}")
 
             else:
                 logger.warning(

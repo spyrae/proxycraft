@@ -967,6 +967,10 @@ msgstr ""
 msgid "referral:ntf:referrer_reward_received"
 msgstr "🎉 Ваш реферал оплатил подписку! Вам начислено <b>+{duration}</b> к подписке."
 
+#: app/bot/tasks/referral.py
+msgid "referral:ntf:referrer_balance_reward_received"
+msgstr "🎉 Ваш реферал оплатил подписку! <b>+{amount} ₽</b> зачислено на ваш баланс."
+
 #: app/bot/routers/referral/keyboard.py:14
 #: app/bot/routers/subscription/keyboard.py:185
 msgid "subscription:button:connect"

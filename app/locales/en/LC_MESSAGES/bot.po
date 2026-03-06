@@ -956,6 +956,10 @@ msgstr ""
 msgid "referral:ntf:referrer_reward_received"
 msgstr "🎉 Your referral paid for a subscription! You received <b>+{duration}</b> to your subscription."
 
+#: app/bot/tasks/referral.py
+msgid "referral:ntf:referrer_balance_reward_received"
+msgstr "🎉 Your referral paid for a subscription! <b>+{amount} ₽</b> added to your balance."
+
 #: app/bot/routers/referral/keyboard.py:14
 #: app/bot/routers/subscription/keyboard.py:185
 msgid "subscription:button:connect"
