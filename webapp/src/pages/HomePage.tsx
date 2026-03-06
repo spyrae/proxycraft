@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTelegram } from '../hooks/useTelegram';
 import { useMe, useVpnSubscription } from '../api/hooks';
@@ -424,6 +424,11 @@ function GuideSheet({ id, title, color, lang, onClose }: {
   lang: Lang;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
   return createPortal(
     <>
       <div
