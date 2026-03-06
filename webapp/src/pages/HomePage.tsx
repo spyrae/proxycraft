@@ -47,9 +47,10 @@ export function HomePage() {
 
 function LangToggle() {
   const { lang, setLang } = useLanguage();
+  const nextLang = lang === 'en' ? 'ru' : 'en';
   return (
     <button
-      onClick={() => setLang(lang === 'en' ? 'ru' : 'en')}
+      onClick={() => setLang(nextLang)}
       className="text-[11px] font-bold px-2 py-1 rounded-full"
       style={{
         backgroundColor: 'rgba(107, 114, 128, 0.12)',
@@ -57,7 +58,7 @@ function LangToggle() {
         border: '1px solid var(--border)',
       }}
     >
-      {lang.toUpperCase()}
+      {nextLang.toUpperCase()}
     </button>
   );
 }

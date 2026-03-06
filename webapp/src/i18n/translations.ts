@@ -111,6 +111,16 @@ const translations = {
     topup_amount_btn: 'Top up {amount}₽',
     topup_redirected_msg: 'Complete the payment in the opened page. Balance will update automatically.',
     topup_error_msg: 'Failed to create payment. Try again.',
+    pay_stars: 'Stars',
+    pay_card: 'Card',
+
+    // CopyButton
+    copy: 'Copy',
+    copied: 'Copied!',
+
+    // Location display names
+    loc_amsterdam: 'Amsterdam',
+    loc_saint_petersburg: 'Saint Petersburg',
   },
 
   ru: {
@@ -223,6 +233,16 @@ const translations = {
     topup_amount_btn: 'Пополнить на {amount}₽',
     topup_redirected_msg: 'Завершите оплату на открытой странице. Баланс обновится автоматически.',
     topup_error_msg: 'Не удалось создать платёж. Попробуйте снова.',
+    pay_stars: 'Звёзды',
+    pay_card: 'Карта',
+
+    // CopyButton
+    copy: 'Копировать',
+    copied: 'Скопировано!',
+
+    // Location display names
+    loc_amsterdam: 'Амстердам',
+    loc_saint_petersburg: 'Санкт-Петербург',
   },
 } as const;
 

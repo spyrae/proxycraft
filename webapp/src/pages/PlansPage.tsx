@@ -1,6 +1,16 @@
 import { useState, useMemo, useEffect } from 'react';
 import { TopupModal } from '../components/TopupModal';
 import { useLanguage } from '../i18n/LanguageContext';
+import type { Lang } from '../i18n/translations';
+
+function deviceLabel(n: number, lang: Lang): string {
+  if (lang !== 'ru') return n === 1 ? `${n} device` : `${n} devices`;
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${n} устройство`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return `${n} устройства`;
+  return `${n} устройств`;
+}
 import {
   useMe,
   usePlans,
@@ -21,6 +31,11 @@ type Tab = 'vpn' | 'mtproto' | 'whatsapp';
 const LOCATION_FLAGS: Record<string, string> = {
   'Amsterdam': '🇳🇱',
   'Saint Petersburg': '🇷🇺',
+};
+
+const LOCATION_KEYS: Record<string, string> = {
+  'Amsterdam': 'loc_amsterdam',
+  'Saint Petersburg': 'loc_saint_petersburg',
 };
 
 export function PlansPage() {
@@ -81,7 +96,7 @@ export function PlansPage() {
                   }}
                 >
                   <span>{flag}</span>
-                  {loc.name}
+                  {LOCATION_KEYS[loc.name] ? t(LOCATION_KEYS[loc.name] as Parameters<typeof t>[0]) : loc.name}
                 </button>
               );
             })}
@@ -212,7 +227,7 @@ function VpnPlans({ location }: { location: string | null }) {
   const { data: me } = useMe();
   const buyPlan = useBuyPlan();
   const trialVpn = useTrialVpn();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [selectedDevices, setSelectedDevices] = useState<number | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -295,7 +310,7 @@ function VpnPlans({ location }: { location: string | null }) {
         return (
           <PlanCard
             key={plan.devices}
-            title={plan.devices > 1 ? t('n_devices_plural', { n: plan.devices }) : t('n_devices', { n: plan.devices })}
+            title={deviceLabel(plan.devices, lang)}
             description={t('from_price', { price: displayPrice })}
             price={displayPrice}
             currency="₽"

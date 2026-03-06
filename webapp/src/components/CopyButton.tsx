@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface Props {
   text: string;
-  label?: string;
 }
 
-export function CopyButton({ text, label = 'Copy' }: Props) {
+export function CopyButton({ text }: Props) {
   const [copied, setCopied] = useState(false);
+  const { t } = useLanguage();
 
   const handleCopy = useCallback(async () => {
     try {
@@ -51,7 +52,7 @@ export function CopyButton({ text, label = 'Copy' }: Props) {
           >
             <path d="M4 8l3 3 5-5" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          Copied!
+          {t('copied')}
         </>
       ) : (
         <>
@@ -59,7 +60,7 @@ export function CopyButton({ text, label = 'Copy' }: Props) {
             <rect x="5" y="5" width="9" height="9" rx="1.5" />
             <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" />
           </svg>
-          {label}
+          {t('copy')}
         </>
       )}
     </button>

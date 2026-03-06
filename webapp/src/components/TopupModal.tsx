@@ -33,10 +33,10 @@ function CardIcon() {
   );
 }
 
-const PAYMENT_METHODS = [
-  { key: 'stars' as const, label: 'Stars', Icon: StarIcon },
-  { key: 'sbp' as const, label: 'СБП', Icon: LightningIcon },
-  { key: 'rub' as const, label: 'Card', Icon: CardIcon },
+const PAYMENT_METHOD_KEYS = [
+  { key: 'stars' as const, Icon: StarIcon },
+  { key: 'sbp' as const, Icon: LightningIcon },
+  { key: 'rub' as const, Icon: CardIcon },
 ];
 
 export function TopupModal({ onClose }: { onClose: () => void }) {
@@ -176,8 +176,9 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
             className="flex rounded-xl p-1 mb-4"
             style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
           >
-            {PAYMENT_METHODS.map(({ key, label, Icon }) => {
+            {PAYMENT_METHOD_KEYS.map(({ key, Icon }) => {
               const active = currency === key;
+              const label = key === 'stars' ? t('pay_stars') : key === 'rub' ? t('pay_card') : 'СБП';
               return (
                 <button
                   key={key}
