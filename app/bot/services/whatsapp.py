@@ -228,6 +228,8 @@ class WhatsAppService:
             "    tune.bufsize 4096",
             "    maxconn 4096",
             "    ssl-server-verify none",
+            "    user haproxy",
+            "    group haproxy",
             "",
             "resolvers docker_dns",
             "    nameserver dns1 127.0.0.11:53",
