@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .product_catalog import ProductCatalog
+    from .product_catalog import ProductCatalog, VpnProfile
     from .server_pool import ServerPoolService
 
 import logging
@@ -37,6 +37,46 @@ class VPNService:
         self.server_pool_service = server_pool_service
         self.catalog = catalog
         logger.info("VPN Service initialized.")
+
+    async def _persist_vpn_profile(self, user: User, profile: VpnProfile | None) -> None:
+        profile_slug = profile.slug if profile else None
+        legacy_operator = None
+        if profile and profile.kind == "operator" and profile.legacy_slugs:
+            legacy_operator = profile.legacy_slugs[0]
+
+        async with self.session() as session:
+            await User.update(
+                session=session,
+                tg_id=user.tg_id,
+                vpn_profile_slug=profile_slug,
+                operator=legacy_operator,
+            )
+
+        user.vpn_profile_slug = profile_slug
+        user.operator = legacy_operator
+
+    def _resolve_vpn_profile(
+        self,
+        user: User,
+        location: str | None,
+    ) -> VpnProfile | None:
+        if not self.catalog:
+            return None
+
+        return self.catalog.resolve_vpn_profile(
+            location=location,
+            profile_slug=user.vpn_profile_slug,
+            legacy_slug=user.operator,
+        )
+
+    def get_current_profile(self, user: User) -> VpnProfile | None:
+        location = user.server.location if user.server else None
+        return self._resolve_vpn_profile(user, location)
+
+    def get_available_profiles(self, location: str | None) -> list[VpnProfile]:
+        if not self.catalog or not location:
+            return []
+        return self.catalog.get_vpn_profiles(location=location)
 
     async def is_client_exists(self, user: User) -> Client | None:
         connection = await self.server_pool_service.get_connection(user)
@@ -163,17 +203,14 @@ class VPNService:
         if not connection:
             return False
 
-        client_flow = (
-            flow
-            if flow is not None
-            else (connection.server.client_flow or self.config.xui.CLIENT_FLOW)
-        )
-        operator_remark = None
-        if user.operator and self.catalog:
-            operator_remark = self.catalog.get_operator_inbound_remark(user.operator)
-            operator_flow = self.catalog.get_operator_client_flow(user.operator)
-            if operator_flow is not None:
-                client_flow = operator_flow
+        selected_profile = self._resolve_vpn_profile(user, connection.server.location)
+        client_flow = flow
+        if client_flow is None:
+            client_flow = (
+                (selected_profile.client_flow if selected_profile else None)
+                or connection.server.client_flow
+                or self.config.xui.CLIENT_FLOW
+            )
 
         new_client = Client(
             email=str(user.tg_id),
@@ -185,13 +222,25 @@ class VPNService:
             sub_id=user.vpn_id,
             total_gb=total_gb,
         )
-        inbound_id = await self.server_pool_service.get_inbound_id(connection, remark=operator_remark)
+        inbound_id = await self.server_pool_service.get_inbound_id(
+            connection,
+            remark=selected_profile.inbound_remark if selected_profile else None,
+            allow_fallback=selected_profile is None,
+        )
+        if inbound_id is None:
+            logger.error(
+                "Failed to resolve inbound for user %s on %s.",
+                user.tg_id,
+                connection.server.name,
+            )
+            return False
 
         try:
             await self.server_pool_service.execute_api_call(
                 connection,
                 lambda: connection.api.client.add(inbound_id=inbound_id, clients=[new_client]),
             )
+            await self._persist_vpn_profile(user, selected_profile)
             logger.info(f"Successfully created client for {user.tg_id}")
             return True
         except Exception as exception:
@@ -238,11 +287,14 @@ class VPNService:
 
             expiry_time = add_days_to_timestamp(timestamp=expiry_time_to_use, days=duration)
 
-            client_flow = (
-                flow
-                if flow is not None
-                else (connection.server.client_flow or self.config.xui.CLIENT_FLOW)
-            )
+            selected_profile = self._resolve_vpn_profile(user, connection.server.location)
+            client_flow = flow
+            if client_flow is None:
+                client_flow = (
+                    (selected_profile.client_flow if selected_profile else None)
+                    or connection.server.client_flow
+                    or self.config.xui.CLIENT_FLOW
+                )
 
             client.enable = enable
             client.id = user.vpn_id
@@ -256,6 +308,7 @@ class VPNService:
                 connection,
                 lambda: connection.api.client.update(client_uuid=client.id, client=client),
             )
+            await self._persist_vpn_profile(user, selected_profile)
             logger.info(f"Client {user.tg_id} updated successfully.")
             return True
         except Exception as exception:
@@ -301,50 +354,85 @@ class VPNService:
         return False
 
     async def change_operator(self, user: User, new_operator: str) -> bool:
-        """Move client from current inbound to operator-specific inbound."""
+        """Legacy wrapper: move client to another Amsterdam profile."""
+        return await self.change_vpn_profile(user, new_operator)
+
+    async def change_vpn_profile(self, user: User, new_profile_slug: str) -> bool:
         connection = await self.server_pool_service.get_connection(user)
         if not connection:
+            return False
+
+        current_profile = self._resolve_vpn_profile(user, connection.server.location)
+        target_profile = (
+            self.catalog.get_vpn_profile(new_profile_slug, location=connection.server.location)
+            if self.catalog
+            else None
+        )
+        if not target_profile:
+            logger.error(
+                "VPN profile '%s' is not available for location %s.",
+                new_profile_slug,
+                connection.server.location,
+            )
             return False
 
         client_data = await self.get_client_data(user)
         if not client_data:
             return False
 
-        # Find current inbound
-        old_remark = None
-        if user.operator and self.catalog:
-            old_remark = self.catalog.get_operator_inbound_remark(user.operator)
         old_inbound_id = await self.server_pool_service.get_inbound_id(
-            connection, remark=old_remark
+            connection,
+            remark=current_profile.inbound_remark if current_profile else None,
+            allow_fallback=current_profile is None,
         )
+        if old_inbound_id is None:
+            return False
 
-        # Find new inbound
-        new_remark = None
-        if self.catalog:
-            new_remark = self.catalog.get_operator_inbound_remark(new_operator)
         new_inbound_id = await self.server_pool_service.get_inbound_id(
-            connection, remark=new_remark
+            connection,
+            remark=target_profile.inbound_remark,
+            allow_fallback=False,
         )
+        if new_inbound_id is None:
+            return False
 
-        if old_inbound_id == new_inbound_id:
-            return True  # already in correct inbound
+        new_flow = (
+            target_profile.client_flow
+            or connection.server.client_flow
+            or self.config.xui.CLIENT_FLOW
+        )
 
         try:
+            client = await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.client.get_by_email(str(user.tg_id)),
+            )
+            if client is None:
+                logger.error(f"Client {user.tg_id} not found while changing VPN profile.")
+                return False
+
+            limit_ip = client_data._max_devices if client_data._max_devices != -1 else 0
+
+            if old_inbound_id == new_inbound_id:
+                client.flow = new_flow
+                await self.server_pool_service.execute_api_call(
+                    connection,
+                    lambda: connection.api.client.update(client_uuid=client.id, client=client),
+                )
+                await self._persist_vpn_profile(user, target_profile)
+                logger.info(
+                    "Updated VPN profile flow for user %s (%s -> %s).",
+                    user.tg_id,
+                    current_profile.slug if current_profile else "default",
+                    target_profile.slug,
+                )
+                return True
+
             # Delete from old inbound
             await self.server_pool_service.execute_api_call(
                 connection,
                 lambda: connection.api.client.delete(old_inbound_id, user.vpn_id),
             )
-
-            # Get current limit_ip from client_data
-            limit_ip = client_data._max_devices if client_data._max_devices != -1 else 0
-
-            # Resolve client_flow for the new operator
-            new_flow = connection.server.client_flow or self.config.xui.CLIENT_FLOW
-            if self.catalog:
-                operator_flow = self.catalog.get_operator_client_flow(new_operator)
-                if operator_flow is not None:
-                    new_flow = operator_flow
 
             # Create in new inbound with same settings
             new_client = Client(
@@ -361,13 +449,18 @@ class VPNService:
                 connection,
                 lambda: connection.api.client.add(inbound_id=new_inbound_id, clients=[new_client]),
             )
+            await self._persist_vpn_profile(user, target_profile)
             logger.info(
-                f"User {user.tg_id} moved from inbound {old_inbound_id} to {new_inbound_id} "
-                f"(operator: {user.operator} -> {new_operator})"
+                "User %s moved from inbound %s to %s (profile: %s -> %s)",
+                user.tg_id,
+                old_inbound_id,
+                new_inbound_id,
+                current_profile.slug if current_profile else "default",
+                target_profile.slug,
             )
             return True
         except Exception as e:
-            logger.error(f"Failed to change operator for user {user.tg_id}: {e}")
+            logger.error(f"Failed to change VPN profile for user {user.tg_id}: {e}")
             return False
 
     async def disable_client(self, user: User) -> bool:

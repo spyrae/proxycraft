@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.bot.models import ClientData
-    from app.bot.services.product_catalog import Operator, Product
+    from app.bot.services.product_catalog import Operator, Product, VpnProfile
     from app.db.models import MTProtoSubscription, Server, Transaction, User, WhatsAppSubscription
 
 
@@ -25,6 +25,7 @@ def serialize_user(
         "first_name": user.first_name,
         "username": user.username,
         "operator": user.operator,
+        "vpn_profile_slug": user.vpn_profile_slug,
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "balance": user.balance / 100,  # kopecks → rubles
         "auto_renew": user.auto_renew,
@@ -103,9 +104,16 @@ def serialize_vpn_subscription(
     key: str | None,
     location: str | None = None,
     cancelled_at: datetime | None = None,
+    current_profile: VpnProfile | None = None,
+    available_profiles: list[VpnProfile] | None = None,
 ) -> dict:
+    payload = {
+        "current_profile": serialize_vpn_profile(current_profile) if current_profile else None,
+        "available_profiles": serialize_vpn_profiles(available_profiles or []),
+        "location": location,
+    }
     if not client_data:
-        return {"active": False}
+        return {"active": False, **payload}
 
     return {
         "active": not client_data.has_subscription_expired,
@@ -118,8 +126,8 @@ def serialize_vpn_subscription(
         "traffic_remaining": client_data._traffic_remaining,
         "expiry_time": client_data._expiry_time,
         "key": key,
-        "location": location,
         "cancelled_at": cancelled_at.isoformat() if cancelled_at else None,
+        **payload,
     }
 
 
@@ -203,6 +211,20 @@ def serialize_operators(operators: list[Operator]) -> list[dict]:
     return [serialize_operator(op) for op in operators]
 
 
+def serialize_vpn_profile(profile: VpnProfile) -> dict:
+    return {
+        "slug": profile.slug,
+        "name": profile.name,
+        "emoji": profile.emoji,
+        "kind": profile.kind,
+        "order": profile.order,
+    }
+
+
+def serialize_vpn_profiles(profiles: list[VpnProfile]) -> list[dict]:
+    return [serialize_vpn_profile(profile) for profile in profiles]
+
+
 # ---------- Admin serializers ----------
 
 
@@ -213,6 +235,7 @@ def serialize_admin_user(user: User) -> dict:
         "first_name": user.first_name,
         "username": user.username,
         "operator": user.operator,
+        "vpn_profile_slug": user.vpn_profile_slug,
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "server_name": user.server.name if user.server else None,
         "is_trial_used": user.is_trial_used,

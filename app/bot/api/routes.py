@@ -135,7 +135,58 @@ async def handle_subscription_vpn(request: Request) -> Response:
     )
 
     location = user.server.location if user.server else None
-    return web.json_response(serialize_vpn_subscription(client_data, key, location, user.vpn_cancelled_at))
+    current_profile = services.vpn.get_current_profile(user)
+    available_profiles = services.vpn.get_available_profiles(location)
+    return web.json_response(
+        serialize_vpn_subscription(
+            client_data,
+            key,
+            location,
+            user.vpn_cancelled_at,
+            current_profile=current_profile,
+            available_profiles=available_profiles,
+        )
+    )
+
+
+async def handle_subscription_vpn_profile(request: Request) -> Response:
+    """POST /api/v1/subscription/vpn-profile — Switch active VPN profile."""
+    user = request["user"]
+    services = _services(request)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    profile_slug = body.get("profile_slug")
+    if not isinstance(profile_slug, str) or not profile_slug:
+        return web.json_response({"error": "profile_slug is required"}, status=400)
+
+    if not user.server:
+        return web.json_response({"error": "VPN server is not assigned"}, status=400)
+
+    success = await services.vpn.change_vpn_profile(user, profile_slug)
+    if not success:
+        return web.json_response({"error": "Failed to switch VPN profile"}, status=400)
+
+    client_data, key = await asyncio.gather(
+        services.vpn.get_client_data(user),
+        services.vpn.get_key(user),
+    )
+    location = user.server.location
+    current_profile = services.vpn.get_current_profile(user)
+    available_profiles = services.vpn.get_available_profiles(location)
+    return web.json_response(
+        serialize_vpn_subscription(
+            client_data,
+            key,
+            location,
+            user.vpn_cancelled_at,
+            current_profile=current_profile,
+            available_profiles=available_profiles,
+        )
+    )
 
 
 async def handle_subscription_mtproto(request: Request) -> Response:
@@ -1102,6 +1153,7 @@ def register_routes(app: Application) -> None:
     app.router.add_get("/api/v1/plans/mtproto", handle_plans_mtproto)
     app.router.add_get("/api/v1/plans/whatsapp", handle_plans_whatsapp)
     app.router.add_get("/api/v1/subscription", handle_subscription_vpn)
+    app.router.add_post("/api/v1/subscription/vpn-profile", handle_subscription_vpn_profile)
     app.router.add_get("/api/v1/subscription/mtproto", handle_subscription_mtproto)
     app.router.add_get("/api/v1/subscription/whatsapp", handle_subscription_whatsapp)
     app.router.add_post("/api/v1/payment/invoice", handle_payment_invoice)

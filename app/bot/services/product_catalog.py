@@ -10,16 +10,23 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_PRODUCTS_PATH = DEFAULT_DATA_DIR / "products.json"
 DEFAULT_OPERATORS_PATH = DEFAULT_DATA_DIR / "operators.json"
+DEFAULT_VPN_PROFILES_PATH = DEFAULT_DATA_DIR / "vpn_profiles.json"
 
 
 @dataclass
-class Operator:
+class VpnProfile:
     slug: str
     name: str
     emoji: str
     inbound_remark: str
     order: int
     client_flow: str = ""
+    locations: list[str] = field(default_factory=list)
+    kind: str = "universal"
+    legacy_slugs: list[str] = field(default_factory=list)
+
+
+Operator = VpnProfile
 
 
 @dataclass
@@ -84,31 +91,59 @@ class ProductCatalog:
         }
         self._stars_rate: float = data.get("stars_rate", 1.8)
 
-        # --- Load operators ---
-        self._operators: dict[str, Operator] = {}
-        operators_path = DEFAULT_OPERATORS_PATH
-        if operators_path.is_file():
+        # --- Load location-scoped VPN profiles ---
+        self._vpn_profiles: dict[str, VpnProfile] = {}
+        profiles_path = DEFAULT_VPN_PROFILES_PATH
+        legacy_operators_path = DEFAULT_OPERATORS_PATH
+        if profiles_path.is_file():
             try:
-                with open(operators_path, "r") as f:
-                    operators_data = json.load(f)
-                for info in operators_data.get("operators", []):
-                    op = Operator(
+                with open(profiles_path, "r") as f:
+                    profiles_data = json.load(f)
+                for info in profiles_data.get("profiles", []):
+                    profile = VpnProfile(
                         slug=info["slug"],
                         name=info["name"],
                         emoji=info.get("emoji", ""),
                         inbound_remark=info["inbound_remark"],
                         order=info.get("order", 0),
                         client_flow=info.get("client_flow", ""),
+                        locations=info.get("locations", []),
+                        kind=info.get("kind", "universal"),
+                        legacy_slugs=info.get("legacy_slugs", []),
                     )
-                    self._operators[op.slug] = op
+                    self._vpn_profiles[profile.slug] = profile
             except (json.JSONDecodeError, KeyError) as e:
-                logger.error(f"Failed to parse operators file: {e}")
+                logger.error(f"Failed to parse vpn profiles file: {e}")
+        elif legacy_operators_path.is_file():
+            logger.warning(
+                "vpn_profiles.json not found, falling back to operators.json legacy behavior."
+            )
+            try:
+                with open(legacy_operators_path, "r") as f:
+                    operators_data = json.load(f)
+                for info in operators_data.get("operators", []):
+                    profile = VpnProfile(
+                        slug=info["slug"],
+                        name=info["name"],
+                        emoji=info.get("emoji", ""),
+                        inbound_remark=info["inbound_remark"],
+                        order=info.get("order", 0),
+                        client_flow=info.get("client_flow", ""),
+                        locations=["Amsterdam"],
+                        kind="operator",
+                        legacy_slugs=[info["slug"]],
+                    )
+                    self._vpn_profiles[profile.slug] = profile
+            except (json.JSONDecodeError, KeyError) as e:
+                logger.error(f"Failed to parse legacy operators file: {e}")
         else:
-            logger.warning(f"Operators file '{operators_path}' not found, operator selection disabled.")
+            logger.warning(
+                "vpn_profiles.json and operators.json not found, VPN profile selection disabled."
+            )
 
         logger.info(
             f"ProductCatalog loaded: {len(self._products)} products, "
-            f"{len(self._durations)} durations, {len(self._operators)} operators, "
+            f"{len(self._durations)} durations, {len(self._vpn_profiles)} vpn profiles, "
             f"stars_rate={self._stars_rate}"
         )
 
@@ -205,17 +240,63 @@ class ProductCatalog:
 
     # --- Operator access ---
 
+    def get_vpn_profiles(
+        self,
+        location: str | None = None,
+        kind: str | None = None,
+    ) -> list[VpnProfile]:
+        profiles = self._vpn_profiles.values()
+        if location is not None:
+            profiles = [profile for profile in profiles if location in profile.locations]
+        else:
+            profiles = list(profiles)
+
+        if kind is not None:
+            profiles = [profile for profile in profiles if profile.kind == kind]
+
+        return sorted(profiles, key=lambda profile: profile.order)
+
+    def get_vpn_profile(self, slug: str, location: str | None = None) -> VpnProfile | None:
+        profile = self._vpn_profiles.get(slug)
+        if not profile:
+            return None
+        if location and location not in profile.locations:
+            return None
+        return profile
+
+    def get_default_vpn_profile(self, location: str | None) -> VpnProfile | None:
+        profiles = self.get_vpn_profiles(location=location)
+        return profiles[0] if profiles else None
+
+    def resolve_vpn_profile(
+        self,
+        location: str | None,
+        profile_slug: str | None = None,
+        legacy_slug: str | None = None,
+    ) -> VpnProfile | None:
+        if profile_slug:
+            profile = self.get_vpn_profile(profile_slug, location=location)
+            if profile:
+                return profile
+
+        if legacy_slug and location:
+            for profile in self.get_vpn_profiles(location=location):
+                if legacy_slug in profile.legacy_slugs:
+                    return profile
+
+        return self.get_default_vpn_profile(location)
+
     def get_operators(self) -> list[Operator]:
-        """All operators, sorted by order."""
-        return sorted(self._operators.values(), key=lambda o: o.order)
+        """Legacy helper for bot flows: Amsterdam-only switchable profiles."""
+        return self.get_vpn_profiles(location="Amsterdam")
 
     def get_operator(self, slug: str) -> Operator | None:
-        return self._operators.get(slug)
+        return self.resolve_vpn_profile(location="Amsterdam", profile_slug=slug, legacy_slug=slug)
 
     def get_operator_inbound_remark(self, slug: str) -> str | None:
-        op = self._operators.get(slug)
-        return op.inbound_remark if op else None
+        profile = self.get_operator(slug)
+        return profile.inbound_remark if profile else None
 
     def get_operator_client_flow(self, slug: str) -> str | None:
-        op = self._operators.get(slug)
-        return op.client_flow if op else None
+        profile = self.get_operator(slug)
+        return profile.client_flow if profile else None

@@ -1,0 +1,70 @@
+{
+  "profiles": [
+    {
+      "slug": "ams-universal",
+      "name": "Другой / Wi-Fi",
+      "emoji": "🌐",
+      "inbound_remark": "universal",
+      "client_flow": "",
+      "order": 0,
+      "kind": "universal",
+      "locations": ["Amsterdam"],
+      "legacy_slugs": ["universal"]
+    },
+    {
+      "slug": "ams-t2",
+      "name": "Т2 / Yota / Тинькофф",
+      "emoji": "💛",
+      "inbound_remark": "t2-yota",
+      "client_flow": "xtls-rprx-vision",
+      "order": 1,
+      "kind": "operator",
+      "locations": ["Amsterdam"],
+      "legacy_slugs": ["t2"]
+    },
+    {
+      "slug": "ams-mts",
+      "name": "МТС",
+      "emoji": "❤️",
+      "inbound_remark": "mts",
+      "client_flow": "xtls-rprx-vision",
+      "order": 2,
+      "kind": "operator",
+      "locations": ["Amsterdam"],
+      "legacy_slugs": ["mts"]
+    },
+    {
+      "slug": "ams-megafon",
+      "name": "Мегафон",
+      "emoji": "💚",
+      "inbound_remark": "megafon",
+      "client_flow": "xtls-rprx-vision",
+      "order": 3,
+      "kind": "operator",
+      "locations": ["Amsterdam"],
+      "legacy_slugs": ["megafon"]
+    },
+    {
+      "slug": "ams-beeline",
+      "name": "Билайн",
+      "emoji": "🖤",
+      "inbound_remark": "beeline",
+      "client_flow": "xtls-rprx-vision",
+      "order": 4,
+      "kind": "operator",
+      "locations": ["Amsterdam"],
+      "legacy_slugs": ["beeline"]
+    },
+    {
+      "slug": "spb-standard",
+      "name": "Стандартный",
+      "emoji": "🇷🇺",
+      "inbound_remark": "universal",
+      "client_flow": "xtls-rprx-vision",
+      "order": 0,
+      "kind": "universal",
+      "locations": ["Saint Petersburg"],
+      "legacy_slugs": ["universal"]
+    }
+  ]
+}

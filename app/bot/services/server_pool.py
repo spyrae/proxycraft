@@ -80,7 +80,12 @@ class ServerPoolService:
         await self._add_server(server)
         logger.info(f"Server {server.name} reinitialized successfully.")
 
-    async def get_inbound_id(self, connection: Connection, remark: str | None = None) -> int | None:
+    async def get_inbound_id(
+        self,
+        connection: Connection,
+        remark: str | None = None,
+        allow_fallback: bool = True,
+    ) -> int | None:
         try:
             inbounds = await self._api_call_with_relogin(
                 connection, lambda: connection.api.inbound.get_list()
@@ -95,7 +100,18 @@ class ServerPoolService:
                 if inbound.remark == target_remark:
                     logger.debug(f"Found inbound by remark '{target_remark}': id={inbound.id}")
                     return inbound.id
+            if not allow_fallback:
+                logger.error(
+                    "Inbound with remark '%s' not found on %s and fallback is disabled.",
+                    target_remark,
+                    connection.server.name,
+                )
+                return None
             logger.warning(f"Inbound with remark '{target_remark}' not found, falling back to first.")
+
+        if not inbounds:
+            logger.error("No inbounds available on server %s.", connection.server.name)
+            return None
 
         return inbounds[0].id
 

@@ -1,12 +1,24 @@
 import { useState } from 'react';
 import { openLink } from '@telegram-apps/sdk';
-import { useMe, useVpnSubscription, useMtprotoSubscription, useWhatsappSubscription, useCancelSubscription } from '../api/hooks';
+import {
+  useMe,
+  useVpnSubscription,
+  useMtprotoSubscription,
+  useWhatsappSubscription,
+  useCancelSubscription,
+  useChangeVpnProfile,
+} from '../api/hooks';
 import { SubscriptionCard } from '../components/SubscriptionCard';
 import { QRCode } from '../components/QRCode';
 import { CopyButton } from '../components/CopyButton';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translations';
-import type { VpnSubscription, MtprotoSubscription, WhatsappSubscription } from '../api/types';
+import type {
+  VpnProfileOption,
+  VpnSubscription,
+  MtprotoSubscription,
+  WhatsappSubscription,
+} from '../api/types';
 
 const LOCATION_KEYS: Record<string, TranslationKey> = {
   'Amsterdam': 'loc_amsterdam',
@@ -237,6 +249,90 @@ function ConnectionRow({ value, onOpen }: { value: string; onOpen?: () => void }
   );
 }
 
+function VpnProfileSelector({
+  currentProfile,
+  profiles,
+}: {
+  currentProfile?: VpnProfileOption | null;
+  profiles?: VpnProfileOption[];
+}) {
+  const { t } = useLanguage();
+  const changeProfile = useChangeVpnProfile();
+  const [error, setError] = useState<string | null>(null);
+
+  const availableProfiles = profiles ?? [];
+  const activeSlug = currentProfile?.slug ?? availableProfiles[0]?.slug ?? null;
+  const isSwitchable = availableProfiles.length > 1;
+
+  if (availableProfiles.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2.5">
+      <div className="space-y-1">
+        <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+          {t('connection_profile')}
+        </p>
+        {isSwitchable && (
+          <p className="text-[11px]" style={{ color: 'var(--text-dim)' }}>
+            {t('connection_profile_hint')}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {availableProfiles.map((profile) => {
+          const isActive = profile.slug === activeSlug;
+          return (
+            <button
+              key={profile.slug}
+              type="button"
+              disabled={!isSwitchable || changeProfile.isPending}
+              onClick={() => {
+                if (!isSwitchable || isActive) return;
+                setError(null);
+                changeProfile.mutate(
+                  { profileSlug: profile.slug },
+                  {
+                    onSuccess: () => setError(null),
+                    onError: () => setError(t('connection_profile_failed')),
+                  },
+                );
+              }}
+              className="min-h-[44px] px-3 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-100"
+              style={{
+                backgroundColor: isActive ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-secondary)',
+                color: isActive ? '#10B981' : 'var(--text-primary)',
+                border: isActive
+                  ? '1px solid rgba(16, 185, 129, 0.35)'
+                  : '1px solid var(--border)',
+              }}
+            >
+              <span className="flex items-center gap-2">
+                <span>{profile.emoji}</span>
+                <span>{profile.name}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {changeProfile.isPending && (
+        <p className="text-[11px]" style={{ color: 'var(--text-dim)' }}>
+          {t('connection_profile_switching')}
+        </p>
+      )}
+
+      {error && (
+        <p className="text-[11px]" style={{ color: '#EF4444' }}>
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function VpnSection({ sub }: { sub: VpnSubscription }) {
   const { t } = useLanguage();
   const locationLabel = useLocationLabel(sub.location);
@@ -259,6 +355,11 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
 
           {expanded && (
             <>
+              <VpnProfileSelector
+                currentProfile={sub.current_profile}
+                profiles={sub.available_profiles}
+              />
+
               <div className="grid grid-cols-2 gap-2">
                 <StatItem label={t('upload')} value={formatBytes(sub.traffic_up || 0)} icon="↑" color="#06B6D4" />
                 <StatItem label={t('download')} value={formatBytes(sub.traffic_down || 0)} icon="↓" color="#10B981" />

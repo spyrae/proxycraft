@@ -98,6 +98,10 @@ const translations = {
     // MyVpnPage
     my_vpn: 'My VPN',
     connection_key: 'Connection Key',
+    connection_profile: 'Connection profile',
+    connection_profile_hint: 'If a network or site fails, switch to another profile and test again.',
+    connection_profile_switching: 'Switching...',
+    connection_profile_failed: 'Failed to switch profile. Try again.',
     apply_in_tg: 'Apply in Telegram',
     expired_sub: 'Your subscription has expired.',
     no_active_vpn: 'No active VPN subscription.',
@@ -231,6 +235,10 @@ const translations = {
     // MyVpnPage
     my_vpn: 'Мой VPN',
     connection_key: 'Ключ подключения',
+    connection_profile: 'Профиль подключения',
+    connection_profile_hint: 'Если сеть или сайт не открывается, переключите профиль и попробуйте ещё раз.',
+    connection_profile_switching: 'Переключаем...',
+    connection_profile_failed: 'Не удалось переключить профиль. Попробуйте ещё раз.',
     apply_in_tg: 'Применить в Telegram',
     expired_sub: 'Ваша подписка истекла.',
     no_active_vpn: 'Нет активной VPN-подписки.',

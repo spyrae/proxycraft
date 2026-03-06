@@ -25,6 +25,13 @@ logger = logging.getLogger(__name__)
 router = Router(name=__name__)
 
 
+def _has_location_profiles(user: User, services: ServicesContainer) -> bool:
+    if not user.server or not user.server.location:
+        return False
+
+    return len(services.vpn.get_available_profiles(user.server.location)) > 1
+
+
 async def show_subscription(
     callback: CallbackQuery,
     client_data: ClientData | None,
@@ -74,7 +81,7 @@ async def callback_subscription(
             return
 
     callback_data = SubscriptionData(state=NavSubscription.PROCESS, user_id=user.tg_id)
-    has_operators = bool(services.product_catalog.get_operators())
+    has_operators = _has_location_profiles(user, services)
     await show_subscription(
         callback=callback,
         client_data=client_data,
@@ -275,7 +282,7 @@ async def callback_change_operator_selected(
     # Return to subscription page
     client_data = await services.vpn.get_client_data(user)
     callback_data = SubscriptionData(state=NavSubscription.PROCESS, user_id=user.tg_id)
-    has_operators = bool(services.product_catalog.get_operators())
+    has_operators = _has_location_profiles(user, services)
     await show_subscription(
         callback=callback,
         client_data=client_data,

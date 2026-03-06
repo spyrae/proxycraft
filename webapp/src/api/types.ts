@@ -11,6 +11,7 @@ export interface UserProfile {
   is_admin: boolean;
   balance: number;
   auto_renew: boolean;
+  vpn_profile_slug?: string | null;
   subscriptions: {
     vpn: SubscriptionStatus;
     mtproto: SubscriptionStatus;
@@ -35,6 +36,14 @@ export interface ServicePlan {
   price_stars: number;
 }
 
+export interface VpnProfileOption {
+  slug: string;
+  name: string;
+  emoji: string;
+  kind: 'operator' | 'universal' | string;
+  order: number;
+}
+
 export interface VpnSubscription {
   active: boolean;
   expired?: boolean;
@@ -48,6 +57,8 @@ export interface VpnSubscription {
   key?: string | null;
   location?: string | null;
   cancelled_at?: string | null;
+  current_profile?: VpnProfileOption | null;
+  available_profiles?: VpnProfileOption[];
 }
 
 export interface MtprotoSubscription {
@@ -113,6 +124,8 @@ export interface BuyPlanResponse {
   duration: number;
 }
 
+export type ChangeVpnProfileResponse = VpnSubscription;
+
 export interface AutoRenewResponse {
   auto_renew: boolean;
 }
@@ -122,4 +135,3 @@ export interface ApiError {
   required?: number;
   balance?: number;
 }
-

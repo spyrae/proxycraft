@@ -16,6 +16,7 @@ import type {
   BuyPlanResponse,
   AutoRenewResponse,
   CancelSubscriptionResponse,
+  ChangeVpnProfileResponse,
 } from './types';
 
 // ---------- Queries ----------
@@ -215,6 +216,21 @@ export function useCancelSubscription() {
       }),
     onSuccess: (_, { product }) => {
       qc.invalidateQueries({ queryKey: ['subscription', product] });
+    },
+  });
+}
+
+export function useChangeVpnProfile() {
+  const qc = useQueryClient();
+  return useMutation<ChangeVpnProfileResponse, Error, { profileSlug: string }>({
+    mutationFn: ({ profileSlug }) =>
+      api('/api/v1/subscription/vpn-profile', {
+        method: 'POST',
+        body: JSON.stringify({ profile_slug: profileSlug }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['me'] });
+      qc.invalidateQueries({ queryKey: ['subscription', 'vpn'] });
     },
   });
 }

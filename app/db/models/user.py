@@ -71,6 +71,7 @@ class User(Base):
     )
     source_invite_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     operator: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    vpn_profile_slug: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     balance: Mapped[int] = mapped_column(default=0, nullable=False)
     auto_renew: Mapped[bool] = mapped_column(default=True, nullable=False)
     vpn_cancelled_at: Mapped[datetime | None] = mapped_column(nullable=True, default=None)
