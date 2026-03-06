@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { TopupModal } from '../components/TopupModal';
 import {
   useMe,
   usePlans,
@@ -22,7 +22,7 @@ export function PlansPage() {
 
   const tabs: { key: Tab; label: string }[] = useMemo(() => {
     const t: { key: Tab; label: string }[] = [{ key: 'vpn', label: 'VPN' }];
-    if (me?.features.mtproto_enabled) t.push({ key: 'mtproto', label: 'MTProto' });
+    if (me?.features.mtproto_enabled) t.push({ key: 'mtproto', label: 'Telegram' });
     if (me?.features.whatsapp_enabled) t.push({ key: 'whatsapp', label: 'WhatsApp' });
     return t;
   }, [me]);
@@ -68,32 +68,36 @@ export function PlansPage() {
 }
 
 function BalanceBanner({ balance }: { balance: number }) {
-  const navigate = useNavigate();
+  const [showTopup, setShowTopup] = useState(false);
 
   return (
-    <div
-      className="flex items-center justify-between rounded-2xl p-3 mb-4"
-      style={{
-        backgroundColor: 'var(--bg-card)',
-        border: '1px solid var(--border)',
-      }}
-    >
-      <div className="flex items-center gap-2">
-        <span className="text-xs" style={{ color: 'var(--text-dim)' }}>
-          Balance:
-        </span>
-        <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-          {balance.toFixed(0)} ₽
-        </span>
-      </div>
-      <button
-        onClick={() => navigate('/')}
-        className="text-xs font-semibold px-3 py-1 rounded-lg"
-        style={{ color: '#10B981' }}
+    <>
+      <div
+        className="flex items-center justify-between rounded-2xl p-3 mb-4"
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+        }}
       >
-        Top up
-      </button>
-    </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs" style={{ color: 'var(--text-dim)' }}>
+            Balance:
+          </span>
+          <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+            {balance.toFixed(0)} ₽
+          </span>
+        </div>
+        <button
+          onClick={() => setShowTopup(true)}
+          className="text-xs font-semibold px-3 py-1 rounded-lg"
+          style={{ color: '#10B981' }}
+        >
+          Top up
+        </button>
+      </div>
+
+      {showTopup && <TopupModal onClose={() => setShowTopup(false)} />}
+    </>
   );
 }
 
@@ -123,9 +127,7 @@ function PurchaseSuccessBanner({ onDismiss }: { onDismiss: () => void }) {
   );
 }
 
-function InsufficientBalanceBanner() {
-  const navigate = useNavigate();
-
+function InsufficientBalanceBanner({ onTopup }: { onTopup: () => void }) {
   return (
     <div
       className="rounded-2xl p-4 mb-4 text-center"
@@ -141,7 +143,7 @@ function InsufficientBalanceBanner() {
         Top up your balance to purchase this plan
       </p>
       <button
-        onClick={() => navigate('/')}
+        onClick={onTopup}
         className="text-xs font-semibold px-4 py-2 rounded-xl"
         style={{ backgroundColor: '#10B981', color: '#ffffff' }}
       >
@@ -160,6 +162,7 @@ function VpnPlans() {
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
+  const [showTopup, setShowTopup] = useState(false);
 
   if (isLoading || !data) {
     return <LoadingSkeleton />;
@@ -206,8 +209,9 @@ function VpnPlans() {
 
   return (
     <div>
+      {showTopup && <TopupModal onClose={() => setShowTopup(false)} />}
       {showSuccess && <PurchaseSuccessBanner onDismiss={() => setShowSuccess(false)} />}
-      {showInsufficientBalance && <InsufficientBalanceBanner />}
+      {showInsufficientBalance && <InsufficientBalanceBanner onTopup={() => { setShowInsufficientBalance(false); setShowTopup(true); }} />}
 
       {trialAvailable && (
         <button
@@ -395,6 +399,7 @@ function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
+  const [showTopup, setShowTopup] = useState(false);
 
   const query = product === 'mtproto' ? mtproto : whatsapp;
   const trialMutation = product === 'mtproto' ? trialMtproto : trialWhatsapp;
@@ -435,8 +440,9 @@ function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
 
   return (
     <div>
+      {showTopup && <TopupModal onClose={() => setShowTopup(false)} />}
       {showSuccess && <PurchaseSuccessBanner onDismiss={() => setShowSuccess(false)} />}
-      {showInsufficientBalance && <InsufficientBalanceBanner />}
+      {showInsufficientBalance && <InsufficientBalanceBanner onTopup={() => { setShowInsufficientBalance(false); setShowTopup(true); }} />}
 
       {trialAvailable && (
         <button

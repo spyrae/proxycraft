@@ -1,3 +1,4 @@
+import { openLink } from '@telegram-apps/sdk';
 import { useMe, useVpnSubscription, useMtprotoSubscription, useWhatsappSubscription } from '../api/hooks';
 import { SubscriptionCard } from '../components/SubscriptionCard';
 import { QRCode } from '../components/QRCode';
@@ -99,7 +100,7 @@ function MtprotoSection() {
   const status = sub.active ? 'active' : sub.expired ? 'expired' : 'none';
 
   return (
-    <SubscriptionCard title="MTProto Proxy" status={status}>
+    <SubscriptionCard title="Telegram Proxy" status={status}>
       {sub.active && sub.link && (
         <div className="space-y-3">
           {sub.expires_at && (
@@ -130,11 +131,26 @@ function MtprotoSection() {
             </div>
             <CopyButton text={sub.link} />
           </div>
+          <button
+            onClick={() => openLink(sub.link!)}
+            className="w-full rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+            style={{
+              backgroundColor: 'rgba(51, 144, 236, 0.15)',
+              color: '#3390EC',
+              border: '1px solid rgba(51, 144, 236, 0.3)',
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+            Apply in Telegram
+          </button>
         </div>
       )}
       {!sub.active && (
         <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
-          No active MTProto subscription.
+          No active Telegram Proxy subscription.
         </p>
       )}
     </SubscriptionCard>

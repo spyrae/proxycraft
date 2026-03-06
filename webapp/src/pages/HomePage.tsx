@@ -1,12 +1,8 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { openInvoice } from '@telegram-apps/sdk-react';
-import { openLink } from '@telegram-apps/sdk';
 import { useTelegram } from '../hooks/useTelegram';
-import { useMe, useVpnSubscription, useTopup, useAutoRenew } from '../api/hooks';
-
-const STARS_RATE = 1.8;
-const TOPUP_AMOUNTS = [250, 500, 1000, 2000];
+import { useMe, useVpnSubscription } from '../api/hooks';
+import { TopupModal } from '../components/TopupModal';
 
 export function HomePage() {
   const { user } = useTelegram();
@@ -19,16 +15,16 @@ export function HomePage() {
 
   return (
     <div className="animate-fade-in">
-      {/* Greeting */}
-      <p className="text-sm font-medium mb-4" style={{ color: 'var(--text-muted)' }}>
-        Hi, {user?.first_name || me.first_name}
-      </p>
+      {/* Greeting + Protected badge */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
+          Hi, {user?.first_name || me.first_name}
+        </p>
+        <ProtectedBadge active={hasActiveVpn} />
+      </div>
 
       {/* Balance Card */}
-      <BalanceCard balance={me.balance} autoRenew={me.auto_renew} />
-
-      {/* Hero Shield */}
-      <HeroSection active={hasActiveVpn} />
+      <BalanceCard balance={me.balance} />
 
       {/* Stats or Quick Setup */}
       {hasActiveVpn ? <ActiveStats /> : <QuickSetup me={me} />}
@@ -36,18 +32,36 @@ export function HomePage() {
   );
 }
 
-function BalanceCard({ balance, autoRenew }: { balance: number; autoRenew: boolean }) {
-  const [showTopup, setShowTopup] = useState(false);
-  const autoRenewMutation = useAutoRenew();
+function ProtectedBadge({ active }: { active: boolean }) {
+  return (
+    <div
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold"
+      style={{
+        backgroundColor: active ? 'rgba(16, 185, 129, 0.15)' : 'rgba(127, 29, 29, 0.2)',
+        color: active ? '#10B981' : '#9B2C2C',
+        border: `1px solid ${active ? 'rgba(16, 185, 129, 0.4)' : 'rgba(127, 29, 29, 0.4)'}`,
+        boxShadow: active ? '0 0 10px rgba(16, 185, 129, 0.2)' : '0 0 8px rgba(127, 29, 29, 0.1)',
+      }}
+    >
+      <img
+        src="/favicon.svg?v=2"
+        width="14"
+        height="14"
+        alt=""
+        style={{ opacity: active ? 1 : 0.5 }}
+      />
+      {active ? 'Protected' : 'Unprotected'}
+    </div>
+  );
+}
 
-  const handleToggleAutoRenew = () => {
-    autoRenewMutation.mutate({ enabled: !autoRenew });
-  };
+function BalanceCard({ balance }: { balance: number }) {
+  const [showTopup, setShowTopup] = useState(false);
 
   return (
     <>
       <div className="card-gradient-border p-4 mb-4">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
               Balance
@@ -67,233 +81,10 @@ function BalanceCard({ balance, autoRenew }: { balance: number; autoRenew: boole
             +
           </button>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs" style={{ color: 'var(--text-dim)' }}>
-            Auto-renewal
-          </span>
-          <button
-            onClick={handleToggleAutoRenew}
-            disabled={autoRenewMutation.isPending}
-            className="relative w-10 h-5 rounded-full transition-all duration-200"
-            style={{
-              backgroundColor: autoRenew ? '#10B981' : 'var(--border)',
-              opacity: autoRenewMutation.isPending ? 0.5 : 1,
-            }}
-          >
-            <span
-              className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200"
-              style={{
-                left: autoRenew ? '22px' : '2px',
-              }}
-            />
-          </button>
-        </div>
       </div>
 
       {showTopup && <TopupModal onClose={() => setShowTopup(false)} />}
     </>
-  );
-}
-
-function TopupModal({ onClose }: { onClose: () => void }) {
-  const [selectedAmount, setSelectedAmount] = useState<number>(500);
-  const [currency, setCurrency] = useState<'stars' | 'rub' | 'sbp'>('stars');
-  const topupMutation = useTopup();
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'redirected' | 'error'>('idle');
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const starsAmount = Math.max(1, Math.round(selectedAmount / STARS_RATE));
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    };
-  }, []);
-
-  const handleTopup = useCallback(async () => {
-    setStatus('loading');
-    try {
-      const response = await topupMutation.mutateAsync({
-        amount: selectedAmount,
-        currency,
-      });
-
-      if (response.invoice_url) {
-        const result = await openInvoice(response.invoice_url, 'url');
-        if (result === 'paid') {
-          setStatus('success');
-          closeTimerRef.current = setTimeout(onClose, 1500);
-        } else {
-          setStatus('idle');
-        }
-      } else if (response.payment_url) {
-        openLink(response.payment_url, { tryBrowser: 'chrome' });
-        // T-Bank: payment happens externally, we can't confirm it here
-        setStatus('redirected');
-      } else {
-        setStatus('error');
-      }
-    } catch {
-      setStatus('error');
-    }
-  }, [selectedAmount, currency, topupMutation, onClose]);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center"
-      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        className="w-full max-w-md rounded-t-3xl p-6 animate-slide-up"
-        style={{ backgroundColor: 'var(--bg-primary)' }}
-      >
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-            Top up balance
-          </h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-dim)' }}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Amount selection */}
-        <div className="grid grid-cols-4 gap-2 mb-4">
-          {TOPUP_AMOUNTS.map((amount) => (
-            <button
-              key={amount}
-              onClick={() => setSelectedAmount(amount)}
-              className="py-2.5 rounded-xl text-sm font-semibold transition-all"
-              style={{
-                backgroundColor:
-                  selectedAmount === amount ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-card)',
-                color: selectedAmount === amount ? '#10B981' : 'var(--text-muted)',
-                border: `1px solid ${
-                  selectedAmount === amount ? 'rgba(16, 185, 129, 0.3)' : 'var(--border)'
-                }`,
-              }}
-            >
-              {amount}₽
-            </button>
-          ))}
-        </div>
-
-        {/* Payment method toggle */}
-        <div
-          className="flex rounded-xl p-1 mb-4"
-          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-        >
-          {([
-            { key: 'stars' as const, label: '★ Stars' },
-            { key: 'sbp' as const, label: 'SBP' },
-            { key: 'rub' as const, label: '💳 Card' },
-          ]).map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => setCurrency(opt.key)}
-              className="flex-1 text-xs font-semibold py-2 rounded-lg transition-all"
-              style={{
-                backgroundColor: currency === opt.key ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-                color: currency === opt.key ? '#10B981' : 'var(--text-dim)',
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Conversion info for Stars */}
-        {currency === 'stars' && (
-          <p className="text-xs text-center mb-4" style={{ color: 'var(--text-dim)' }}>
-            {selectedAmount}₽ = {starsAmount} ★
-          </p>
-        )}
-
-        {/* Submit button */}
-        <button
-          onClick={status === 'redirected' ? onClose : handleTopup}
-          disabled={status === 'loading'}
-          className="w-full rounded-2xl p-4 text-center text-sm font-bold transition-all"
-          style={{
-            backgroundColor: status === 'loading' ? 'rgba(16, 185, 129, 0.5)' : '#10B981',
-            color: '#ffffff',
-            boxShadow: status === 'loading' ? 'none' : '0 4px 15px rgba(16, 185, 129, 0.3)',
-          }}
-        >
-          {status === 'loading'
-            ? 'Processing...'
-            : status === 'success'
-              ? 'Success!'
-              : status === 'redirected'
-                ? 'Done'
-                : `Top up ${selectedAmount}₽`}
-        </button>
-
-        {status === 'redirected' && (
-          <p className="text-xs text-center mt-2" style={{ color: 'var(--text-dim)' }}>
-            Complete the payment in the opened page. Balance will update automatically.
-          </p>
-        )}
-
-        {status === 'error' && (
-          <p className="text-xs text-center mt-2" style={{ color: 'var(--danger, #EF4444)' }}>
-            Failed to create payment. Try again.
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function HeroSection({ active }: { active: boolean }) {
-  return (
-    <div className="flex flex-col items-center mb-6">
-      {/* Shield icon with glow */}
-      <div
-        className="relative w-24 h-24 flex items-center justify-center mb-4"
-        style={{
-          filter: active
-            ? 'drop-shadow(0 0 20px rgba(16, 185, 129, 0.5))'
-            : 'drop-shadow(0 0 10px rgba(107, 114, 128, 0.3))',
-        }}
-      >
-        {active && (
-          <div
-            className="absolute inset-0 rounded-full"
-            style={{
-              background: 'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)',
-              animation: 'glow-pulse 3s ease-in-out infinite',
-            }}
-          />
-        )}
-        <img
-          src="/favicon.svg?v=2"
-          width="64"
-          height="64"
-          alt="ProxyCraft"
-          style={{
-            opacity: active ? 1 : 0.45,
-            transition: 'opacity 0.3s ease',
-          }}
-        />
-      </div>
-
-      {/* Status text */}
-      <h1
-        className="text-xl font-bold mb-1"
-        style={{ color: active ? '#10B981' : '#9CA3AF' }}
-      >
-        {active ? 'Protected' : 'Not Protected'}
-      </h1>
-      <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
-        {active ? 'Your connection is secure' : 'Get a plan to stay safe online'}
-      </p>
-    </div>
   );
 }
 
@@ -314,14 +105,12 @@ function ActiveStats() {
     ? Math.max(0, Math.ceil((sub.expiry_time - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
 
-  // Progress based on typical 30-day subscription
   const progressPercent = sub.expiry_time
     ? Math.min(100, Math.max(0, (daysLeft / 30) * 100))
     : 0;
 
   return (
     <div className="space-y-3 animate-slide-up">
-      {/* Subscription progress */}
       {sub.expiry_time && sub.expiry_time > 0 && (
         <div className="card-gradient-border p-4">
           <div className="flex justify-between items-center mb-2">
@@ -355,7 +144,6 @@ function ActiveStats() {
         </div>
       )}
 
-      {/* Traffic stats grid */}
       <div className="grid grid-cols-2 gap-3">
         <StatCard
           icon="↑"
@@ -523,12 +311,11 @@ function QuickSetup({ me }: { me: MeData }) {
 function HomeLoading() {
   return (
     <div className="space-y-4">
-      <div className="animate-shimmer rounded-xl h-6 w-32" />
-      <div className="animate-shimmer rounded-2xl h-20" />
-      <div className="flex flex-col items-center gap-4 my-8">
-        <div className="animate-shimmer rounded-full w-24 h-24" />
-        <div className="animate-shimmer rounded-xl h-6 w-36" />
+      <div className="flex items-center justify-between">
+        <div className="animate-shimmer rounded-xl h-5 w-28" />
+        <div className="animate-shimmer rounded-full h-7 w-24" />
       </div>
+      <div className="animate-shimmer rounded-2xl h-16" />
       <div className="grid grid-cols-2 gap-3">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="animate-shimmer rounded-2xl h-20" />
