@@ -31,8 +31,10 @@ jobs:
             set -e
             cd /opt/proxycraft
             git pull origin main
-            sudo docker compose build bot
-            sudo docker compose up -d bot
+            sudo docker compose build bot mtproto
+            sudo docker compose up -d bot mtproto whatsapp
             echo "--- Bot logs (last 10 lines) ---"
             sleep 3
             sudo docker logs proxycraft-bot --tail 10 2>&1
+            echo "--- MTProto logs (last 10 lines) ---"
+            sudo docker logs proxycraft-mtproto --tail 10 2>&1
