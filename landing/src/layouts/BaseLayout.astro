@@ -2,6 +2,7 @@
 import '@/styles/global.css';
 import { getLangFromUrl, t, getAlternateUrl } from '@/i18n/utils';
 import CookieConsent from '@/components/CookieConsent.astro';
+import DevAnnotations from '@/components/DevAnnotations';
 
 interface Props {
   title?: string;
@@ -72,6 +73,7 @@ const alternateLang = lang === 'ru' ? 'en' : 'ru';
   <body class="min-h-screen bg-bg text-text antialiased">
     <slot />
     <CookieConsent />
+    {import.meta.env.DEV && <DevAnnotations client:only="react" />}
 
     <!-- Intersection Observer for fade-in animations -->
     <script>
