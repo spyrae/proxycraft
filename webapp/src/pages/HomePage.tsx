@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTelegram } from '../hooks/useTelegram';
 import { useMe, useVpnSubscription } from '../api/hooks';
 import { TopupModal } from '../components/TopupModal';
+import { createPortal } from 'react-dom';
 
 export function HomePage() {
   const { user } = useTelegram();
@@ -28,6 +29,9 @@ export function HomePage() {
 
       {/* Stats or Quick Setup */}
       {hasActiveVpn ? <ActiveStats /> : <QuickSetup me={me} />}
+
+      {/* Setup Guides */}
+      <SetupGuides />
     </div>
   );
 }
@@ -307,6 +311,164 @@ function QuickSetup({ me }: { me: MeData }) {
     </div>
   );
 }
+
+// ── Setup Guides ──────────────────────────────────────────────────────────────
+
+const GUIDES = [
+  {
+    id: 'vpn',
+    title: 'VPN Setup',
+    desc: 'Configure VPN for your entire device',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    ),
+    color: '#10B981',
+    content: 'VPN setup instructions coming soon.',
+  },
+  {
+    id: 'telegram',
+    title: 'Telegram Proxy',
+    desc: 'Connect Telegram through MTProto proxy',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13" />
+        <polygon points="22 2 15 22 11 13 2 9 22 2" />
+      </svg>
+    ),
+    color: '#3390EC',
+    content: 'Telegram proxy setup instructions coming soon.',
+  },
+  {
+    id: 'whatsapp',
+    title: 'WhatsApp Proxy',
+    desc: 'Route WhatsApp through a proxy server',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.528 5.855L.057 23.882l6.198-1.624A11.93 11.93 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.793 9.793 0 01-5.017-1.378l-.36-.213-3.681.965.981-3.593-.234-.369A9.794 9.794 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182c5.43 0 9.818 4.388 9.818 9.818 0 5.43-4.388 9.818-9.818 9.818z" />
+      </svg>
+    ),
+    color: '#25D366',
+    content: 'WhatsApp proxy setup instructions coming soon.',
+  },
+];
+
+function SetupGuides() {
+  const [openGuide, setOpenGuide] = useState<string | null>(null);
+  const guide = GUIDES.find((g) => g.id === openGuide);
+
+  return (
+    <>
+      <div className="mt-4 space-y-2">
+        <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
+          Setup Guides
+        </p>
+        {GUIDES.map((g) => (
+          <button
+            key={g.id}
+            onClick={() => setOpenGuide(g.id)}
+            className="w-full card-gradient-border p-3.5 flex items-center gap-3 text-left transition-all"
+          >
+            <span
+              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: `${g.color}20`, color: g.color }}
+            >
+              {g.icon}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {g.title}
+              </p>
+              <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-dim)' }}>
+                {g.desc}
+              </p>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-dim)', flexShrink: 0 }}>
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        ))}
+      </div>
+
+      {guide && (
+        <GuideSheet
+          title={guide.title}
+          color={guide.color}
+          content={guide.content}
+          onClose={() => setOpenGuide(null)}
+        />
+      )}
+    </>
+  );
+}
+
+function GuideSheet({ title, color, content, onClose }: {
+  title: string;
+  color: string;
+  content: string;
+  onClose: () => void;
+}) {
+  return createPortal(
+    <>
+      <div
+        style={{ position: 'fixed', inset: 0, zIndex: 9000, backgroundColor: 'rgba(0,0,0,0.5)' }}
+        onClick={onClose}
+      />
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 9001,
+          borderRadius: '24px 24px 0 0',
+          backgroundColor: 'var(--bg-primary)',
+          maxHeight: '80vh',
+          overflowY: 'auto',
+          animation: 'sheet-up 0.3s ease-out',
+        }}
+      >
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: 'var(--border)' }} />
+        </div>
+
+        <div className="px-6 pb-10 pt-3">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+              {title}
+            </h2>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-dim)' }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Placeholder */}
+          <div
+            className="rounded-2xl p-5 text-center"
+            style={{ backgroundColor: 'var(--bg-card)', border: `1px dashed ${color}40` }}
+          >
+            <p className="text-sm font-semibold mb-1" style={{ color }}>
+              Coming soon
+            </p>
+            <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
+              {content}
+            </p>
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+}
+
+// ── Home loading / error ───────────────────────────────────────────────────────
 
 function HomeLoading() {
   return (
