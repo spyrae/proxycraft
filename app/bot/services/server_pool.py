@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from dataclasses import dataclass
 
@@ -22,6 +23,7 @@ class ServerPoolService:
         self.config = config
         self.session = session
         self._servers: dict[int, Connection] = {}
+        self._sync_lock = asyncio.Lock()
         logger.info("Server Pool Service initialized.")
 
     def _create_api(self, server: Server) -> AsyncApi:
@@ -149,30 +151,40 @@ class ServerPoolService:
                     return await coro_factory()
             raise
 
-    async def sync_servers(self) -> None:
-        async with self.session() as session:
-            db_servers = await Server.get_all(session)
+    async def execute_api_call(self, connection: Connection, coro_factory):
+        return await self._api_call_with_relogin(connection, coro_factory)
 
-        if not db_servers and not self._servers:
-            logger.warning("No servers found in the database.")
-            return
+    async def sync_servers(self, force_refresh: bool = False) -> None:
+        async with self._sync_lock:
+            async with self.session() as session:
+                db_servers = await Server.get_all(session)
 
-        db_server_map = {server.id: server for server in db_servers}
+            if not db_servers and not self._servers:
+                logger.warning("No servers found in the database.")
+                return
 
-        for server_id in list(self._servers.keys()):
-            if server_id not in db_server_map:
-                self._remove_server(self._servers[server_id].server)
+            db_server_map = {server.id: server for server in db_servers}
 
-        for server_id, conn in list(self._servers.items()):
-            if db_server := db_server_map.get(server_id):
-                conn.server = db_server
-            await self.refresh_server(conn.server)
+            for server_id in list(self._servers.keys()):
+                if server_id not in db_server_map:
+                    self._remove_server(self._servers[server_id].server)
 
-        for server in db_servers:
-            if server.id not in self._servers:
-                await self._add_server(server)
+            for server in db_servers:
+                connection = self._servers.get(server.id)
+                if connection is None:
+                    await self._add_server(server)
+                    continue
 
-        logger.info(f"Sync complete. Currently active servers: {len(self._servers)}")
+                connection.server = server
+
+                if force_refresh:
+                    await self.refresh_server(server)
+
+            logger.info(
+                "Sync complete. Currently active servers: %s (force_refresh=%s)",
+                len(self._servers),
+                force_refresh,
+            )
 
     async def assign_server_to_user(self, user: User, location: str | None = None) -> None:
         async with self.session() as session:

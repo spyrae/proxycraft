@@ -22,7 +22,7 @@ try {
   restoreInitData();
   bindMiniAppCssVars();
   miniAppReady();
-  setMiniAppHeaderColor('#0A0E17' as any);
+  setMiniAppHeaderColor('#0A0E17' as Parameters<typeof setMiniAppHeaderColor>[0]);
 } catch (e) {
   console.warn('TMA SDK init failed (outside Telegram?):', e);
 }
@@ -46,6 +46,16 @@ queryClient.prefetchQuery({
   queryKey: ['plans'],
   queryFn: () => api('/api/v1/plans'),
   staleTime: 5 * 60_000,
+});
+queryClient.prefetchQuery({
+  queryKey: ['locations'],
+  queryFn: () => api('/api/v1/locations'),
+  staleTime: 5 * 60_000,
+});
+queryClient.prefetchQuery({
+  queryKey: ['subscription', 'vpn'],
+  queryFn: () => api('/api/v1/subscription'),
+  staleTime: 60_000,
 });
 
 // Hide splash when React mounts (data prefetch already started)

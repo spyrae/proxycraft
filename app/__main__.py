@@ -135,7 +135,7 @@ async def main() -> None:
     )
 
     # Sync servers
-    await services_container.server_pool.sync_servers()
+    await services_container.server_pool.sync_servers(force_refresh=True)
 
     # Register payment gateways
     gateway_factory = GatewayFactory()

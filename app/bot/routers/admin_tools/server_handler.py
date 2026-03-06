@@ -67,7 +67,7 @@ async def callback_sync_servers(
     services: ServicesContainer,
 ) -> None:
     logger.info(f"Dev {user.tg_id} sync servers.")
-    await services.server_pool.sync_servers()
+    await services.server_pool.sync_servers(force_refresh=True)
 
     try:
         await callback_server_management(callback=callback, user=user, session=session, state=state)
@@ -230,7 +230,7 @@ async def callback_confirmation(
     )
 
     if server:
-        await services.server_pool.sync_servers()
+        await services.server_pool.sync_servers(force_refresh=True)
         await state.set_state(None)
         await callback_server_management(callback=callback, user=user, session=session, state=state)
         await services.notification.show_popup(

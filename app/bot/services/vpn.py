@@ -44,7 +44,10 @@ class VPNService:
         if not connection:
             return None
 
-        client = await connection.api.client.get_by_email(str(user.tg_id))
+        client = await self.server_pool_service.execute_api_call(
+            connection,
+            lambda: connection.api.client.get_by_email(str(user.tg_id)),
+        )
 
         if client:
             logger.debug(f"Client {user.tg_id} exists on server {connection.server.name}.")
@@ -60,7 +63,10 @@ class VPNService:
             return None
 
         try:
-            inbounds: list[Inbound] = await connection.api.inbound.get_list()
+            inbounds: list[Inbound] = await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.inbound.get_list(),
+            )
         except Exception as exception:
             logger.error(f"Failed to fetch inbounds: {exception}")
             return None
@@ -83,7 +89,10 @@ class VPNService:
             return None
 
         try:
-            client = await connection.api.client.get_by_email(str(user.tg_id))
+            client = await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.client.get_by_email(str(user.tg_id)),
+            )
 
             if not client:
                 logger.critical(
@@ -91,7 +100,7 @@ class VPNService:
                 )
                 return None
 
-            limit_ip = await self.get_limit_ip(user=user, client=client)
+            limit_ip = client.limit_ip
             max_devices = -1 if limit_ip == 0 else limit_ip
             traffic_total = client.total
             expiry_time = -1 if client.expiry_time == 0 else client.expiry_time
@@ -175,7 +184,10 @@ class VPNService:
         inbound_id = await self.server_pool_service.get_inbound_id(connection, remark=operator_remark)
 
         try:
-            await connection.api.client.add(inbound_id=inbound_id, clients=[new_client])
+            await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.client.add(inbound_id=inbound_id, clients=[new_client]),
+            )
             logger.info(f"Successfully created client for {user.tg_id}")
             return True
         except Exception as exception:
@@ -200,7 +212,10 @@ class VPNService:
             return False
 
         try:
-            client = await connection.api.client.get_by_email(str(user.tg_id))
+            client = await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.client.get_by_email(str(user.tg_id)),
+            )
 
             if client is None:
                 logger.critical(f"Client {user.tg_id} not found for update.")
@@ -229,7 +244,10 @@ class VPNService:
             client.sub_id = user.vpn_id
             client.total_gb = total_gb
 
-            await connection.api.client.update(client_uuid=client.id, client=client)
+            await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.client.update(client_uuid=client.id, client=client),
+            )
             logger.info(f"Client {user.tg_id} updated successfully.")
             return True
         except Exception as exception:
@@ -305,7 +323,10 @@ class VPNService:
 
         try:
             # Delete from old inbound
-            await connection.api.client.delete(old_inbound_id, user.vpn_id)
+            await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.client.delete(old_inbound_id, user.vpn_id),
+            )
 
             # Get current limit_ip from client_data
             limit_ip = client_data._max_devices if client_data._max_devices != -1 else 0
@@ -328,7 +349,10 @@ class VPNService:
                 sub_id=user.vpn_id,
                 total_gb=0,
             )
-            await connection.api.client.add(inbound_id=new_inbound_id, clients=[new_client])
+            await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.client.add(inbound_id=new_inbound_id, clients=[new_client]),
+            )
             logger.info(
                 f"User {user.tg_id} moved from inbound {old_inbound_id} to {new_inbound_id} "
                 f"(operator: {user.operator} -> {new_operator})"
@@ -346,14 +370,20 @@ class VPNService:
             return False
 
         try:
-            client = await connection.api.client.get_by_email(str(user.tg_id))
+            client = await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.client.get_by_email(str(user.tg_id)),
+            )
 
             if client is None:
                 logger.warning(f"Client {user.tg_id} not found for disabling.")
                 return False
 
             client.enable = False
-            await connection.api.client.update(client_uuid=client.id, client=client)
+            await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.client.update(client_uuid=client.id, client=client),
+            )
             logger.info(f"Client {user.tg_id} disabled successfully.")
             return True
         except Exception as e:
@@ -370,7 +400,10 @@ class VPNService:
 
         for server_id, connection in self.server_pool_service._servers.items():
             try:
-                inbounds = await connection.api.inbound.get_list()
+                inbounds = await self.server_pool_service.execute_api_call(
+                    connection,
+                    lambda: connection.api.inbound.get_list(),
+                )
             except Exception as e:
                 logger.error(f"Failed to fetch inbounds from server {connection.server.name}: {e}")
                 continue
