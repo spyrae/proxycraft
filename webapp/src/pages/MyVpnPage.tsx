@@ -38,9 +38,9 @@ export function MyVpnPage() {
   const { data: me } = useMe();
   const { t } = useLanguage();
 
-  const { data: vpnSub, isLoading: vpnLoading } = useVpnSubscription();
-  const { data: mtprotoSub, isLoading: mtprotoLoading } = useMtprotoSubscription();
-  const { data: whatsappSub, isLoading: whatsappLoading } = useWhatsappSubscription();
+  const { data: vpnSub, isLoading: vpnLoading, isFetching: vpnFetching } = useVpnSubscription();
+  const { data: mtprotoSub, isLoading: mtprotoLoading, isFetching: mtprotoFetching } = useMtprotoSubscription();
+  const { data: whatsappSub, isLoading: whatsappLoading, isFetching: whatsappFetching } = useWhatsappSubscription();
 
   const mtprotoEnabled = me?.features.mtproto_enabled ?? false;
   const whatsappEnabled = me?.features.whatsapp_enabled ?? false;
@@ -48,12 +48,15 @@ export function MyVpnPage() {
   const isLoading = vpnLoading
     || (mtprotoEnabled && mtprotoLoading)
     || (whatsappEnabled && whatsappLoading);
+  const isFetching = vpnFetching
+    || mtprotoFetching
+    || whatsappFetching;
 
   const showVpn = !!(vpnSub && (vpnSub.active || vpnSub.expired));
   const showMtproto = !!(mtprotoEnabled && mtprotoSub && (mtprotoSub.active || mtprotoSub.expired));
   const showWhatsapp = !!(whatsappEnabled && whatsappSub && (whatsappSub.active || whatsappSub.expired));
   const hasAnything = showVpn || showMtproto || showWhatsapp;
-  const showInitialSkeleton = isLoading && !hasAnything;
+  const showInitialSkeleton = !hasAnything && (isLoading || isFetching);
 
   return (
     <div className="animate-fade-in">
