@@ -53,6 +53,7 @@ export function MyVpnPage() {
   const showMtproto = !!(mtprotoEnabled && mtprotoSub && (mtprotoSub.active || mtprotoSub.expired));
   const showWhatsapp = !!(whatsappEnabled && whatsappSub && (whatsappSub.active || whatsappSub.expired));
   const hasAnything = showVpn || showMtproto || showWhatsapp;
+  const showInitialSkeleton = isLoading && !hasAnything;
 
   return (
     <div className="animate-fade-in">
@@ -60,7 +61,7 @@ export function MyVpnPage() {
         {t('my_vpn')}
       </h1>
 
-      {isLoading && (
+      {showInitialSkeleton && (
         <>
           <SkeletonCard />
           <SkeletonCard />

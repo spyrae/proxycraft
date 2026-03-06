@@ -162,24 +162,30 @@ function BrandLoader() {
   return (
     <div className="relative h-[88px] w-[88px]">
       <svg
-        className="absolute inset-0 h-full w-full animate-spin"
+        className="absolute inset-0 h-full w-full"
         viewBox="0 0 88 88"
         fill="none"
         aria-hidden="true"
       >
+        <defs>
+          <linearGradient id="status-overlay-ring" x1="10" y1="10" x2="78" y2="78" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#6EE7B7" />
+            <stop offset="100%" stopColor="#10B981" />
+          </linearGradient>
+        </defs>
         <circle cx="44" cy="44" r="34" stroke="rgba(16,185,129,0.16)" strokeWidth="6" />
-        <path
-          d="M44 10a34 34 0 0 1 31.4 20.9"
-          stroke="#34D399"
-          strokeWidth="6"
-          strokeLinecap="round"
-        />
-        <path
-          d="M73.6 30.9A34 34 0 0 1 62.2 72.5"
-          stroke="#10B981"
-          strokeWidth="6"
-          strokeLinecap="round"
-        />
+        <g className="animate-spin" style={{ transformOrigin: '44px 44px' }}>
+          <circle
+            cx="44"
+            cy="44"
+            r="34"
+            stroke="url(#status-overlay-ring)"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray="120 94"
+            transform="rotate(-90 44 44)"
+          />
+        </g>
       </svg>
       <div
         className="absolute inset-[14px] flex items-center justify-center rounded-full"
