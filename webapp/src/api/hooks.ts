@@ -14,6 +14,7 @@ import type {
   PromocodeResponse,
   TopupResponse,
   BuyPlanResponse,
+  SubscriptionsResponse,
   AutoRenewResponse,
   CancelSubscriptionResponse,
   ChangeVpnProfileResponse,
@@ -65,6 +66,38 @@ export function useVpnSubscription() {
   return useQuery<VpnSubscription>({
     queryKey: ['subscription', 'vpn'],
     queryFn: () => api('/api/v1/subscription'),
+    staleTime: 60_000,
+  });
+}
+
+export function useSubscriptions() {
+  return useQuery<SubscriptionsResponse>({
+    queryKey: ['subscriptions'],
+    queryFn: () => api('/api/v1/subscriptions'),
+    staleTime: 60_000,
+  });
+}
+
+export function useVpnSubscriptions() {
+  return useQuery<{ subscriptions: VpnSubscription[] }>({
+    queryKey: ['subscriptions', 'vpn'],
+    queryFn: () => api('/api/v1/subscriptions/vpn'),
+    staleTime: 60_000,
+  });
+}
+
+export function useMtprotoSubscriptions() {
+  return useQuery<{ subscriptions: MtprotoSubscription[] }>({
+    queryKey: ['subscriptions', 'mtproto'],
+    queryFn: () => api('/api/v1/subscriptions/mtproto'),
+    staleTime: 60_000,
+  });
+}
+
+export function useWhatsappSubscriptions() {
+  return useQuery<{ subscriptions: WhatsappSubscription[] }>({
+    queryKey: ['subscriptions', 'whatsapp'],
+    queryFn: () => api('/api/v1/subscriptions/whatsapp'),
     staleTime: 60_000,
   });
 }
@@ -188,6 +221,7 @@ export function useBuyPlan() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['me'], refetchType: 'all' });
       qc.invalidateQueries({ queryKey: ['subscription'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscriptions'], refetchType: 'all' });
     },
   });
 }
@@ -208,14 +242,24 @@ export function useAutoRenew() {
 
 export function useCancelSubscription() {
   const qc = useQueryClient();
-  return useMutation<CancelSubscriptionResponse, Error, { product: 'vpn' | 'mtproto' | 'whatsapp' }>({
-    mutationFn: ({ product }) =>
+  return useMutation<
+    CancelSubscriptionResponse,
+    Error,
+    { product: 'vpn' | 'mtproto' | 'whatsapp'; subscriptionId?: number | null }
+  >({
+    mutationFn: ({ product, subscriptionId }) =>
       api('/api/v1/subscription/cancel', {
         method: 'POST',
-        body: JSON.stringify({ product }),
+        body: JSON.stringify({
+          product,
+          subscription_id: subscriptionId ?? undefined,
+        }),
       }),
     onSuccess: (_, { product }) => {
       qc.invalidateQueries({ queryKey: ['subscription', product] });
+      qc.invalidateQueries({ queryKey: ['subscriptions'] });
+      qc.invalidateQueries({ queryKey: ['subscriptions', product] });
+      qc.invalidateQueries({ queryKey: ['me'] });
     },
   });
 }
@@ -225,22 +269,30 @@ export function useChangeVpnProfile() {
   return useMutation<
     ChangeVpnProfileResponse,
     Error,
-    { profileSlug: string },
+    { profileSlug: string; subscriptionId?: number | null },
     {
       previousSubscription?: VpnSubscription;
       previousMe?: UserProfile;
+      previousSubscriptions?: SubscriptionsResponse;
+      previousVpnSubscriptions?: { subscriptions: VpnSubscription[] };
     }
   >({
-    mutationFn: ({ profileSlug }) =>
+    mutationFn: ({ profileSlug, subscriptionId }) =>
       api('/api/v1/subscription/vpn-profile', {
         method: 'POST',
-        body: JSON.stringify({ profile_slug: profileSlug }),
+        body: JSON.stringify({
+          profile_slug: profileSlug,
+          subscription_id: subscriptionId ?? undefined,
+        }),
       }),
-    onMutate: async ({ profileSlug }) => {
+    onMutate: async ({ profileSlug, subscriptionId }) => {
       await qc.cancelQueries({ queryKey: ['subscription', 'vpn'] });
+      await qc.cancelQueries({ queryKey: ['subscriptions'] });
 
       const previousSubscription = qc.getQueryData<VpnSubscription>(['subscription', 'vpn']);
       const previousMe = qc.getQueryData<UserProfile>(['me']);
+      const previousSubscriptions = qc.getQueryData<SubscriptionsResponse>(['subscriptions']);
+      const previousVpnSubscriptions = qc.getQueryData<{ subscriptions: VpnSubscription[] }>(['subscriptions', 'vpn']);
 
       if (previousSubscription) {
         const nextProfile = previousSubscription.available_profiles?.find(
@@ -253,6 +305,45 @@ export function useChangeVpnProfile() {
         });
       }
 
+      if (previousSubscriptions) {
+        qc.setQueryData<SubscriptionsResponse>(['subscriptions'], {
+          ...previousSubscriptions,
+          vpn: previousSubscriptions.vpn.map((subscription) => {
+            if ((subscription.subscription_id ?? null) !== (subscriptionId ?? null)) {
+              return subscription;
+            }
+
+            const nextProfile = subscription.available_profiles?.find(
+              (profile) => profile.slug === profileSlug,
+            );
+
+            return {
+              ...subscription,
+              current_profile: nextProfile ?? subscription.current_profile ?? null,
+            };
+          }),
+        });
+      }
+
+      if (previousVpnSubscriptions) {
+        qc.setQueryData<{ subscriptions: VpnSubscription[] }>(['subscriptions', 'vpn'], {
+          subscriptions: previousVpnSubscriptions.subscriptions.map((subscription) => {
+            if ((subscription.subscription_id ?? null) !== (subscriptionId ?? null)) {
+              return subscription;
+            }
+
+            const nextProfile = subscription.available_profiles?.find(
+              (profile) => profile.slug === profileSlug,
+            );
+
+            return {
+              ...subscription,
+              current_profile: nextProfile ?? subscription.current_profile ?? null,
+            };
+          }),
+        });
+      }
+
       if (previousMe) {
         qc.setQueryData<UserProfile>(['me'], {
           ...previousMe,
@@ -260,11 +351,19 @@ export function useChangeVpnProfile() {
         });
       }
 
-      return { previousSubscription, previousMe };
+      return { previousSubscription, previousMe, previousSubscriptions, previousVpnSubscriptions };
     },
     onError: (_error, _variables, context) => {
       if (context?.previousSubscription) {
         qc.setQueryData(['subscription', 'vpn'], context.previousSubscription);
+      }
+
+      if (context?.previousSubscriptions) {
+        qc.setQueryData(['subscriptions'], context.previousSubscriptions);
+      }
+
+      if (context?.previousVpnSubscriptions) {
+        qc.setQueryData(['subscriptions', 'vpn'], context.previousVpnSubscriptions);
       }
 
       if (context?.previousMe) {
@@ -273,6 +372,25 @@ export function useChangeVpnProfile() {
     },
     onSuccess: (data) => {
       qc.setQueryData(['subscription', 'vpn'], data);
+
+      const previousSubscriptions = qc.getQueryData<SubscriptionsResponse>(['subscriptions']);
+      if (previousSubscriptions && data.subscription_id != null) {
+        qc.setQueryData<SubscriptionsResponse>(['subscriptions'], {
+          ...previousSubscriptions,
+          vpn: previousSubscriptions.vpn.map((subscription) =>
+            subscription.subscription_id === data.subscription_id ? data : subscription,
+          ),
+        });
+      }
+
+      const previousVpnSubscriptions = qc.getQueryData<{ subscriptions: VpnSubscription[] }>(['subscriptions', 'vpn']);
+      if (previousVpnSubscriptions && data.subscription_id != null) {
+        qc.setQueryData<{ subscriptions: VpnSubscription[] }>(['subscriptions', 'vpn'], {
+          subscriptions: previousVpnSubscriptions.subscriptions.map((subscription) =>
+            subscription.subscription_id === data.subscription_id ? data : subscription,
+          ),
+        });
+      }
 
       const previousMe = qc.getQueryData<UserProfile>(['me']);
       if (previousMe) {
@@ -285,6 +403,8 @@ export function useChangeVpnProfile() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['me'] });
       qc.invalidateQueries({ queryKey: ['subscription', 'vpn'] });
+      qc.invalidateQueries({ queryKey: ['subscriptions'] });
+      qc.invalidateQueries({ queryKey: ['subscriptions', 'vpn'] });
     },
   });
 }

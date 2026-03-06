@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.bot.services import MTProtoService, NotificationService, VPNService, WhatsAppService
 from app.bot.services.product_catalog import ProductCatalog
 from app.bot.utils.constants import Currency
-from app.db.models import BalanceLog, MTProtoSubscription, User, WhatsAppSubscription
+from app.db.models import BalanceLog, MTProtoSubscription, User, VPNSubscription, WhatsAppSubscription
 
 logger = logging.getLogger(__name__)
 
@@ -45,23 +45,23 @@ async def _renew_vpn(
 ) -> None:
     """Auto-renew VPN subscriptions that have already expired (auto_renew=True, not cancelled)."""
     async with session_factory() as session:
-        result = await session.execute(
-            select(User).where(
-                User.auto_renew == True,  # noqa: E712
-                User.vpn_cancelled_at == None,  # noqa: E711
-            )
-        )
-        users = result.scalars().all()
+        result = await session.execute(select(User).where(User.auto_renew == True))  # noqa: E712
+        users_map = {user.tg_id: user for user in result.scalars().all()}
+        subscriptions = await VPNSubscription.list_auto_renew_candidates(session)
 
-    logger.info(f"[auto_renew/vpn] Checking {len(users)} eligible users.")
+    logger.info(f"[auto_renew/vpn] Checking {len(subscriptions)} eligible subscriptions.")
 
     all_clients = await vpn_service.get_all_clients_data()
     now = datetime.now(timezone.utc)
     renewed = 0
     insufficient = 0
 
-    for user in users:
-        client_data = all_clients.get(str(user.tg_id))
+    for subscription in subscriptions:
+        user = users_map.get(subscription.user_tg_id)
+        if not user:
+            continue
+
+        client_data = all_clients.get(subscription.vpn_id) or all_clients.get(subscription.client_email)
 
         # Skip if no subscription or unlimited (expiry_time == 0 means unlimited)
         if not client_data or client_data._expiry_time <= 0:
@@ -77,7 +77,7 @@ async def _renew_vpn(
             continue
 
         # Deduplicate: skip if already charged for this expiry cycle
-        charge_key = f"auto_renew:charged:vpn:{user.tg_id}:{expiry_datetime.date()}"
+        charge_key = f"auto_renew:charged:vpn:{subscription.id}:{expiry_datetime.date()}"
         if await redis.get(charge_key):
             continue
 
@@ -85,14 +85,14 @@ async def _renew_vpn(
         vpn_product = product_catalog.get_vpn_product_by_devices(max_devices)
         if not vpn_product:
             logger.warning(
-                f"[auto_renew/vpn] No product for {max_devices} devices, user {user.tg_id}"
+                f"[auto_renew/vpn] No product for {max_devices} devices, subscription {subscription.id}"
             )
             continue
 
         price_rub = product_catalog.get_price(vpn_product.slug, Currency.RUB.code, RENEWAL_DURATION)
         if price_rub is None:
             logger.warning(
-                f"[auto_renew/vpn] No price for {vpn_product.slug}/{RENEWAL_DURATION}d, user {user.tg_id}"
+                f"[auto_renew/vpn] No price for {vpn_product.slug}/{RENEWAL_DURATION}d, subscription {subscription.id}"
             )
             continue
 
@@ -118,7 +118,10 @@ async def _renew_vpn(
                 )
 
             await vpn_service.extend_subscription(
-                user=user, devices=max_devices, duration=RENEWAL_DURATION
+                user=user,
+                devices=max_devices,
+                duration=RENEWAL_DURATION,
+                subscription_id=subscription.id,
             )
             await redis.set(charge_key, "1", ex=timedelta(hours=25))
 
@@ -130,11 +133,11 @@ async def _renew_vpn(
             await notification_service.notify_by_id(chat_id=user.tg_id, text=text)
             renewed += 1
             logger.info(
-                f"[auto_renew/vpn] Renewed user {user.tg_id}: "
+                f"[auto_renew/vpn] Renewed subscription {subscription.id} for user {user.tg_id}: "
                 f"{max_devices} dev, {RENEWAL_DURATION}d, {price_kopecks/100}₽"
             )
         else:
-            dedup_key = f"auto_renew:insufficient:vpn:{user.tg_id}"
+            dedup_key = f"auto_renew:insufficient:vpn:{subscription.id}"
             if await redis.get(dedup_key):
                 continue
 
@@ -147,7 +150,7 @@ async def _renew_vpn(
             await redis.set(dedup_key, "1", ex=timedelta(hours=24))
             insufficient += 1
             logger.info(
-                f"[auto_renew/vpn] Insufficient for user {user.tg_id}: "
+                f"[auto_renew/vpn] Insufficient for subscription {subscription.id} user {user.tg_id}: "
                 f"has {user.balance/100}₽, needs {price_kopecks/100}₽"
             )
 
@@ -180,7 +183,7 @@ async def _renew_mtproto(
     insufficient = 0
 
     for sub in subs:
-        charge_key = f"auto_renew:charged:mtproto:{sub.user_tg_id}:{sub.expires_at.date()}"
+        charge_key = f"auto_renew:charged:mtproto:{sub.id}:{sub.expires_at.date()}"
         if await redis.get(charge_key):
             continue
 
@@ -216,7 +219,7 @@ async def _renew_mtproto(
                     description=f"Auto-renew MTProto {RENEWAL_DURATION}d",
                 )
 
-            await mtproto_service.extend(sub.user_tg_id, RENEWAL_DURATION)
+            await mtproto_service.extend(sub.user_tg_id, RENEWAL_DURATION, subscription_id=sub.id)
             await redis.set(charge_key, "1", ex=timedelta(hours=25))
 
             locale = user.language_code or "ru"
@@ -230,7 +233,7 @@ async def _renew_mtproto(
                 f"[auto_renew/mtproto] Renewed user {sub.user_tg_id}: {RENEWAL_DURATION}d, {price_rub}₽"
             )
         else:
-            dedup_key = f"auto_renew:insufficient:mtproto:{sub.user_tg_id}"
+            dedup_key = f"auto_renew:insufficient:mtproto:{sub.id}"
             if await redis.get(dedup_key):
                 continue
 
@@ -276,7 +279,7 @@ async def _renew_whatsapp(
     insufficient = 0
 
     for sub in subs:
-        charge_key = f"auto_renew:charged:whatsapp:{sub.user_tg_id}:{sub.expires_at.date()}"
+        charge_key = f"auto_renew:charged:whatsapp:{sub.id}:{sub.expires_at.date()}"
         if await redis.get(charge_key):
             continue
 
@@ -312,7 +315,7 @@ async def _renew_whatsapp(
                     description=f"Auto-renew WhatsApp {RENEWAL_DURATION}d",
                 )
 
-            await whatsapp_service.extend(sub.user_tg_id, RENEWAL_DURATION)
+            await whatsapp_service.extend(sub.user_tg_id, RENEWAL_DURATION, subscription_id=sub.id)
             await redis.set(charge_key, "1", ex=timedelta(hours=25))
 
             locale = user.language_code or "ru"
@@ -326,7 +329,7 @@ async def _renew_whatsapp(
                 f"[auto_renew/whatsapp] Renewed user {sub.user_tg_id}: {RENEWAL_DURATION}d, {price_rub}₽"
             )
         else:
-            dedup_key = f"auto_renew:insufficient:whatsapp:{sub.user_tg_id}"
+            dedup_key = f"auto_renew:insufficient:whatsapp:{sub.id}"
             if await redis.get(dedup_key):
                 continue
 

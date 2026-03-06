@@ -33,9 +33,10 @@ class ReferralService:
         logger.info("Referral Service initialized")
 
     async def is_referred_trial_available(self, user: User) -> bool:
+        has_vpn_subscription = await self.vpn_service.has_any_subscription(user.tg_id)
         is_first_check_ok = (
             self.config.shop.REFERRED_TRIAL_ENABLED
-            and not user.server_id
+            and not has_vpn_subscription
             and not user.is_trial_used
         )
         if not is_first_check_ok:

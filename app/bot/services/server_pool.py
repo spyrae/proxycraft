@@ -116,37 +116,44 @@ class ServerPoolService:
         return inbounds[0].id
 
     async def get_connection(self, user: User) -> Connection | None:
-        if not user.server_id:
-            logger.debug(f"User {user.tg_id} not assigned to any server.")
+        return await self.get_connection_for_server_id(user.server_id, user_label=f"user {user.tg_id}")
+
+    async def get_connection_for_server_id(
+        self,
+        server_id: int | None,
+        user_label: str = "entity",
+    ) -> Connection | None:
+        if not server_id:
+            logger.debug("%s not assigned to any server.", user_label)
             return None
 
-        connection = self._servers.get(user.server_id)
+        connection = self._servers.get(server_id)
 
         if not connection:
             available_servers = list(self._servers.keys())
             logger.warning(
-                f"Server {user.server_id} not found in pool. "
-                f"User assigned server: {user.server_id}, "
+                f"Server {server_id} not found in pool. "
+                f"Assigned server: {server_id}, "
                 f"Available servers in pool: {available_servers}"
             )
 
             async with self.session() as session:
-                server = await Server.get_by_id(session=session, id=user.server_id)
+                server = await Server.get_by_id(session=session, id=server_id)
 
             if server:
                 logger.info(f"Server {server.name} ({server.host}) found in database, recovering to pool...")
                 await self._add_server(server)
-                connection = self._servers.get(user.server_id)
+                connection = self._servers.get(server_id)
                 if connection:
                     return connection
                 logger.error(f"Failed to recover server {server.name} to pool.")
             else:
-                logger.error(f"Server {user.server_id} not found in database.")
+                logger.error(f"Server {server_id} not found in database.")
 
             return None
 
         async with self.session() as session:
-            server = await Server.get_by_id(session=session, id=user.server_id)
+            server = await Server.get_by_id(session=session, id=server_id)
 
         connection.server = server
         return connection

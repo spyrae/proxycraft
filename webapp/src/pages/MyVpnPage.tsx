@@ -4,9 +4,9 @@ import { StatusOverlay } from '../components/StatusOverlay';
 import type { OverlayMode } from '../components/StatusOverlay';
 import {
   useMe,
-  useVpnSubscription,
-  useMtprotoSubscription,
-  useWhatsappSubscription,
+  useVpnSubscriptions,
+  useMtprotoSubscriptions,
+  useWhatsappSubscriptions,
   useCancelSubscription,
   useChangeVpnProfile,
 } from '../api/hooks';
@@ -42,25 +42,25 @@ export function MyVpnPage() {
   } = useMe();
   const { t } = useLanguage();
 
-  const { data: vpnSub, isLoading: vpnLoading, isFetching: vpnFetching } = useVpnSubscription();
-  const { data: mtprotoSub, isLoading: mtprotoLoading, isFetching: mtprotoFetching } = useMtprotoSubscription();
-  const { data: whatsappSub, isLoading: whatsappLoading, isFetching: whatsappFetching } = useWhatsappSubscription();
+  const { data: vpnData, isLoading: vpnLoading, isFetching: vpnFetching } = useVpnSubscriptions();
+  const { data: mtprotoData, isLoading: mtprotoLoading, isFetching: mtprotoFetching } = useMtprotoSubscriptions();
+  const { data: whatsappData, isLoading: whatsappLoading, isFetching: whatsappFetching } = useWhatsappSubscriptions();
 
   const mtprotoEnabled = me?.features.mtproto_enabled ?? false;
   const whatsappEnabled = me?.features.whatsapp_enabled ?? false;
 
-  const isLoading = vpnLoading
-    || (mtprotoEnabled && mtprotoLoading)
-    || (whatsappEnabled && whatsappLoading);
+  const vpnSubscriptions = vpnData?.subscriptions ?? [];
+  const mtprotoSubscriptions = mtprotoData?.subscriptions ?? [];
+  const whatsappSubscriptions = whatsappData?.subscriptions ?? [];
 
-  const showVpn = !!(vpnSub && (vpnSub.active || vpnSub.expired));
-  const showMtproto = !!(mtprotoEnabled && mtprotoSub && (mtprotoSub.active || mtprotoSub.expired));
-  const showWhatsapp = !!(whatsappEnabled && whatsappSub && (whatsappSub.active || whatsappSub.expired));
+  const showVpn = vpnSubscriptions.length > 0;
+  const showMtproto = mtprotoEnabled && mtprotoSubscriptions.length > 0;
+  const showWhatsapp = whatsappEnabled && whatsappSubscriptions.length > 0;
   const hasAnything = showVpn || showMtproto || showWhatsapp;
   const reserveMtprotoSlot = me ? mtprotoEnabled : true;
   const reserveWhatsappSlot = me ? whatsappEnabled : true;
 
-  const showVpnSkeleton = !showVpn && (vpnLoading || vpnFetching);
+  const showVpnSkeleton = !showVpn && (vpnLoading || vpnFetching || meLoading || meFetching);
   const showMtprotoSkeleton = reserveMtprotoSlot
     && !showMtproto
     && (mtprotoLoading || mtprotoFetching || meLoading || meFetching);
@@ -76,16 +76,22 @@ export function MyVpnPage() {
         {t('my_vpn')}
       </h1>
 
-      {showVpn && <VpnSection sub={vpnSub!} />}
+      {showVpn && vpnSubscriptions.map((sub) => (
+        <VpnSection key={`vpn-${sub.subscription_id ?? sub.key ?? 'unknown'}`} sub={sub} />
+      ))}
       {showVpnSkeleton && <SkeletonCard />}
 
-      {showMtproto && <MtprotoSection sub={mtprotoSub!} />}
+      {showMtproto && mtprotoSubscriptions.map((sub) => (
+        <MtprotoSection key={`mtproto-${sub.subscription_id ?? sub.link ?? 'unknown'}`} sub={sub} />
+      ))}
       {showMtprotoSkeleton && <SkeletonCard />}
 
-      {showWhatsapp && <WhatsappSection sub={whatsappSub!} />}
+      {showWhatsapp && whatsappSubscriptions.map((sub) => (
+        <WhatsappSection key={`whatsapp-${sub.subscription_id ?? sub.port ?? 'unknown'}`} sub={sub} />
+      ))}
       {showWhatsappSkeleton && <SkeletonCard />}
 
-      {!hasAnything && !hasPendingSections && !isLoading && <EmptyState />}
+      {!hasAnything && !hasPendingSections && <EmptyState />}
     </div>
   );
 }
@@ -129,11 +135,13 @@ function ExpiryBadge({ date }: { date: string }) {
 
 function CancelButton({
   product,
+  subscriptionId,
   cancelledAt,
   expiryDate,
   onCancelled,
 }: {
   product: 'vpn' | 'mtproto' | 'whatsapp';
+  subscriptionId?: number | null;
   cancelledAt?: string | null;
   expiryDate?: string;
   onCancelled?: () => void;
@@ -186,7 +194,7 @@ function CancelButton({
             onClick={() => {
               setOverlayMode('loading');
               cancel.mutate(
-                { product },
+                { product, subscriptionId },
                 {
                   onSuccess: () => {
                     setOverlayMode('hidden');
@@ -284,9 +292,11 @@ function ConnectionRow({ value, onOpen }: { value: string; onOpen?: () => void }
 function VpnProfileSelector({
   currentProfile,
   profiles,
+  subscriptionId,
 }: {
   currentProfile?: VpnProfileOption | null;
   profiles?: VpnProfileOption[];
+  subscriptionId?: number | null;
 }) {
   const { t } = useLanguage();
   const changeProfile = useChangeVpnProfile();
@@ -329,7 +339,7 @@ function VpnProfileSelector({
                 setError(null);
                 setOverlayMode('loading');
                 changeProfile.mutate(
-                  { profileSlug: profile.slug },
+                  { profileSlug: profile.slug, subscriptionId },
                   {
                     onSuccess: () => {
                       setError(null);
@@ -396,6 +406,7 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
               <VpnProfileSelector
                 currentProfile={sub.current_profile}
                 profiles={sub.available_profiles}
+                subscriptionId={sub.subscription_id}
               />
 
               <div className="grid grid-cols-2 gap-2">
@@ -429,6 +440,7 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
 
               <CancelButton
                 product="vpn"
+                subscriptionId={sub.subscription_id}
                 cancelledAt={effectiveCancelled ? (sub.cancelled_at || 'local') : null}
                 expiryDate={sub.expiry_time ? new Date(sub.expiry_time).toLocaleDateString() : undefined}
                 onCancelled={() => setWasJustCancelled(true)}
@@ -478,6 +490,7 @@ function MtprotoSection({ sub }: { sub: MtprotoSubscription }) {
               )}
               <CancelButton
                 product="mtproto"
+                subscriptionId={sub.subscription_id}
                 cancelledAt={effectiveCancelled ? (sub.cancelled_at || 'local') : null}
                 expiryDate={sub.expires_at ? new Date(sub.expires_at).toLocaleDateString() : undefined}
                 onCancelled={() => setWasJustCancelled(true)}
@@ -522,6 +535,7 @@ function WhatsappSection({ sub }: { sub: WhatsappSubscription }) {
               {connectionString && <ConnectionRow value={connectionString} />}
               <CancelButton
                 product="whatsapp"
+                subscriptionId={sub.subscription_id}
                 cancelledAt={effectiveCancelled ? (sub.cancelled_at || 'local') : null}
                 expiryDate={sub.expires_at ? new Date(sub.expires_at).toLocaleDateString() : undefined}
                 onCancelled={() => setWasJustCancelled(true)}

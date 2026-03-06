@@ -49,23 +49,26 @@ class WhatsAppService:
                 is_trial_used=is_trial,
             )
             if not sub:
-                # User already has a subscription — try to reactivate
-                existing = await WhatsAppSubscription.get_by_user(session, user_tg_id)
-                if existing:
-                    await WhatsAppSubscription.update_expiry(session, user_tg_id, expires_at)
-                    port = existing.port
-                else:
-                    logger.error(f"Failed to create WhatsApp subscription for user {user_tg_id}")
-                    return None
+                logger.error(f"Failed to create WhatsApp subscription for user {user_tg_id}")
+                return None
 
         await self._regenerate_and_reload()
         logger.info(f"WhatsApp activated for user {user_tg_id}, port {port}, expires {expires_at}")
         return port
 
-    async def extend(self, user_tg_id: int, duration_days: int) -> bool:
+    async def extend(
+        self,
+        user_tg_id: int,
+        duration_days: int,
+        subscription_id: int | None = None,
+    ) -> bool:
         """Extend an existing subscription by adding days."""
         async with self.session_factory() as session:
-            sub = await WhatsAppSubscription.get_by_user(session, user_tg_id)
+            sub = (
+                await WhatsAppSubscription.get_by_id(session, subscription_id)
+                if subscription_id is not None
+                else await WhatsAppSubscription.get_by_user(session, user_tg_id)
+            )
             if not sub:
                 logger.warning(f"No WhatsApp subscription to extend for user {user_tg_id}")
                 return False
@@ -73,49 +76,85 @@ class WhatsAppService:
             now = datetime.utcnow()
             base = sub.expires_at if sub.expires_at > now else now
             new_expires = base + timedelta(days=duration_days)
-            await WhatsAppSubscription.update_expiry(session, user_tg_id, new_expires)
+            await WhatsAppSubscription.update_expiry(
+                session,
+                user_tg_id,
+                new_expires,
+                subscription_id=sub.id,
+            )
 
         logger.info(f"WhatsApp extended for user {user_tg_id}, new expiry {new_expires}")
         return True
 
-    async def deactivate(self, user_tg_id: int) -> bool:
+    async def deactivate(self, user_tg_id: int, subscription_id: int | None = None) -> bool:
         """Deactivate subscription, regenerate HAProxy config, reload."""
         async with self.session_factory() as session:
-            result = await WhatsAppSubscription.deactivate(session, user_tg_id)
+            sub = (
+                await WhatsAppSubscription.get_by_id(session, subscription_id)
+                if subscription_id is not None
+                else await WhatsAppSubscription.get_by_user(session, user_tg_id)
+            )
+            if not sub:
+                return False
+            result = await WhatsAppSubscription.deactivate(
+                session,
+                user_tg_id,
+                subscription_id=sub.id,
+            )
 
         if result:
             await self._regenerate_and_reload()
             logger.info(f"WhatsApp deactivated for user {user_tg_id}")
         return result
 
-    async def get_connection_info(self, user_tg_id: int) -> tuple[str, int] | None:
+    async def get_connection_info_for_subscription(
+        self,
+        subscription: WhatsAppSubscription,
+    ) -> tuple[str, int] | None:
+        if not subscription or not subscription.is_active:
+            return None
+        return (self.host, subscription.port)
+
+    async def get_connection_info(
+        self,
+        user_tg_id: int,
+        subscription_id: int | None = None,
+    ) -> tuple[str, int] | None:
         """Return (host, port) for the user."""
         async with self.session_factory() as session:
-            sub = await WhatsAppSubscription.get_by_user(session, user_tg_id)
-            if not sub or not sub.is_active:
+            sub = (
+                await WhatsAppSubscription.get_by_id(session, subscription_id)
+                if subscription_id is not None
+                else await WhatsAppSubscription.get_by_user(session, user_tg_id)
+            )
+            if not sub:
                 return None
-        return (self.host, sub.port)
+        return await self.get_connection_info_for_subscription(sub)
 
     async def is_active(self, user_tg_id: int) -> bool:
         """Check if user has an active, non-expired subscription."""
         async with self.session_factory() as session:
-            sub = await WhatsAppSubscription.get_by_user(session, user_tg_id)
-            if not sub or not sub.is_active:
-                return False
-            return sub.expires_at > datetime.utcnow()
+            subscriptions = await WhatsAppSubscription.list_by_user(session, user_tg_id)
+        now = datetime.utcnow()
+        return any(sub.is_active and sub.expires_at > now for sub in subscriptions)
 
     async def get_subscription(self, user_tg_id: int) -> WhatsAppSubscription | None:
         """Get subscription data."""
         async with self.session_factory() as session:
             return await WhatsAppSubscription.get_by_user(session, user_tg_id)
 
+    async def get_subscription_by_id(self, subscription_id: int) -> WhatsAppSubscription | None:
+        async with self.session_factory() as session:
+            return await WhatsAppSubscription.get_by_id(session, subscription_id)
+
+    async def list_subscriptions(self, user_tg_id: int) -> list[WhatsAppSubscription]:
+        async with self.session_factory() as session:
+            return await WhatsAppSubscription.list_by_user(session, user_tg_id)
+
     async def is_trial_available(self, user_tg_id: int) -> bool:
         """Check if user can use the free trial."""
         async with self.session_factory() as session:
-            sub = await WhatsAppSubscription.get_by_user(session, user_tg_id)
-            if sub and sub.is_trial_used:
-                return False
-        return True
+            return not await WhatsAppSubscription.has_trial_used(session, user_tg_id)
 
     async def cleanup_expired(self) -> int:
         """Deactivate all expired subscriptions, regenerate config. Returns count."""
@@ -123,7 +162,11 @@ class WhatsAppService:
         async with self.session_factory() as session:
             expired = await WhatsAppSubscription.get_expired_active(session)
             for sub in expired:
-                await WhatsAppSubscription.deactivate(session, sub.user_tg_id)
+                await WhatsAppSubscription.deactivate(
+                    session,
+                    sub.user_tg_id,
+                    subscription_id=sub.id,
+                )
                 count += 1
 
         if count > 0:

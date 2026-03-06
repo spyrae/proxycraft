@@ -45,6 +45,7 @@ export interface VpnProfileOption {
 }
 
 export interface VpnSubscription {
+  subscription_id?: number | null;
   active: boolean;
   expired?: boolean;
   max_devices?: number;
@@ -62,6 +63,7 @@ export interface VpnSubscription {
 }
 
 export interface MtprotoSubscription {
+  subscription_id?: number | null;
   active: boolean;
   expired?: boolean;
   expires_at?: string | null;
@@ -71,6 +73,7 @@ export interface MtprotoSubscription {
 }
 
 export interface WhatsappSubscription {
+  subscription_id?: number | null;
   active: boolean;
   expired?: boolean;
   expires_at?: string | null;
@@ -83,6 +86,7 @@ export interface WhatsappSubscription {
 export interface CancelSubscriptionResponse {
   success: boolean;
   product: string;
+  subscription_id?: number | null;
   expires_at?: string | null;
 }
 
@@ -122,6 +126,12 @@ export interface BuyPlanResponse {
   success: boolean;
   product: string;
   duration: number;
+}
+
+export interface SubscriptionsResponse {
+  vpn: VpnSubscription[];
+  mtproto: MtprotoSubscription[];
+  whatsapp: WhatsappSubscription[];
 }
 
 export type ChangeVpnProfileResponse = VpnSubscription;

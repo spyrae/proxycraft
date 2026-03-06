@@ -37,24 +37,27 @@ class MTProtoService:
                 is_trial_used=is_trial,
             )
             if not sub:
-                # User already has a subscription — try to reactivate
-                existing = await MTProtoSubscription.get_by_user(session, user_tg_id)
-                if existing:
-                    await MTProtoSubscription.update_expiry(session, user_tg_id, expires_at)
-                    secret = existing.secret
-                else:
-                    logger.error(f"Failed to create MTProto subscription for user {user_tg_id}")
-                    return None
+                logger.error(f"Failed to create MTProto subscription for user {user_tg_id}")
+                return None
 
-        self._update_config_add_user(user_tg_id, secret)
+        self._update_config_add_user(sub.id, secret)
         self._reload_proxy()
         logger.info(f"MTProto activated for user {user_tg_id}, expires {expires_at}")
         return secret
 
-    async def extend(self, user_tg_id: int, duration_days: int) -> bool:
+    async def extend(
+        self,
+        user_tg_id: int,
+        duration_days: int,
+        subscription_id: int | None = None,
+    ) -> bool:
         """Extend an existing subscription by adding days."""
         async with self.session_factory() as session:
-            sub = await MTProtoSubscription.get_by_user(session, user_tg_id)
+            sub = (
+                await MTProtoSubscription.get_by_id(session, subscription_id)
+                if subscription_id is not None
+                else await MTProtoSubscription.get_by_user(session, user_tg_id)
+            )
             if not sub:
                 logger.warning(f"No MTProto subscription to extend for user {user_tg_id}")
                 return False
@@ -62,54 +65,84 @@ class MTProtoService:
             now = datetime.utcnow()
             base = sub.expires_at if sub.expires_at > now else now
             new_expires = base + timedelta(days=duration_days)
-            await MTProtoSubscription.update_expiry(session, user_tg_id, new_expires)
+            await MTProtoSubscription.update_expiry(
+                session,
+                user_tg_id,
+                new_expires,
+                subscription_id=sub.id,
+            )
 
         logger.info(f"MTProto extended for user {user_tg_id}, new expiry {new_expires}")
         return True
 
-    async def deactivate(self, user_tg_id: int) -> bool:
+    async def deactivate(self, user_tg_id: int, subscription_id: int | None = None) -> bool:
         """Remove secret from config, reload proxy, mark inactive."""
         async with self.session_factory() as session:
-            result = await MTProtoSubscription.deactivate(session, user_tg_id)
+            sub = (
+                await MTProtoSubscription.get_by_id(session, subscription_id)
+                if subscription_id is not None
+                else await MTProtoSubscription.get_by_user(session, user_tg_id)
+            )
+            if not sub:
+                return False
+            result = await MTProtoSubscription.deactivate(
+                session,
+                user_tg_id,
+                subscription_id=sub.id,
+            )
 
         if result:
-            self._update_config_remove_user(user_tg_id)
+            self._update_config_remove_user(sub.id, legacy_user_tg_id=sub.user_tg_id)
             self._reload_proxy()
             logger.info(f"MTProto deactivated for user {user_tg_id}")
         return result
 
-    async def get_link(self, user_tg_id: int) -> str | None:
+    async def get_link_for_subscription(self, subscription: MTProtoSubscription) -> str | None:
         """Return tg://proxy link for the user."""
-        async with self.session_factory() as session:
-            sub = await MTProtoSubscription.get_by_user(session, user_tg_id)
-            if not sub or not sub.is_active:
-                return None
+        if not subscription or not subscription.is_active:
+            return None
 
         # FakeTLS secret = "ee" + hex_secret + hex_encoded_domain
         tls_domain_hex = "www.google.com".encode().hex()
-        secret = f"ee{sub.secret}{tls_domain_hex}"
+        secret = f"ee{subscription.secret}{tls_domain_hex}"
         return f"https://t.me/proxy?server={self.host}&port={self.port}&secret={secret}"
+
+    async def get_link(self, user_tg_id: int, subscription_id: int | None = None) -> str | None:
+        """Return tg://proxy link for the user."""
+        async with self.session_factory() as session:
+            sub = (
+                await MTProtoSubscription.get_by_id(session, subscription_id)
+                if subscription_id is not None
+                else await MTProtoSubscription.get_by_user(session, user_tg_id)
+            )
+            if not sub:
+                return None
+        return await self.get_link_for_subscription(sub)
 
     async def is_active(self, user_tg_id: int) -> bool:
         """Check if user has an active, non-expired subscription."""
         async with self.session_factory() as session:
-            sub = await MTProtoSubscription.get_by_user(session, user_tg_id)
-            if not sub or not sub.is_active:
-                return False
-            return sub.expires_at > datetime.utcnow()
+            subscriptions = await MTProtoSubscription.list_by_user(session, user_tg_id)
+        now = datetime.utcnow()
+        return any(sub.is_active and sub.expires_at > now for sub in subscriptions)
 
     async def get_subscription(self, user_tg_id: int) -> MTProtoSubscription | None:
         """Get subscription data."""
         async with self.session_factory() as session:
             return await MTProtoSubscription.get_by_user(session, user_tg_id)
 
+    async def get_subscription_by_id(self, subscription_id: int) -> MTProtoSubscription | None:
+        async with self.session_factory() as session:
+            return await MTProtoSubscription.get_by_id(session, subscription_id)
+
+    async def list_subscriptions(self, user_tg_id: int) -> list[MTProtoSubscription]:
+        async with self.session_factory() as session:
+            return await MTProtoSubscription.list_by_user(session, user_tg_id)
+
     async def is_trial_available(self, user_tg_id: int) -> bool:
         """Check if user can use the free trial."""
         async with self.session_factory() as session:
-            sub = await MTProtoSubscription.get_by_user(session, user_tg_id)
-            if sub and sub.is_trial_used:
-                return False
-        return True
+            return not await MTProtoSubscription.has_trial_used(session, user_tg_id)
 
     async def cleanup_expired(self) -> int:
         """Deactivate all expired subscriptions. Returns count of cleaned up."""
@@ -117,8 +150,12 @@ class MTProtoService:
         async with self.session_factory() as session:
             expired = await MTProtoSubscription.get_expired_active(session)
             for sub in expired:
-                await MTProtoSubscription.deactivate(session, sub.user_tg_id)
-                self._update_config_remove_user(sub.user_tg_id)
+                await MTProtoSubscription.deactivate(
+                    session,
+                    sub.user_tg_id,
+                    subscription_id=sub.id,
+                )
+                self._update_config_remove_user(sub.id, legacy_user_tg_id=sub.user_tg_id)
                 count += 1
 
         if count > 0:
@@ -165,13 +202,13 @@ class MTProtoService:
         except Exception as e:
             logger.error(f"Failed to write MTProto config: {e}")
 
-    def _update_config_add_user(self, user_tg_id: int, secret: str) -> None:
+    def _update_config_add_user(self, subscription_id: int, secret: str) -> None:
         """Add user entry to USERS dict in config.py."""
         content = self._read_config()
         if not content:
             return
 
-        key = f"tg_{user_tg_id}"
+        key = f"tg_{subscription_id}"
         entry = f'    "{key}": "{secret}",'
 
         # Check if user already exists
@@ -194,15 +231,22 @@ class MTProtoService:
 
         self._write_config(content)
 
-    def _update_config_remove_user(self, user_tg_id: int) -> None:
+    def _update_config_remove_user(
+        self,
+        subscription_id: int,
+        legacy_user_tg_id: int | None = None,
+    ) -> None:
         """Remove user entry from USERS dict in config.py."""
         content = self._read_config()
         if not content:
             return
 
-        key = f"tg_{user_tg_id}"
-        # Remove the line containing this user's entry
-        content = re.sub(rf'\s*"{key}"\s*:\s*"[^"]*"\s*,?\n?', "\n", content)
+        keys = [f"tg_{subscription_id}"]
+        if legacy_user_tg_id is not None:
+            keys.append(f"tg_{legacy_user_tg_id}")
+
+        for key in keys:
+            content = re.sub(rf'\s*"{key}"\s*:\s*"[^"]*"\s*,?\n?', "\n", content)
 
         self._write_config(content)
 

@@ -26,15 +26,18 @@ from app.bot.api.serializers import (
     serialize_vpn_products,
     serialize_user,
     serialize_vpn_subscription,
+    serialize_vpn_subscription_item,
     serialize_whatsapp_plans,
     serialize_whatsapp_subscription,
+    serialize_mtproto_subscription_item,
+    serialize_whatsapp_subscription_item,
 )
 from app.bot.filters.is_admin import IsAdmin
 from app.bot.utils.validation import is_valid_client_count, is_valid_host, is_valid_path
 from app.bot.models import ServicesContainer, SubscriptionData
 from app.bot.utils.constants import Currency, TransactionStatus
 from app.bot.utils.navigation import NavSubscription, NavMTProto, NavWhatsApp
-from app.db.models import BalanceLog, Server, Transaction, User
+from app.db.models import BalanceLog, MTProtoSubscription, Server, Transaction, User, VPNSubscription, WhatsAppSubscription
 from app.db.models.promocode import Promocode
 
 logger = logging.getLogger(__name__)
@@ -48,6 +51,70 @@ def _config(request):
     return request.app["config"]
 
 
+async def _serialize_vpn_subscription_items(user: User, services: ServicesContainer) -> list[dict]:
+    subscriptions = await services.vpn.list_subscriptions(user)
+    if not subscriptions:
+        return []
+
+    client_data_list, keys = await asyncio.gather(
+        asyncio.gather(*[
+            services.vpn.get_client_data_for_subscription(subscription)
+            for subscription in subscriptions
+        ]),
+        asyncio.gather(*[
+            services.vpn.get_key_for_subscription(subscription)
+            for subscription in subscriptions
+        ]),
+    )
+
+    items: list[dict] = []
+    for subscription, client_data, key in zip(subscriptions, client_data_list, keys, strict=False):
+        current_profile = services.vpn.get_profile_for_subscription(subscription)
+        available_profiles = services.vpn.get_available_profiles(
+            subscription.server.location if subscription.server else None,
+        )
+        items.append(
+            serialize_vpn_subscription_item(
+                subscription_id=subscription.id,
+                client_data=client_data,
+                key=key,
+                location=subscription.server.location if subscription.server else None,
+                cancelled_at=subscription.cancelled_at,
+                current_profile=current_profile,
+                available_profiles=available_profiles,
+            )
+        )
+
+    return items
+
+
+async def _serialize_mtproto_subscription_items(tg_id: int, services: ServicesContainer, config) -> list[dict]:
+    subscriptions = await services.mtproto.list_subscriptions(tg_id)
+    if not subscriptions:
+        return []
+
+    links = await asyncio.gather(*[
+        services.mtproto.get_link_for_subscription(subscription)
+        for subscription in subscriptions
+    ])
+
+    return [
+        serialize_mtproto_subscription_item(subscription, link, config.shop.MTPROTO_LOCATION)
+        for subscription, link in zip(subscriptions, links, strict=False)
+    ]
+
+
+async def _serialize_whatsapp_subscription_items(tg_id: int, services: ServicesContainer, config) -> list[dict]:
+    subscriptions = await services.whatsapp.list_subscriptions(tg_id)
+    if not subscriptions:
+        return []
+
+    return [
+        serialize_whatsapp_subscription_item(subscription, config.shop.WHATSAPP_HOST, config.shop.WHATSAPP_LOCATION)
+        for subscription in subscriptions
+    ]
+
+
 async def handle_me(request: Request) -> Response:
     """GET /api/v1/me — User profile + subscription status overview."""
     user = request["user"]
@@ -57,7 +124,7 @@ async def handle_me(request: Request) -> Response:
 
     # Run all checks in parallel for speed
     tasks = {
-        "vpn_data": services.vpn.get_client_data(user),
+        "vpn_subscriptions": services.vpn.list_subscriptions(user),
         "vpn_trial": services.subscription.is_trial_available(user),
         "is_admin": IsAdmin()(user_id=tg_id),
     }
@@ -70,8 +137,18 @@ async def handle_me(request: Request) -> Response:
 
     results = dict(zip(tasks.keys(), await asyncio.gather(*tasks.values())))
 
-    client_data = results["vpn_data"]
-    vpn_active = client_data is not None and not client_data.has_subscription_expired
+    vpn_subscriptions = results["vpn_subscriptions"]
+    if vpn_subscriptions:
+        vpn_client_data = await asyncio.gather(*[
+            services.vpn.get_client_data_for_subscription(subscription)
+            for subscription in vpn_subscriptions
+        ])
+        vpn_active = any(
+            client_data is not None and not client_data.has_subscription_expired
+            for client_data in vpn_client_data
+        )
+    else:
+        vpn_active = False
 
     data = serialize_user(
         user=user,
@@ -129,22 +206,37 @@ async def handle_subscription_vpn(request: Request) -> Response:
     user = request["user"]
     services = _services(request)
 
+    subscription = await services.vpn.get_primary_subscription(user)
+    if not subscription:
+        return web.json_response(
+            serialize_vpn_subscription(
+                client_data=None,
+                key=None,
+                location=None,
+                cancelled_at=None,
+                current_profile=None,
+                available_profiles=[],
+                subscription_id=None,
+            )
+        )
+
     client_data, key = await asyncio.gather(
-        services.vpn.get_client_data(user),
-        services.vpn.get_key(user),
+        services.vpn.get_client_data_for_subscription(subscription),
+        services.vpn.get_key_for_subscription(subscription),
     )
 
-    location = user.server.location if user.server else None
-    current_profile = services.vpn.get_current_profile(user)
+    location = subscription.server.location if subscription.server else None
+    current_profile = services.vpn.get_profile_for_subscription(subscription)
     available_profiles = services.vpn.get_available_profiles(location)
     return web.json_response(
         serialize_vpn_subscription(
             client_data,
             key,
             location,
-            user.vpn_cancelled_at,
+            subscription.cancelled_at,
             current_profile=current_profile,
             available_profiles=available_profiles,
+            subscription_id=subscription.id,
         )
     )
 
@@ -163,28 +255,45 @@ async def handle_subscription_vpn_profile(request: Request) -> Response:
     if not isinstance(profile_slug, str) or not profile_slug:
         return web.json_response({"error": "profile_slug is required"}, status=400)
 
-    if not user.server:
-        return web.json_response({"error": "VPN server is not assigned"}, status=400)
+    subscription_id = body.get("subscription_id")
+    if subscription_id is not None:
+        if not isinstance(subscription_id, int):
+            return web.json_response({"error": "subscription_id must be integer"}, status=400)
+        subscription = await services.vpn.get_subscription(subscription_id)
+    else:
+        subscription = await services.vpn.get_primary_subscription(user)
 
-    success = await services.vpn.change_vpn_profile(user, profile_slug)
+    if not subscription:
+        return web.json_response({"error": "VPN subscription not found"}, status=404)
+
+    success = await services.vpn.change_vpn_profile(
+        user=user,
+        new_profile_slug=profile_slug,
+        subscription_id=subscription.id,
+    )
     if not success:
         return web.json_response({"error": "Failed to switch VPN profile"}, status=400)
 
     client_data, key = await asyncio.gather(
-        services.vpn.get_client_data(user),
-        services.vpn.get_key(user),
+        services.vpn.get_client_data_for_subscription(subscription),
+        services.vpn.get_key_for_subscription(subscription),
     )
-    location = user.server.location
-    current_profile = services.vpn.get_current_profile(user)
+    refreshed_subscription = await services.vpn.get_subscription(subscription.id)
+    if not refreshed_subscription:
+        return web.json_response({"error": "VPN subscription not found"}, status=404)
+
+    location = refreshed_subscription.server.location if refreshed_subscription.server else None
+    current_profile = services.vpn.get_profile_for_subscription(refreshed_subscription)
     available_profiles = services.vpn.get_available_profiles(location)
     return web.json_response(
         serialize_vpn_subscription(
             client_data,
             key,
             location,
-            user.vpn_cancelled_at,
+            refreshed_subscription.cancelled_at,
             current_profile=current_profile,
             available_profiles=available_profiles,
+            subscription_id=refreshed_subscription.id,
         )
     )
 
@@ -201,7 +310,14 @@ async def handle_subscription_mtproto(request: Request) -> Response:
     sub = await services.mtproto.get_subscription(tg_id)
     link = await services.mtproto.get_link(tg_id) if sub else None
 
-    return web.json_response(serialize_mtproto_subscription(sub, link, config.shop.MTPROTO_LOCATION))
+    return web.json_response(
+        serialize_mtproto_subscription(
+            sub,
+            link,
+            config.shop.MTPROTO_LOCATION,
+            subscription_id=sub.id if sub else None,
+        )
+    )
 
 
 async def handle_subscription_whatsapp(request: Request) -> Response:
@@ -216,8 +332,73 @@ async def handle_subscription_whatsapp(request: Request) -> Response:
     sub = await services.whatsapp.get_subscription(tg_id)
 
     return web.json_response(
-        serialize_whatsapp_subscription(sub, config.shop.WHATSAPP_HOST, config.shop.WHATSAPP_LOCATION)
+        serialize_whatsapp_subscription(
+            sub,
+            config.shop.WHATSAPP_HOST,
+            config.shop.WHATSAPP_LOCATION,
+            subscription_id=sub.id if sub else None,
+        )
     )
+
+
+async def handle_subscriptions(request: Request) -> Response:
+    """GET /api/v1/subscriptions — All subscription instances grouped by product."""
+    user = request["user"]
+    tg_id = request["tg_id"]
+    config = _config(request)
+    services = _services(request)
+
+    vpn_task = _serialize_vpn_subscription_items(user, services)
+    mtproto_task = (
+        _serialize_mtproto_subscription_items(tg_id, services, config)
+        if config.shop.MTPROTO_ENABLED
+        else asyncio.sleep(0, result=[])
+    )
+    whatsapp_task = (
+        _serialize_whatsapp_subscription_items(tg_id, services, config)
+        if config.shop.WHATSAPP_ENABLED
+        else asyncio.sleep(0, result=[])
+    )
+
+    vpn_items, mtproto_items, whatsapp_items = await asyncio.gather(
+        vpn_task,
+        mtproto_task,
+        whatsapp_task,
+    )
+
+    return web.json_response({
+        "vpn": vpn_items,
+        "mtproto": mtproto_items,
+        "whatsapp": whatsapp_items,
+    })
+
+
+async def handle_vpn_subscriptions(request: Request) -> Response:
+    user = request["user"]
+    services = _services(request)
+    return web.json_response({"subscriptions": await _serialize_vpn_subscription_items(user, services)})
+
+
+async def handle_mtproto_subscriptions(request: Request) -> Response:
+    tg_id = request["tg_id"]
+    config = _config(request)
+    services = _services(request)
+    if not config.shop.MTPROTO_ENABLED:
+        return web.json_response({"subscriptions": []})
+    return web.json_response({
+        "subscriptions": await _serialize_mtproto_subscription_items(tg_id, services, config),
+    })
+
+
+async def handle_whatsapp_subscriptions(request: Request) -> Response:
+    tg_id = request["tg_id"]
+    config = _config(request)
+    services = _services(request)
+    if not config.shop.WHATSAPP_ENABLED:
+        return web.json_response({"subscriptions": []})
+    return web.json_response({
+        "subscriptions": await _serialize_whatsapp_subscription_items(tg_id, services, config),
+    })
 
 
 async def handle_payment_invoice(request: Request) -> Response:
@@ -724,30 +905,26 @@ async def handle_balance_buy(request: Request) -> Response:
             description=description,
         )
 
-    # Activate subscription
-    is_extend = False
+    # Activate a new subscription instance.
     if product == "vpn":
-        client_data = await services.vpn.get_client_data(user)
-        is_extend = client_data is not None and not client_data.has_subscription_expired
-
-        if is_extend:
-            await services.vpn.extend_subscription(user=user, devices=devices, duration=duration)
-        else:
-            await services.vpn.create_subscription(user=user, devices=devices, duration=duration, location=location)
+        created = await services.vpn.create_subscription(
+            user=user,
+            devices=devices,
+            duration=duration,
+            location=location,
+        )
+        if not created:
+            return web.json_response({"error": "Failed to create VPN subscription"}, status=500)
 
     elif product == "mtproto":
-        is_active = await services.mtproto.is_active(tg_id)
-        if is_active:
-            await services.mtproto.extend(tg_id, duration)
-        else:
-            await services.mtproto.activate(tg_id, duration)
+        secret = await services.mtproto.activate(tg_id, duration)
+        if not secret:
+            return web.json_response({"error": "Failed to create MTProto subscription"}, status=500)
 
     elif product == "whatsapp":
-        is_active = await services.whatsapp.is_active(tg_id)
-        if is_active:
-            await services.whatsapp.extend(tg_id, duration)
-        else:
-            await services.whatsapp.activate(tg_id, duration)
+        port = await services.whatsapp.activate(tg_id, duration)
+        if not port:
+            return web.json_response({"error": "Failed to create WhatsApp subscription"}, status=500)
 
     logger.info(
         f"Balance purchase: user={tg_id}, product={product}, "
@@ -803,40 +980,67 @@ async def handle_subscription_cancel(request: Request) -> Response:
     if product not in ("vpn", "mtproto", "whatsapp"):
         return web.json_response({"error": "Invalid product"}, status=400)
 
+    subscription_id = body.get("subscription_id")
+    if subscription_id is not None and not isinstance(subscription_id, int):
+        return web.json_response({"error": "subscription_id must be integer"}, status=400)
+
     session_factory = request.app["session"]
 
     if product == "vpn":
         async with session_factory() as session:
-            updated = await User.cancel_vpn(session=session, tg_id=tg_id)
+            if subscription_id is None:
+                subscription = await services.vpn.get_primary_subscription(user)
+            else:
+                subscription = await services.vpn.get_subscription(subscription_id)
+            if not subscription:
+                return web.json_response({"error": "VPN subscription not found"}, status=404)
+
+            updated = await VPNSubscription.cancel(session=session, subscription_id=subscription.id)
+            if updated and updated.vpn_id == user.vpn_id:
+                await User.update(session=session, tg_id=tg_id, vpn_cancelled_at=updated.cancelled_at)
+                user.vpn_cancelled_at = updated.cancelled_at
+
         if not updated:
             return web.json_response({"error": "VPN subscription not found"}, status=404)
-        return web.json_response({"success": True, "product": "vpn"})
+        return web.json_response({
+            "success": True,
+            "product": "vpn",
+            "subscription_id": updated.id,
+        })
 
     if product == "mtproto":
         if not config.shop.MTPROTO_ENABLED:
             return web.json_response({"error": "MTProto is not enabled"}, status=404)
-        from app.db.models.mtproto_subscription import MTProtoSubscription
         async with session_factory() as session:
-            sub = await MTProtoSubscription.cancel(session=session, user_tg_id=tg_id)
+            sub = await MTProtoSubscription.cancel(
+                session=session,
+                user_tg_id=tg_id,
+                subscription_id=subscription_id,
+            )
         if not sub:
             return web.json_response({"error": "MTProto subscription not found"}, status=404)
         return web.json_response({
             "success": True,
             "product": "mtproto",
+            "subscription_id": sub.id,
             "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
         })
 
     if product == "whatsapp":
         if not config.shop.WHATSAPP_ENABLED:
             return web.json_response({"error": "WhatsApp is not enabled"}, status=404)
-        from app.db.models.whatsapp_subscription import WhatsAppSubscription
         async with session_factory() as session:
-            sub = await WhatsAppSubscription.cancel(session=session, user_tg_id=tg_id)
+            sub = await WhatsAppSubscription.cancel(
+                session=session,
+                user_tg_id=tg_id,
+                subscription_id=subscription_id,
+            )
         if not sub:
             return web.json_response({"error": "WhatsApp subscription not found"}, status=404)
         return web.json_response({
             "success": True,
             "product": "whatsapp",
+            "subscription_id": sub.id,
             "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
         })
 
@@ -1153,6 +1357,10 @@ def register_routes(app: Application) -> None:
     app.router.add_get("/api/v1/plans/mtproto", handle_plans_mtproto)
     app.router.add_get("/api/v1/plans/whatsapp", handle_plans_whatsapp)
     app.router.add_get("/api/v1/subscription", handle_subscription_vpn)
+    app.router.add_get("/api/v1/subscriptions", handle_subscriptions)
+    app.router.add_get("/api/v1/subscriptions/vpn", handle_vpn_subscriptions)
+    app.router.add_get("/api/v1/subscriptions/mtproto", handle_mtproto_subscriptions)
+    app.router.add_get("/api/v1/subscriptions/whatsapp", handle_whatsapp_subscriptions)
     app.router.add_post("/api/v1/subscription/vpn-profile", handle_subscription_vpn_profile)
     app.router.add_get("/api/v1/subscription/mtproto", handle_subscription_mtproto)
     app.router.add_get("/api/v1/subscription/whatsapp", handle_subscription_whatsapp)

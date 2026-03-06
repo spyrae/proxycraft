@@ -106,11 +106,14 @@ def serialize_vpn_subscription(
     cancelled_at: datetime | None = None,
     current_profile: VpnProfile | None = None,
     available_profiles: list[VpnProfile] | None = None,
+    subscription_id: int | None = None,
 ) -> dict:
     payload = {
+        "subscription_id": subscription_id,
         "current_profile": serialize_vpn_profile(current_profile) if current_profile else None,
         "available_profiles": serialize_vpn_profiles(available_profiles or []),
         "location": location,
+        "cancelled_at": cancelled_at.isoformat() if cancelled_at else None,
     }
     if not client_data:
         return {"active": False, **payload}
@@ -126,7 +129,6 @@ def serialize_vpn_subscription(
         "traffic_remaining": client_data._traffic_remaining,
         "expiry_time": client_data._expiry_time,
         "key": key,
-        "cancelled_at": cancelled_at.isoformat() if cancelled_at else None,
         **payload,
     }
 
@@ -135,12 +137,14 @@ def serialize_mtproto_subscription(
     sub: MTProtoSubscription | None,
     link: str | None,
     location: str | None = None,
+    subscription_id: int | None = None,
 ) -> dict:
     if not sub or not sub.is_active:
-        return {"active": False}
+        return {"active": False, "subscription_id": subscription_id}
 
     expired = sub.expires_at < datetime.utcnow() if sub.expires_at else True
     return {
+        "subscription_id": subscription_id,
         "active": not expired,
         "expired": expired,
         "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
@@ -154,13 +158,72 @@ def serialize_whatsapp_subscription(
     sub: WhatsAppSubscription | None,
     host: str,
     location: str | None = None,
+    subscription_id: int | None = None,
 ) -> dict:
     if not sub or not sub.is_active:
-        return {"active": False}
+        return {"active": False, "subscription_id": subscription_id}
 
     expired = sub.expires_at < datetime.utcnow() if sub.expires_at else True
     return {
+        "subscription_id": subscription_id,
         "active": not expired,
+        "expired": expired,
+        "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
+        "host": host,
+        "port": sub.port,
+        "location": location,
+        "cancelled_at": sub.cancelled_at.isoformat() if sub.cancelled_at else None,
+    }
+
+
+def serialize_vpn_subscription_item(
+    subscription_id: int,
+    client_data: ClientData | None,
+    key: str | None,
+    location: str | None = None,
+    cancelled_at: datetime | None = None,
+    current_profile: VpnProfile | None = None,
+    available_profiles: list[VpnProfile] | None = None,
+) -> dict:
+    payload = serialize_vpn_subscription(
+        client_data=client_data,
+        key=key,
+        location=location,
+        cancelled_at=cancelled_at,
+        current_profile=current_profile,
+        available_profiles=available_profiles,
+        subscription_id=subscription_id,
+    )
+    payload["expired"] = client_data.has_subscription_expired if client_data else False
+    return payload
+
+
+def serialize_mtproto_subscription_item(
+    sub: MTProtoSubscription,
+    link: str | None,
+    location: str | None = None,
+) -> dict:
+    expired = sub.expires_at < datetime.utcnow() if sub.expires_at else True
+    return {
+        "subscription_id": sub.id,
+        "active": sub.is_active and not expired,
+        "expired": expired,
+        "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
+        "link": link,
+        "location": location,
+        "cancelled_at": sub.cancelled_at.isoformat() if sub.cancelled_at else None,
+    }
+
+
+def serialize_whatsapp_subscription_item(
+    sub: WhatsAppSubscription,
+    host: str,
+    location: str | None = None,
+) -> dict:
+    expired = sub.expires_at < datetime.utcnow() if sub.expires_at else True
+    return {
+        "subscription_id": sub.id,
+        "active": sub.is_active and not expired,
         "expired": expired,
         "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
         "host": host,

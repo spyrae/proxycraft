@@ -10,4 +10,5 @@ from .server import Server
 from .subscription_event import SubscriptionEvent
 from .transaction import Transaction
 from .user import User
+from .vpn_subscription import VPNSubscription
 from .whatsapp_subscription import WhatsAppSubscription

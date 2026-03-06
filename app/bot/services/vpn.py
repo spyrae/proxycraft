@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -19,7 +20,7 @@ from app.bot.utils.time import (
     get_current_timestamp,
 )
 from app.config import Config
-from app.db.models import Promocode, User
+from app.db.models import Promocode, User, VPNSubscription
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,58 @@ class VPNService:
         self.server_pool_service = server_pool_service
         self.catalog = catalog
         logger.info("VPN Service initialized.")
+
+    @staticmethod
+    def _build_client_email(user_tg_id: int, vpn_id: str) -> str:
+        return f"{user_tg_id}-{vpn_id[:8]}"
+
+    async def list_subscriptions(self, user: User) -> list[VPNSubscription]:
+        async with self.session() as session:
+            return await VPNSubscription.list_by_user(session=session, user_tg_id=user.tg_id)
+
+    async def has_any_subscription(self, user_tg_id: int) -> bool:
+        async with self.session() as session:
+            return await VPNSubscription.has_any(session=session, user_tg_id=user_tg_id)
+
+    async def get_primary_subscription(self, user: User) -> VPNSubscription | None:
+        async with self.session() as session:
+            if user.vpn_id:
+                primary = await VPNSubscription.get_by_vpn_id(session=session, vpn_id=user.vpn_id)
+                if primary:
+                    return primary
+
+            return await VPNSubscription.get_latest_by_user(session=session, user_tg_id=user.tg_id)
+
+    async def get_subscription(self, subscription_id: int) -> VPNSubscription | None:
+        async with self.session() as session:
+            return await VPNSubscription.get_by_id(session=session, subscription_id=subscription_id)
+
+    def _resolve_vpn_profile_for_subscription(self, subscription: VPNSubscription) -> VpnProfile | None:
+        if not self.catalog:
+            return None
+
+        location = subscription.server.location if subscription.server else None
+        return self.catalog.resolve_vpn_profile(
+            location=location,
+            profile_slug=subscription.vpn_profile_slug,
+            legacy_slug=None,
+        )
+
+    async def _persist_subscription_profile(
+        self,
+        subscription: VPNSubscription,
+        profile: VpnProfile | None,
+    ) -> None:
+        profile_slug = profile.slug if profile else None
+
+        async with self.session() as session:
+            await VPNSubscription.update(
+                session=session,
+                subscription_id=subscription.id,
+                vpn_profile_slug=profile_slug,
+            )
+
+        subscription.vpn_profile_slug = profile_slug
 
     async def _persist_vpn_profile(self, user: User, profile: VpnProfile | None) -> None:
         profile_slug = profile.slug if profile else None
@@ -70,35 +123,29 @@ class VPNService:
         )
 
     def get_current_profile(self, user: User) -> VpnProfile | None:
-        location = user.server.location if user.server else None
-        return self._resolve_vpn_profile(user, location)
+        if user.vpn_profile_slug and user.server and user.server.location:
+            return self._resolve_vpn_profile(user, user.server.location)
+        return None
+
+    def get_profile_for_subscription(self, subscription: VPNSubscription) -> VpnProfile | None:
+        return self._resolve_vpn_profile_for_subscription(subscription)
 
     def get_available_profiles(self, location: str | None) -> list[VpnProfile]:
         if not self.catalog or not location:
             return []
         return self.catalog.get_vpn_profiles(location=location)
 
-    async def is_client_exists(self, user: User) -> Client | None:
-        connection = await self.server_pool_service.get_connection(user)
-
-        if not connection:
-            return None
-
-        client = await self.server_pool_service.execute_api_call(
-            connection,
-            lambda: connection.api.client.get_by_email(str(user.tg_id)),
+    async def _get_subscription_connection(self, subscription: VPNSubscription):
+        return await self.server_pool_service.get_connection_for_server_id(
+            subscription.server_id,
+            user_label=f"vpn_subscription {subscription.id}",
         )
 
-        if client:
-            logger.debug(f"Client {user.tg_id} exists on server {connection.server.name}.")
-        else:
-            logger.critical(f"Client {user.tg_id} not found on server {connection.server.name}.")
-
-        return client
-
-    async def get_limit_ip(self, user: User, client: Client) -> int | None:
-        connection = await self.server_pool_service.get_connection(user)
-
+    async def _find_client_for_subscription(
+        self,
+        subscription: VPNSubscription,
+    ) -> tuple[Client, Inbound] | None:
+        connection = await self._get_subscription_connection(subscription)
         if not connection:
             return None
 
@@ -108,38 +155,61 @@ class VPNService:
                 lambda: connection.api.inbound.get_list(),
             )
         except Exception as exception:
-            logger.error(f"Failed to fetch inbounds: {exception}")
+            logger.error(
+                "Failed to fetch inbounds for vpn subscription %s: %s",
+                subscription.id,
+                exception,
+            )
             return None
 
         for inbound in inbounds:
             for inbound_client in inbound.settings.clients:
-                if inbound_client.email == client.email:
-                    logger.debug(f"Client {client.email} limit ip: {inbound_client.limit_ip}")
-                    return inbound_client.limit_ip
+                if (
+                    inbound_client.id == subscription.vpn_id
+                    or inbound_client.email == subscription.client_email
+                ):
+                    return inbound_client, inbound
 
-        logger.critical(f"Client {client.email} not found in inbounds.")
+        logger.warning(
+            "Client for vpn subscription %s not found on server %s.",
+            subscription.id,
+            connection.server.name if connection else subscription.server_id,
+        )
         return None
 
-    async def get_client_data(self, user: User) -> ClientData | None:
-        logger.debug(f"Starting to retrieve client data for {user.tg_id}.")
-
-        connection = await self.server_pool_service.get_connection(user)
-
-        if not connection:
+    async def is_client_exists(self, user: User) -> Client | None:
+        subscription = await self.get_primary_subscription(user)
+        if not subscription:
             return None
 
-        try:
-            client = await self.server_pool_service.execute_api_call(
-                connection,
-                lambda: connection.api.client.get_by_email(str(user.tg_id)),
-            )
+        found = await self._find_client_for_subscription(subscription)
+        return found[0] if found else None
 
-            if not client:
-                logger.critical(
-                    f"Client {user.tg_id} not found on server {connection.server.name}."
-                )
+    async def get_limit_ip(self, user: User, client: Client) -> int | None:
+        subscription = await self.get_primary_subscription(user)
+        if not subscription:
+            return None
+
+        found = await self._find_client_for_subscription(subscription)
+        if not found:
+            return None
+
+        inbound_client, _ = found
+        logger.debug("Client %s limit ip: %s", inbound_client.email, inbound_client.limit_ip)
+        return inbound_client.limit_ip
+
+    async def get_client_data_for_subscription(
+        self,
+        subscription: VPNSubscription,
+    ) -> ClientData | None:
+        logger.debug("Starting to retrieve client data for vpn subscription %s.", subscription.id)
+
+        try:
+            found = await self._find_client_for_subscription(subscription)
+            if not found:
                 return None
 
+            client, _ = found
             limit_ip = client.limit_ip
             max_devices = -1 if limit_ip == 0 else limit_ip
             traffic_total = client.total
@@ -161,49 +231,84 @@ class VPNService:
                 traffic_down=client.down,
                 expiry_time=expiry_time,
             )
-            logger.debug(f"Successfully retrieved client data for {user.tg_id}: {client_data}.")
+            logger.debug(
+                "Successfully retrieved client data for vpn subscription %s: %s.",
+                subscription.id,
+                client_data,
+            )
             return client_data
         except Exception as exception:
-            logger.error(f"Error retrieving client data for {user.tg_id}: {exception}")
+            logger.error(
+                "Error retrieving client data for vpn subscription %s: %s",
+                subscription.id,
+                exception,
+            )
             return None
 
-    async def get_key(self, user: User) -> str | None:
-        async with self.session() as session:
-            user = await User.get(session=session, tg_id=user.tg_id)
-
-        if not user.server_id:
-            logger.debug(f"Server ID for user {user.tg_id} not found.")
+    async def get_client_data(self, user: User) -> ClientData | None:
+        subscription = await self.get_primary_subscription(user)
+        if not subscription:
             return None
+        return await self.get_client_data_for_subscription(subscription)
 
-        subscription = extract_base_url(
-            url=user.server.subscription_host or user.server.host,
-            port=user.server.subscription_port or self.config.xui.SUBSCRIPTION_PORT,
-            path=user.server.subscription_path or self.config.xui.SUBSCRIPTION_PATH,
+    async def get_key_for_subscription(self, subscription: VPNSubscription) -> str | None:
+        if not subscription.server:
+            async with self.session() as session:
+                subscription = await VPNSubscription.get_by_id(session=session, subscription_id=subscription.id)
+            if not subscription or not subscription.server:
+                logger.debug("Server is not attached to vpn subscription %s.", subscription.id if subscription else "n/a")
+                return None
+
+        base = extract_base_url(
+            url=subscription.server.subscription_host or subscription.server.host,
+            port=subscription.server.subscription_port or self.config.xui.SUBSCRIPTION_PORT,
+            path=subscription.server.subscription_path or self.config.xui.SUBSCRIPTION_PATH,
         )
-        key = f"{subscription}{user.vpn_id}"
-        logger.debug(f"Fetched key for {user.tg_id}: {key}.")
+        key = f"{base}{subscription.vpn_id}"
+        logger.debug("Fetched key for vpn subscription %s: %s.", subscription.id, key)
         return key
 
-    async def create_client(
+    async def get_key(self, user: User) -> str | None:
+        subscription = await self.get_primary_subscription(user)
+        if not subscription:
+            return None
+        return await self.get_key_for_subscription(subscription)
+
+    async def _update_user_primary_subscription(
         self,
         user: User,
+        subscription: VPNSubscription,
+    ) -> None:
+        async with self.session() as session:
+            await User.update(
+                session=session,
+                tg_id=user.tg_id,
+                vpn_id=subscription.vpn_id,
+                server_id=subscription.server_id,
+                vpn_cancelled_at=subscription.cancelled_at,
+                vpn_profile_slug=subscription.vpn_profile_slug,
+            )
+
+        user.vpn_id = subscription.vpn_id
+        user.server_id = subscription.server_id
+        user.vpn_cancelled_at = subscription.cancelled_at
+        user.vpn_profile_slug = subscription.vpn_profile_slug
+
+    async def _create_client_for_subscription(
+        self,
+        user: User,
+        subscription: VPNSubscription,
         devices: int,
         duration: int,
         enable: bool = True,
         flow: str | None = None,
         total_gb: int = 0,
-        inbound_id: int = 1,
-        location: str | None = None,
     ) -> bool:
-        logger.info(f"Creating new client {user.tg_id} | {devices} devices {duration} days.")
-
-        await self.server_pool_service.assign_server_to_user(user, location=location)
-        connection = await self.server_pool_service.get_connection(user)
-
+        connection = await self._get_subscription_connection(subscription)
         if not connection:
             return False
 
-        selected_profile = self._resolve_vpn_profile(user, connection.server.location)
+        selected_profile = self._resolve_vpn_profile_for_subscription(subscription)
         client_flow = flow
         if client_flow is None:
             client_flow = (
@@ -213,13 +318,13 @@ class VPNService:
             )
 
         new_client = Client(
-            email=str(user.tg_id),
+            email=subscription.client_email,
             enable=enable,
-            id=user.vpn_id,
+            id=subscription.vpn_id,
             expiry_time=days_to_timestamp(duration),
             flow=client_flow,
             limit_ip=devices,
-            sub_id=user.vpn_id,
+            sub_id=subscription.vpn_id,
             total_gb=total_gb,
         )
         inbound_id = await self.server_pool_service.get_inbound_id(
@@ -229,8 +334,8 @@ class VPNService:
         )
         if inbound_id is None:
             logger.error(
-                "Failed to resolve inbound for user %s on %s.",
-                user.tg_id,
+                "Failed to resolve inbound for vpn subscription %s on %s.",
+                subscription.id,
                 connection.server.name,
             )
             return False
@@ -240,16 +345,19 @@ class VPNService:
                 connection,
                 lambda: connection.api.client.add(inbound_id=inbound_id, clients=[new_client]),
             )
+            await self._persist_subscription_profile(subscription, selected_profile)
             await self._persist_vpn_profile(user, selected_profile)
-            logger.info(f"Successfully created client for {user.tg_id}")
+            await self._update_user_primary_subscription(user, subscription)
+            logger.info("Successfully created client for vpn subscription %s", subscription.id)
             return True
         except Exception as exception:
-            logger.error(f"Error creating client for {user.tg_id}: {exception}")
+            logger.error("Error creating client for vpn subscription %s: %s", subscription.id, exception)
             return False
 
-    async def update_client(
+    async def _update_subscription_client(
         self,
         user: User,
+        subscription: VPNSubscription,
         devices: int,
         duration: int,
         replace_devices: bool = False,
@@ -258,28 +366,25 @@ class VPNService:
         flow: str | None = None,
         total_gb: int = 0,
     ) -> bool:
-        logger.info(f"Updating client {user.tg_id} | {devices} devices {duration} days.")
-        connection = await self.server_pool_service.get_connection(user)
-
+        connection = await self._get_subscription_connection(subscription)
         if not connection:
             return False
 
         try:
-            client = await self.server_pool_service.execute_api_call(
-                connection,
-                lambda: connection.api.client.get_by_email(str(user.tg_id)),
-            )
-
-            if client is None:
-                logger.critical(f"Client {user.tg_id} not found for update.")
+            found = await self._find_client_for_subscription(subscription)
+            if not found:
+                logger.critical("VPN client %s not found for update.", subscription.id)
                 return False
 
-            if not replace_devices:
-                current_device_limit = await self.get_limit_ip(user=user, client=client)
-                devices = current_device_limit + devices
+            client, _ = found
+
+            if replace_devices:
+                next_devices = devices
+            else:
+                current_device_limit = 0 if client.limit_ip == 0 else client.limit_ip
+                next_devices = current_device_limit + devices
 
             current_time = get_current_timestamp()
-
             if not replace_duration:
                 expiry_time_to_use = max(client.expiry_time, current_time)
             else:
@@ -287,7 +392,7 @@ class VPNService:
 
             expiry_time = add_days_to_timestamp(timestamp=expiry_time_to_use, days=duration)
 
-            selected_profile = self._resolve_vpn_profile(user, connection.server.location)
+            selected_profile = self._resolve_vpn_profile_for_subscription(subscription)
             client_flow = flow
             if client_flow is None:
                 client_flow = (
@@ -297,72 +402,184 @@ class VPNService:
                 )
 
             client.enable = enable
-            client.id = user.vpn_id
+            client.id = subscription.vpn_id
+            client.email = subscription.client_email
             client.expiry_time = expiry_time
             client.flow = client_flow
-            client.limit_ip = devices
-            client.sub_id = user.vpn_id
+            client.limit_ip = next_devices
+            client.sub_id = subscription.vpn_id
             client.total_gb = total_gb
 
             await self.server_pool_service.execute_api_call(
                 connection,
                 lambda: connection.api.client.update(client_uuid=client.id, client=client),
             )
+            await self._persist_subscription_profile(subscription, selected_profile)
             await self._persist_vpn_profile(user, selected_profile)
-            logger.info(f"Client {user.tg_id} updated successfully.")
+            async with self.session() as session:
+                updated_subscription = await VPNSubscription.update(
+                    session=session,
+                    subscription_id=subscription.id,
+                    devices=next_devices if next_devices > 0 else None,
+                )
+            if updated_subscription:
+                subscription.devices = updated_subscription.devices
+                subscription.vpn_profile_slug = updated_subscription.vpn_profile_slug
+            logger.info("VPN client %s updated successfully.", subscription.id)
             return True
         except Exception as exception:
-            logger.error(f"Error updating client {user.tg_id}: {exception}")
+            logger.error("Error updating vpn subscription %s: %s", subscription.id, exception)
             return False
 
-    async def create_subscription(self, user: User, devices: int, duration: int, location: str | None = None) -> bool:
-        if not await self.is_client_exists(user):
-            return await self.create_client(user=user, devices=devices, duration=duration, location=location)
-        return False
+    async def create_subscription_instance(
+        self,
+        user: User,
+        devices: int,
+        duration: int,
+        location: str | None = None,
+    ) -> VPNSubscription | None:
+        server = await self.server_pool_service.get_available_server(location=location)
+        if not server:
+            return None
 
-    async def extend_subscription(self, user: User, devices: int, duration: int) -> bool:
-        return await self.update_client(
+        selected_profile = self._resolve_vpn_profile(user, server.location)
+        has_existing = await self.has_any_subscription(user.tg_id)
+        vpn_id = user.vpn_id if not has_existing else str(uuid.uuid4())
+        client_email = str(user.tg_id) if not has_existing else self._build_client_email(user.tg_id, vpn_id)
+
+        async with self.session() as session:
+            subscription = await VPNSubscription.create(
+                session=session,
+                user_tg_id=user.tg_id,
+                vpn_id=vpn_id,
+                client_email=client_email,
+                server_id=server.id,
+                devices=devices,
+                vpn_profile_slug=selected_profile.slug if selected_profile else None,
+            )
+
+        if not subscription:
+            return None
+
+        if not await self._create_client_for_subscription(user, subscription, devices=devices, duration=duration):
+            async with self.session() as session:
+                doomed = await VPNSubscription.get_by_id(session=session, subscription_id=subscription.id)
+                if doomed:
+                    await session.delete(doomed)
+                    await session.commit()
+            return None
+
+        return subscription
+
+    async def create_subscription(self, user: User, devices: int, duration: int, location: str | None = None) -> bool:
+        subscription = await self.create_subscription_instance(
             user=user,
+            devices=devices,
+            duration=duration,
+            location=location,
+        )
+        return subscription is not None
+
+    async def extend_subscription(
+        self,
+        user: User,
+        devices: int,
+        duration: int,
+        subscription_id: int | None = None,
+    ) -> bool:
+        subscription = (
+            await self.get_subscription(subscription_id)
+            if subscription_id is not None
+            else await self.get_primary_subscription(user)
+        )
+        if not subscription:
+            return False
+
+        return await self._update_subscription_client(
+            user=user,
+            subscription=subscription,
             devices=devices,
             duration=duration,
             replace_devices=True,
         )
 
-    async def change_subscription(self, user: User, devices: int, duration: int) -> bool:
-        if await self.is_client_exists(user):
-            return await self.update_client(
-                user,
-                devices,
-                duration,
-                replace_devices=True,
-                replace_duration=True,
-            )
-        return False
+    async def change_subscription(
+        self,
+        user: User,
+        devices: int,
+        duration: int,
+        subscription_id: int | None = None,
+    ) -> bool:
+        subscription = (
+            await self.get_subscription(subscription_id)
+            if subscription_id is not None
+            else await self.get_primary_subscription(user)
+        )
+        if not subscription:
+            return False
+
+        return await self._update_subscription_client(
+            user=user,
+            subscription=subscription,
+            devices=devices,
+            duration=duration,
+            replace_devices=True,
+            replace_duration=True,
+        )
 
     async def process_bonus_days(self, user: User, duration: int, devices: int) -> bool:
-        if await self.is_client_exists(user):
-            updated = await self.update_client(user=user, devices=0, duration=duration)
+        subscription = await self.get_primary_subscription(user)
+        if subscription and await self._find_client_for_subscription(subscription):
+            updated = await self._update_subscription_client(
+                user=user,
+                subscription=subscription,
+                devices=0,
+                duration=duration,
+            )
             if updated:
-                logger.info(f"Updated client {user.tg_id} with additional {duration} days(-s).")
+                logger.info("Updated primary vpn subscription %s with additional %s days.", subscription.id, duration)
                 return True
         else:
-            created = await self.create_client(user=user, devices=devices, duration=duration)
+            created = await self.create_subscription(user=user, devices=devices, duration=duration)
             if created:
-                logger.info(f"Created client {user.tg_id} with additional {duration} days(-s)")
+                logger.info("Created vpn subscription for %s with additional %s days.", user.tg_id, duration)
                 return True
 
         return False
 
-    async def change_operator(self, user: User, new_operator: str) -> bool:
+    async def change_operator(
+        self,
+        user: User,
+        new_operator: str,
+        subscription_id: int | None = None,
+    ) -> bool:
         """Legacy wrapper: move client to another Amsterdam profile."""
-        return await self.change_vpn_profile(user, new_operator)
+        return await self.change_vpn_profile(
+            user=user,
+            new_profile_slug=new_operator,
+            subscription_id=subscription_id,
+        )
 
-    async def change_vpn_profile(self, user: User, new_profile_slug: str) -> bool:
-        connection = await self.server_pool_service.get_connection(user)
+    async def change_vpn_profile(
+        self,
+        user: User,
+        new_profile_slug: str,
+        subscription_id: int | None = None,
+    ) -> bool:
+        subscription = (
+            await self.get_subscription(subscription_id)
+            if subscription_id is not None
+            else await self.get_primary_subscription(user)
+        )
+        if not subscription:
+            logger.error("Cannot change VPN profile: subscription not found.")
+            return False
+
+        connection = await self._get_subscription_connection(subscription)
         if not connection:
             return False
 
-        current_profile = self._resolve_vpn_profile(user, connection.server.location)
+        current_profile = self._resolve_vpn_profile_for_subscription(subscription)
         target_profile = (
             self.catalog.get_vpn_profile(new_profile_slug, location=connection.server.location)
             if self.catalog
@@ -376,7 +593,7 @@ class VPNService:
             )
             return False
 
-        client_data = await self.get_client_data(user)
+        client_data = await self.get_client_data_for_subscription(subscription)
         if not client_data:
             return False
 
@@ -396,6 +613,7 @@ class VPNService:
         if new_inbound_id is None:
             return False
 
+        is_primary = subscription.vpn_id == user.vpn_id
         new_flow = (
             target_profile.client_flow
             or connection.server.client_flow
@@ -403,13 +621,14 @@ class VPNService:
         )
 
         try:
-            client = await self.server_pool_service.execute_api_call(
-                connection,
-                lambda: connection.api.client.get_by_email(str(user.tg_id)),
-            )
-            if client is None:
-                logger.error(f"Client {user.tg_id} not found while changing VPN profile.")
+            found = await self._find_client_for_subscription(subscription)
+            if not found:
+                logger.error(
+                    "Client for vpn subscription %s not found while changing profile.",
+                    subscription.id,
+                )
                 return False
+            client, _ = found
 
             limit_ip = client_data._max_devices if client_data._max_devices != -1 else 0
 
@@ -419,10 +638,12 @@ class VPNService:
                     connection,
                     lambda: connection.api.client.update(client_uuid=client.id, client=client),
                 )
-                await self._persist_vpn_profile(user, target_profile)
+                await self._persist_subscription_profile(subscription, target_profile)
+                if is_primary:
+                    await self._persist_vpn_profile(user, target_profile)
                 logger.info(
-                    "Updated VPN profile flow for user %s (%s -> %s).",
-                    user.tg_id,
+                    "Updated VPN profile flow for subscription %s (%s -> %s).",
+                    subscription.id,
                     current_profile.slug if current_profile else "default",
                     target_profile.slug,
                 )
@@ -450,15 +671,18 @@ class VPNService:
             moved_client = None
             old_clients = []
             for existing in old_inbound.settings.clients:
-                if existing.id == user.vpn_id or existing.email == str(user.tg_id):
+                if (
+                    existing.id == subscription.vpn_id
+                    or existing.email == subscription.client_email
+                ):
                     moved_client = existing.model_copy(deep=True)
                     continue
                 old_clients.append(existing)
 
             if moved_client is None:
                 logger.error(
-                    "Client %s was not found in old inbound %s during profile migration.",
-                    user.tg_id,
+                    "Client for vpn subscription %s was not found in old inbound %s during profile migration.",
+                    subscription.id,
                     old_inbound_id,
                 )
                 return False
@@ -467,12 +691,17 @@ class VPNService:
             moved_client.expiry_time = client_data._expiry_time
             moved_client.flow = new_flow
             moved_client.limit_ip = limit_ip
-            moved_client.sub_id = user.vpn_id
+            moved_client.email = subscription.client_email
+            moved_client.id = subscription.vpn_id
+            moved_client.sub_id = subscription.vpn_id
             moved_client.total_gb = 0
 
             new_clients = [
                 existing for existing in new_inbound.settings.clients
-                if existing.id != user.vpn_id and existing.email != str(user.tg_id)
+                if (
+                    existing.id != subscription.vpn_id
+                    and existing.email != subscription.client_email
+                )
             ]
             new_clients.append(moved_client)
 
@@ -493,7 +722,7 @@ class VPNService:
                 logger.exception(
                     "Failed to update target inbound %s for user %s. Restoring source inbound %s.",
                     new_inbound.id,
-                    user.tg_id,
+                    subscription.id,
                     old_inbound.id,
                 )
                 restore_inbound = old_inbound.model_copy(deep=True)
@@ -507,14 +736,16 @@ class VPNService:
                     logger.exception(
                         "Rollback failed while restoring source inbound %s for user %s.",
                         restore_inbound.id,
-                        user.tg_id,
+                        subscription.id,
                     )
                 return False
 
-            await self._persist_vpn_profile(user, target_profile)
+            await self._persist_subscription_profile(subscription, target_profile)
+            if is_primary:
+                await self._persist_vpn_profile(user, target_profile)
             logger.info(
-                "User %s moved from inbound %s to %s (profile: %s -> %s)",
-                user.tg_id,
+                "Subscription %s moved from inbound %s to %s (profile: %s -> %s)",
+                subscription.id,
                 old_inbound_id,
                 new_inbound_id,
                 current_profile.slug if current_profile else "default",
@@ -522,42 +753,47 @@ class VPNService:
             )
             return True
         except Exception as e:
-            logger.error(f"Failed to change VPN profile for user {user.tg_id}: {e}")
+            logger.error("Failed to change VPN profile for subscription %s: %s", subscription.id, e)
             return False
 
-    async def disable_client(self, user: User) -> bool:
+    async def disable_client(self, user: User, subscription_id: int | None = None) -> bool:
         """Disable a client in 3X-UI (set enable=False)."""
-        connection = await self.server_pool_service.get_connection(user)
+        subscription = (
+            await self.get_subscription(subscription_id)
+            if subscription_id is not None
+            else await self.get_primary_subscription(user)
+        )
+        if not subscription:
+            return False
+
+        connection = await self._get_subscription_connection(subscription)
 
         if not connection:
             return False
 
         try:
-            client = await self.server_pool_service.execute_api_call(
-                connection,
-                lambda: connection.api.client.get_by_email(str(user.tg_id)),
-            )
-
-            if client is None:
-                logger.warning(f"Client {user.tg_id} not found for disabling.")
+            found = await self._find_client_for_subscription(subscription)
+            if not found:
+                logger.warning("Client for vpn subscription %s not found for disabling.", subscription.id)
                 return False
+            client, _ = found
 
             client.enable = False
             await self.server_pool_service.execute_api_call(
                 connection,
                 lambda: connection.api.client.update(client_uuid=client.id, client=client),
             )
-            logger.info(f"Client {user.tg_id} disabled successfully.")
+            logger.info("Client for vpn subscription %s disabled successfully.", subscription.id)
             return True
         except Exception as e:
-            logger.error(f"Error disabling client {user.tg_id}: {e}")
+            logger.error("Error disabling vpn subscription %s: %s", subscription.id, e)
             return False
 
     async def get_all_clients_data(self) -> dict[str, ClientData]:
         """Fetch all clients from all servers in batch (1 API call per server).
 
         Returns:
-            dict mapping email (tg_id as string) to ClientData.
+            dict mapping both client UUID and client email to ClientData.
         """
         result: dict[str, ClientData] = {}
 
@@ -586,7 +822,7 @@ class VPNService:
                         traffic_remaining = client.total - (client.up + client.down)
 
                     traffic_used = client.up + client.down
-                    result[email] = ClientData(
+                    payload = ClientData(
                         max_devices=max_devices,
                         traffic_total=traffic_total,
                         traffic_remaining=traffic_remaining,
@@ -595,6 +831,9 @@ class VPNService:
                         traffic_down=client.down,
                         expiry_time=expiry_time,
                     )
+                    result[client.id] = payload
+                    if email:
+                        result[email] = payload
 
         logger.info(f"Batch fetched {len(result)} clients from {len(self.server_pool_service._servers)} servers.")
         return result
