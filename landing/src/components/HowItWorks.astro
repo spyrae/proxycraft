@@ -23,7 +23,7 @@ const stepIcons = [
         <div class="fade-in relative flex flex-col items-center text-center" style={`transition-delay: ${i * 100}ms`}>
           {/* Connector line */}
           {i < 2 && (
-            <div class="absolute top-10 left-[calc(50%+40px)] hidden h-px w-[calc(100%-80px)] bg-border md:block"></div>
+            <div class="absolute top-10 left-[calc(50%+40px)] hidden h-px w-[calc(100%-48px)] bg-border md:block"></div>
           )}
 
           <div class="relative mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border border-accent/20 bg-accent/10">
@@ -36,7 +36,7 @@ const stepIcons = [
           </div>
 
           <h3 class="text-lg font-semibold">{step.title}</h3>
-          <p class="mt-2 text-sm text-text-muted">{step.description}</p>
+          <p class="mt-2 text-sm text-text-muted"><Fragment set:html={step.description} /></p>
         </div>
       ))}
     </div>

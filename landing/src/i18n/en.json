@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "ProxyCraft — VPN, Telegram & WhatsApp Without Limits",
-    "description": "Fast VLESS VPN, Telegram Proxy and WhatsApp Proxy. Works in Russia, China and Iran. Free trial available.",
+    "description": "Fast VLESS VPN, Telegram Proxy and WhatsApp Proxy. Works worldwide. Free trial available.",
     "ogTitle": "ProxyCraft — Internet Freedom Without Compromise",
     "ogDescription": "VLESS VPN, Telegram Proxy and WhatsApp Proxy. Bypass blocks in any country. Try for free."
   },
@@ -19,11 +19,11 @@
     "ctaSecondary": "See Pricing"
   },
   "trustBar": {
-    "china": "Works in China",
-    "iran": "Works in Iran",
-    "russia": "Works in Russia",
+    "worldwide": "Works worldwide",
     "noLogs": "No Logs",
-    "unlimited": "Unlimited Traffic"
+    "unlimited": "Unlimited Traffic",
+    "payment": "Easy Payment",
+    "fullAccess": "Full Access"
   },
   "problem": {
     "title": "Sound familiar?",
@@ -146,12 +146,30 @@
     "title": "Works on all devices",
     "subtitle": "Connect ProxyCraft on any device in minutes",
     "items": [
-      { "name": "iOS", "description": "iPhone and iPad" },
-      { "name": "Android", "description": "Phones and tablets" },
-      { "name": "Windows", "description": "PCs and laptops" },
-      { "name": "macOS", "description": "MacBook and iMac" },
-      { "name": "Linux", "description": "Ubuntu, Fedora etc." },
-      { "name": "Router", "description": "Protect entire network" }
+      {
+        "name": "iOS",
+        "description": "iPhone and iPad"
+      },
+      {
+        "name": "Android",
+        "description": "Phones and tablets"
+      },
+      {
+        "name": "Windows",
+        "description": "PCs and laptops"
+      },
+      {
+        "name": "macOS",
+        "description": "MacBook and iMac"
+      },
+      {
+        "name": "Linux",
+        "description": "Ubuntu, Fedora etc."
+      },
+      {
+        "name": "Router",
+        "description": "Protect entire network"
+      }
     ]
   },
   "howItWorks": {
@@ -161,7 +179,7 @@
       {
         "number": "1",
         "title": "Open the bot",
-        "description": "Launch @proxycraftapp_bot in Telegram"
+        "description": "Launch <a href=\"https://t.me/proxycraftapp_bot\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-accent hover:underline\">@proxycraftapp_bot</a> in Telegram"
       },
       {
         "number": "2",
@@ -188,7 +206,7 @@
       "12": "12 months"
     },
     "products": {
-      "vpn": "Full VPN",
+      "vpn": "VPN",
       "mtproto": "Telegram Proxy",
       "whatsapp": "WhatsApp Proxy",
       "bundle_msg": "Messengers",
@@ -231,7 +249,10 @@
     "legal": "Legal",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
+    "cookiePolicy": "Cookies Policy",
+    "requisites": "Company Details",
     "support": "Support",
+    "writeToSupport": "Contact Support",
     "copyright": "ProxyCraft. All rights reserved.",
     "cookieSettings": "Cookie Settings"
   },

@@ -14,7 +14,7 @@ const botUrl = 'https://t.me/proxycraftapp_bot';
       <!-- Brand -->
       <div class="sm:col-span-2 md:col-span-1">
         <a href={homeUrl} class="flex items-center gap-2">
-          <img src="/favicon.svg" alt="ProxyCraft" class="h-7 w-7" />
+          <img src="/logo.svg" alt="ProxyCraft" class="h-7 w-7" />
           <span class="text-lg font-bold">ProxyCraft</span>
         </a>
         <p class="mt-3 text-sm text-text-dim">{i18n.footer.tagline}</p>
@@ -34,8 +34,7 @@ const botUrl = 'https://t.me/proxycraftapp_bot';
       <div>
         <p class="text-sm font-semibold text-text-muted">{i18n.footer.support}</p>
         <ul class="mt-3 space-y-2">
-          <li><a href={botUrl} target="_blank" rel="noopener noreferrer" class="text-sm text-text-dim transition-colors hover:text-text">Telegram Bot</a></li>
-          <li><a href="mailto:support@proxycraft.tech" class="text-sm text-text-dim transition-colors hover:text-text">support@proxycraft.tech</a></li>
+          <li><a href="mailto:info@proxycraft.tech" class="text-sm text-text-dim transition-colors hover:text-text">{i18n.footer.writeToSupport}</a></li>
         </ul>
       </div>
 
@@ -45,6 +44,8 @@ const botUrl = 'https://t.me/proxycraftapp_bot';
         <ul class="mt-3 space-y-2">
           <li><a href={getLocalePath(lang, '/privacy')} class="text-sm text-text-dim transition-colors hover:text-text">{i18n.footer.privacy}</a></li>
           <li><a href={getLocalePath(lang, '/terms')} class="text-sm text-text-dim transition-colors hover:text-text">{i18n.footer.terms}</a></li>
+          <li><a href={getLocalePath(lang, '/cookies')} class="text-sm text-text-dim transition-colors hover:text-text">{i18n.footer.cookiePolicy}</a></li>
+          <li><a href={getLocalePath(lang, '/requisites')} class="text-sm text-text-dim transition-colors hover:text-text">{i18n.footer.requisites}</a></li>
         </ul>
       </div>
     </div>

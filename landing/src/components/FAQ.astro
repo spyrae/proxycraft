@@ -23,7 +23,7 @@ const faqItems = lang === 'ru' ? faqRu : faqEn;
             </svg>
           </summary>
           <div class="border-t border-border px-6 py-4">
-            <p class="text-sm leading-relaxed text-text-muted">{item.answer}</p>
+            <p class="text-sm leading-relaxed text-text-muted" set:html={item.answer} />
           </div>
         </details>
       ))}

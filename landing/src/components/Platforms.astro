@@ -25,9 +25,13 @@ const platformIcons: Record<string, string> = {
       {i18n.platforms.items.map((platform, i) => (
         <div class="fade-in flex flex-col items-center rounded-xl border border-border bg-bg-card p-6 text-center transition-colors hover:border-border-accent" style={`transition-delay: ${i * 50}ms`}>
           <div class="mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-accent/10">
-            <svg class="h-7 w-7 text-accent" viewBox="0 0 24 24" fill={platform.name === 'Router' ? 'none' : 'currentColor'} stroke={platform.name === 'Router' ? 'currentColor' : 'none'} stroke-width={platform.name === 'Router' ? '1.5' : '0'}>
-              <path stroke-linecap="round" stroke-linejoin="round" d={platformIcons[platform.name] || platformIcons.Router} />
-            </svg>
+            {platform.name === 'Linux' ? (
+              <img src="https://cdn.simpleicons.org/linux/10B981" alt="Linux" class="h-7 w-7" />
+            ) : (
+              <svg class="h-7 w-7 text-accent" viewBox="0 0 24 24" fill={platform.name === 'Router' ? 'none' : 'currentColor'} stroke={platform.name === 'Router' ? 'currentColor' : 'none'} stroke-width={platform.name === 'Router' ? '1.5' : '0'}>
+                <path stroke-linecap="round" stroke-linejoin="round" d={platformIcons[platform.name] || platformIcons.Router} />
+              </svg>
+            )}
           </div>
           <h3 class="text-sm font-semibold">{platform.name}</h3>
           <p class="mt-1 text-xs text-text-muted">{platform.description}</p>

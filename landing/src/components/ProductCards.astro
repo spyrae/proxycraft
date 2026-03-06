@@ -6,9 +6,9 @@ const i18n = t(lang);
 const botUrl = 'https://t.me/proxycraftapp_bot';
 
 const products = [
-  { key: 'vpn' as const, popular: true, icon: '🛡' },
-  { key: 'mtproto' as const, popular: false, icon: '📱' },
-  { key: 'whatsapp' as const, popular: false, icon: '💬' },
+  { key: 'mtproto' as const, popular: false, type: 'telegram' },
+  { key: 'whatsapp' as const, popular: false, type: 'whatsapp' },
+  { key: 'vpn' as const, popular: true, type: 'vpn' },
 ];
 ---
 
@@ -39,7 +39,17 @@ const products = [
             )}
 
             <div class="text-center">
-              <span class="text-4xl">{product.icon}</span>
+              <div class="mb-2 flex justify-center">
+                {product.type === 'telegram' && (
+                  <svg viewBox="0 0 24 24" class="h-12 w-12 fill-current text-[#229ED9]"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/></svg>
+                )}
+                {product.type === 'whatsapp' && (
+                  <svg viewBox="0 0 24 24" class="h-12 w-12 fill-current text-[#25D366]"><path d="M11.996 0C5.371 0 0 5.371 0 12.004c0 2.112.553 4.146 1.604 5.945L.4 23.6l5.788-1.52A11.966 11.966 0 0011.996 24C18.623 24 24 18.625 24 12.004S18.623 0 11.996 0zM17.47 16.73c-.225.633-1.127 1.187-1.637 1.25-.453.056-1.04-.047-3.174-.93-2.583-1.066-4.223-3.702-4.352-3.874-.131-.174-1.04-1.385-1.04-2.642 0-1.257.653-1.883.886-2.12.232-.236.505-.295.674-.295.168 0 .336 0 .484.005.153.006.357-.058.558.427.211.505.716 1.748.779 1.875.063.126.105.274.021.442-.084.168-.126.274-.253.421-.126.147-.263.326-.379.442-.126.116-.263.242-.116.495.147.253.653 1.079 1.4 1.748.963.863 1.768 1.126 2.021 1.242.253.116.4.095.547-.074.147-.168.632-.737.8-1.01.168-.274.337-.232.568-.147.232.084 1.474.695 1.726.821.253.126.421.19.484.295.063.105.063.6-.168 1.232z"/></svg>
+                )}
+                {product.type === 'vpn' && (
+                  <svg viewBox="0 0 24 24" class="h-12 w-12 fill-none stroke-current stroke-2 text-accent"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+                )}
+              </div>
               <h3 class="mt-4 text-xl font-bold">{data.name}</h3>
               <p class="mt-2 text-sm text-text-muted">{data.description}</p>
 

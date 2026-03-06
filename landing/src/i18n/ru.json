@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "ProxyCraft — VPN, Telegram и WhatsApp без ограничений",
-    "description": "Быстрый VPN на базе VLESS, Telegram Proxy и WhatsApp Proxy. Работает в России, Китае и Иране. Бесплатный пробный период.",
+    "description": "Быстрый VPN на базе VLESS, Telegram Proxy и WhatsApp Proxy. Работает по всему миру. Бесплатный пробный период.",
     "ogTitle": "ProxyCraft — Свобода интернета без компромиссов",
     "ogDescription": "VLESS VPN, Telegram Proxy и WhatsApp Proxy. Обходит блокировки в любой стране. Попробуйте бесплатно."
   },
@@ -12,18 +12,18 @@
     "getStarted": "Попробовать бесплатно"
   },
   "hero": {
-    "title": "VPN, Telegram и WhatsApp",
+    "title": "Интернет, Telegram и WhatsApp",
     "titleHighlight": "без ограничений",
     "subtitle": "Быстрый и надёжный доступ к интернету, мессенджерам и звонкам. Работает там, где другие сдаются.",
     "cta": "Попробовать бесплатно",
     "ctaSecondary": "Узнать цены"
   },
   "trustBar": {
-    "china": "Работает в Китае",
-    "iran": "Работает в Иране",
-    "russia": "Работает в России",
+    "worldwide": "Работает по всему миру",
     "noLogs": "Без логов",
-    "unlimited": "Безлимитный трафик"
+    "unlimited": "Безлимитный трафик",
+    "payment": "Удобная оплата",
+    "fullAccess": "Полный доступ"
   },
   "problem": {
     "title": "Знакомые проблемы?",
@@ -45,7 +45,7 @@
       },
       {
         "icon": "speed",
-        "title": "Скорость черепашья",
+        "title": "Низкая скорость",
         "description": "Бесплатные решения работают медленно и постоянно отключаются"
       }
     ]
@@ -54,7 +54,7 @@
     "title": "Три продукта — одно решение",
     "subtitle": "Выберите то, что вам нужно. Или возьмите всё сразу.",
     "vpn": {
-      "name": "Full VPN",
+      "name": "VPN",
       "badge": "7 дней бесплатно",
       "price": "249",
       "period": "₽/мес",
@@ -103,12 +103,12 @@
       {
         "icon": "vless",
         "title": "Протокол VLESS",
-        "description": "Современный протокол, который не детектируется DPI-системами провайдеров"
+        "description": "Защищенные протоколы, которые не детектируются провайдерами"
       },
       {
         "icon": "cdn",
         "title": "Cloudflare CDN",
-        "description": "Трафик идёт через легитимную CDN-сеть — заблокировать невозможно"
+        "description": "Защищенные сети обеспечивают надежное и стабильное соединение"
       },
       {
         "icon": "unlimited",
@@ -118,7 +118,7 @@
       {
         "icon": "speed",
         "title": "Высокая скорость",
-        "description": "Серверы в Европе с низким пингом и широким каналом"
+        "description": "Серверы в Европе и России с низким пингом и широким каналом"
       },
       {
         "icon": "platforms",
@@ -137,8 +137,8 @@
       },
       {
         "icon": "support",
-        "title": "Поддержка 24/7",
-        "description": "Помощь в Telegram-боте в любое время дня и ночи"
+        "title": "Поддержка",
+        "description": "Помощь по email в случае возникновения вопросов"
       }
     ]
   },
@@ -146,12 +146,30 @@
     "title": "Работает на всех устройствах",
     "subtitle": "Подключите ProxyCraft на любом устройстве за пару минут",
     "items": [
-      { "name": "iOS", "description": "iPhone и iPad" },
-      { "name": "Android", "description": "Смартфоны и планшеты" },
-      { "name": "Windows", "description": "ПК и ноутбуки" },
-      { "name": "macOS", "description": "MacBook и iMac" },
-      { "name": "Linux", "description": "Ubuntu, Fedora и др." },
-      { "name": "Router", "description": "Защита всей сети" }
+      {
+        "name": "iOS",
+        "description": "iPhone и iPad"
+      },
+      {
+        "name": "Android",
+        "description": "Смартфоны и планшеты"
+      },
+      {
+        "name": "Windows",
+        "description": "ПК и ноутбуки"
+      },
+      {
+        "name": "macOS",
+        "description": "MacBook и iMac"
+      },
+      {
+        "name": "Linux",
+        "description": "Ubuntu, Fedora и др."
+      },
+      {
+        "name": "Router",
+        "description": "Защита всей сети"
+      }
     ]
   },
   "howItWorks": {
@@ -161,7 +179,7 @@
       {
         "number": "1",
         "title": "Откройте бота",
-        "description": "Запустите @proxycraftapp_bot в Telegram"
+        "description": "Запустите <a href=\"https://t.me/proxycraftapp_bot\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-accent hover:underline\">@proxycraftapp_bot</a> в Telegram"
       },
       {
         "number": "2",
@@ -171,13 +189,13 @@
       {
         "number": "3",
         "title": "Подключитесь",
-        "description": "Получите конфиг и настройте за 1 минуту"
+        "description": "Получите настройки и подключитесь за 1 минуту"
       }
     ]
   },
   "pricing": {
     "title": "Прозрачные цены",
-    "subtitle": "Чем дольше срок — тем выгоднее. Оплата в рублях или Telegram Stars.",
+    "subtitle": "Чем дольше подписка, тем выгоднее. Оплата в рублях или Telegram Stars.",
     "popular": "Популярный",
     "perMonth": "/мес",
     "save": "экономия",
@@ -188,7 +206,7 @@
       "12": "12 месяцев"
     },
     "products": {
-      "vpn": "Full VPN",
+      "vpn": "VPN",
       "mtproto": "Telegram Proxy",
       "whatsapp": "WhatsApp Proxy",
       "bundle_msg": "Мессенджеры",
@@ -217,13 +235,13 @@
     "title": "Часто задаваемые вопросы"
   },
   "finalCta": {
-    "title": "Готовы к свободному интернету?",
+    "title": "Готовы к защищенному интернету?",
     "subtitle": "Начните с бесплатного пробного периода — без привязки карты",
     "cta": "Начать бесплатно",
     "ctaSecondary": "Задать вопрос"
   },
   "footer": {
-    "tagline": "Свобода интернета без компромиссов",
+    "tagline": "Защищенное интернет-соединение для ваших задач.",
     "product": "Продукт",
     "features": "Возможности",
     "pricing": "Цены",
@@ -231,7 +249,10 @@
     "legal": "Юридическое",
     "privacy": "Политика конфиденциальности",
     "terms": "Условия использования",
+    "cookiePolicy": "Политика cookies",
+    "requisites": "Реквизиты",
     "support": "Поддержка",
+    "writeToSupport": "Написать в поддержку",
     "copyright": "ProxyCraft. Все права защищены.",
     "cookieSettings": "Настройки cookie"
   },

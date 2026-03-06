@@ -5,11 +5,11 @@ const lang = getLangFromUrl(Astro.url);
 const i18n = t(lang);
 
 const badges = [
-  { icon: '🇨🇳', label: i18n.trustBar.china },
-  { icon: '🇮🇷', label: i18n.trustBar.iran },
-  { icon: '🇷🇺', label: i18n.trustBar.russia },
+  { icon: '🌍', label: i18n.trustBar.worldwide },
   { icon: '🔒', label: i18n.trustBar.noLogs },
   { icon: '∞', label: i18n.trustBar.unlimited },
+  { icon: '💳', label: i18n.trustBar.payment },
+  { icon: '⚡', label: i18n.trustBar.fullAccess },
 ];
 ---
 

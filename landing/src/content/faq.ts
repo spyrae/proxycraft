@@ -6,11 +6,7 @@ interface FaqItem {
 export const faqRu: FaqItem[] = [
   {
     question: 'Что такое ProxyCraft?',
-    answer: 'ProxyCraft — это сервис для безопасного и свободного доступа к интернету. Мы предлагаем три продукта: Full VPN (защита всего трафика), Telegram Proxy (доступ к Telegram) и WhatsApp Proxy (звонки и сообщения в WhatsApp).',
-  },
-  {
-    question: 'Чем VLESS отличается от обычного VPN?',
-    answer: 'VLESS — это современный протокол, который маскирует VPN-трафик под обычный HTTPS. Провайдеры и DPI-системы не могут отличить его от обычного веб-серфинга, поэтому VLESS работает даже там, где обычные VPN заблокированы.',
+    answer: 'ProxyCraft — это сервис для безопасного и свободного доступа к интернету. Мы предлагаем три продукта: VPN (защита всего трафика), Telegram Proxy (доступ к Telegram) и WhatsApp Proxy (звонки и сообщения в WhatsApp).',
   },
   {
     question: 'Работает ли ProxyCraft в Китае и Иране?',
@@ -18,19 +14,15 @@ export const faqRu: FaqItem[] = [
   },
   {
     question: 'Есть ли бесплатный пробный период?',
-    answer: 'Да! Full VPN — 7 дней бесплатно, Telegram Proxy и WhatsApp Proxy — 3 дня бесплатно. Без привязки карты.',
+    answer: 'Да! VPN — 7 дней бесплатно, Telegram Proxy и WhatsApp Proxy — 3 дня бесплатно. Без привязки карты.',
   },
   {
     question: 'Какие способы оплаты доступны?',
-    answer: 'Мы принимаем оплату в рублях через ЮKassa, ЮMoney, а также в Telegram Stars. Для пользователей за рубежом доступна оплата криптовалютой.',
+    answer: 'Мы принимаем оплату в рублях российскими картами и Telegram Stars.',
   },
   {
     question: 'На каких устройствах работает ProxyCraft?',
-    answer: 'VPN работает на iOS, Android, Windows, macOS и Linux через приложение Happ. Telegram Proxy работает прямо в приложении Telegram. WhatsApp Proxy настраивается в настройках WhatsApp.',
-  },
-  {
-    question: 'Что такое приложение Happ?',
-    answer: 'Happ — это приложение для подключения к VPN. Доступно в App Store и Google Play. После получения конфигурации в боте, вы просто импортируете её в Happ одним нажатием.',
+    answer: 'VPN работает на iOS, Android, Windows, macOS и Linux. Telegram Proxy работает прямо в приложении Telegram. WhatsApp Proxy настраивается в настройках WhatsApp.',
   },
   {
     question: 'Вы храните логи?',
@@ -42,7 +34,7 @@ export const faqRu: FaqItem[] = [
   },
   {
     question: 'Как подключиться?',
-    answer: 'Откройте @proxycraftapp_bot в Telegram, выберите продукт и тарифный план. Бот выдаст конфигурацию и пошаговую инструкцию по подключению для вашего устройства.',
+    answer: 'Откройте <a href="https://t.me/proxycraftapp_bot" target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">@proxycraftapp_bot</a> в Telegram, выберите продукт и тарифный план. Бот выдаст настройки и пошаговую инструкцию по подключению для вашего устройства.',
   },
   {
     question: 'Есть ли ограничения по трафику?',
@@ -50,18 +42,14 @@ export const faqRu: FaqItem[] = [
   },
   {
     question: 'Что делать, если не работает?',
-    answer: 'Напишите в @proxycraftapp_bot команду /support — наша поддержка работает 24/7 и поможет решить любую проблему с подключением.',
+    answer: 'Напишите в <a href="https://t.me/proxycraftapp_bot" target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">@proxycraftapp_bot</a> команду /support — наша поддержка работает 24/7 и поможет решить любую проблему с подключением.',
   },
 ];
 
 export const faqEn: FaqItem[] = [
   {
     question: 'What is ProxyCraft?',
-    answer: 'ProxyCraft is a service for secure and unrestricted internet access. We offer three products: Full VPN (all traffic protection), Telegram Proxy (Telegram access) and WhatsApp Proxy (WhatsApp calls and messages).',
-  },
-  {
-    question: 'How is VLESS different from regular VPN?',
-    answer: 'VLESS is a modern protocol that disguises VPN traffic as regular HTTPS. ISPs and DPI systems cannot distinguish it from normal web browsing, so VLESS works even where regular VPNs are blocked.',
+    answer: 'ProxyCraft is a service for secure and unrestricted internet access. We offer three products: VPN (all traffic protection), Telegram Proxy (Telegram access) and WhatsApp Proxy (WhatsApp calls and messages).',
   },
   {
     question: 'Does ProxyCraft work in China and Iran?',
@@ -69,19 +57,15 @@ export const faqEn: FaqItem[] = [
   },
   {
     question: 'Is there a free trial?',
-    answer: 'Yes! Full VPN — 7 days free, Telegram Proxy and WhatsApp Proxy — 3 days free. No credit card required.',
+    answer: 'Yes! VPN — 7 days free, Telegram Proxy and WhatsApp Proxy — 3 days free. No credit card required.',
   },
   {
     question: 'What payment methods are available?',
-    answer: 'We accept payments in rubles via YooKassa, YooMoney, and in Telegram Stars. Cryptocurrency payments are also available for international users.',
+    answer: 'We accept payments in rubles via Russian cards and in Telegram Stars.',
   },
   {
     question: 'What devices does ProxyCraft support?',
-    answer: 'VPN works on iOS, Android, Windows, macOS and Linux via the Happ app. Telegram Proxy works directly in the Telegram app. WhatsApp Proxy is configured in WhatsApp settings.',
-  },
-  {
-    question: 'What is the Happ app?',
-    answer: 'Happ is the app for connecting to VPN. Available on App Store and Google Play. After receiving your configuration from the bot, you simply import it into Happ with one tap.',
+    answer: 'VPN works on iOS, Android, Windows, macOS and Linux. Telegram Proxy works directly in the Telegram app. WhatsApp Proxy is configured in WhatsApp settings.',
   },
   {
     question: 'Do you keep logs?',
@@ -93,7 +77,7 @@ export const faqEn: FaqItem[] = [
   },
   {
     question: 'How do I connect?',
-    answer: 'Open @proxycraftapp_bot in Telegram, choose a product and plan. The bot will provide your configuration and step-by-step setup instructions for your device.',
+    answer: 'Open <a href="https://t.me/proxycraftapp_bot" target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">@proxycraftapp_bot</a> in Telegram, choose a product and plan. The bot will provide your settings and step-by-step setup instructions for your device.',
   },
   {
     question: 'Are there traffic limits?',
@@ -101,6 +85,6 @@ export const faqEn: FaqItem[] = [
   },
   {
     question: 'What if it doesn\'t work?',
-    answer: 'Message @proxycraftapp_bot with the /support command — our support team works 24/7 and will help resolve any connection issue.',
+    answer: 'Message <a href="https://t.me/proxycraftapp_bot" target="_blank" rel="noopener noreferrer" class="text-accent hover:underline">@proxycraftapp_bot</a> with the /support command — our support team works 24/7 and will help resolve any connection issue.',
   },
 ];
