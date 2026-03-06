@@ -38,29 +38,29 @@ class ReferrerReward(Base):
         payment_id (str): Unique with user_tg_id payment_id of the transaction, just to avoid duplicates.
     """
 
-    __tablename__ = "vpncraft_referrer_rewards"
+    __tablename__ = "proxycraft_referrer_rewards"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_tg_id: Mapped[int] = mapped_column(
-        ForeignKey("vpncraft_users.tg_id", ondelete="CASCADE"), nullable=False
+        ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"), nullable=False
     )
     reward_type: Mapped[ReferrerRewardType] = mapped_column(
         Enum(
             ReferrerRewardType,
-            name="vpncraft_referrerrewardtype",
+            name="proxycraft_referrerrewardtype",
             values_callable=lambda obj: [e.value for e in obj],
         ),
         nullable=False,
     )
     reward_level: Mapped[ReferrerRewardLevel] = mapped_column(
-        Enum(ReferrerRewardLevel, name="vpncraft_referrerrewardlevel"), nullable=True
+        Enum(ReferrerRewardLevel, name="proxycraft_referrerrewardlevel"), nullable=True
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(precision=38, scale=18), nullable=False)
     created_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=False)
     rewarded_at: Mapped[datetime | None] = mapped_column(nullable=True)
     payment_id: Mapped[str] = mapped_column(String(length=64), nullable=False)
 
-    __table_args__ = (UniqueConstraint("user_tg_id", "payment_id", name="vpncraft_uq_user_payment"),)
+    __table_args__ = (UniqueConstraint("user_tg_id", "payment_id", name="proxycraft_uq_user_payment"),)
 
     def __repr__(self) -> str:
         return (

@@ -93,7 +93,7 @@ Payment Gateway (_on_payment_succeeded)
 
 ## Таблицы БД
 
-### vpncraft_referrals
+### proxycraft_referrals
 
 | Поле | Тип | Описание |
 |------|-----|----------|
@@ -104,7 +104,7 @@ Payment Gateway (_on_payment_succeeded)
 | `referred_rewarded_at` | datetime? | Когда приглашённый получил trial |
 | `referred_bonus_days` | int? | Сколько дней trial получил |
 
-### vpncraft_referrer_rewards
+### proxycraft_referrer_rewards
 
 | Поле | Тип | Описание |
 |------|-----|----------|

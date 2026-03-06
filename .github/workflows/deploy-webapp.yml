@@ -38,4 +38,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy webapp/dist --project-name=vpncraft-webapp
+          command: pages deploy webapp/dist --project-name=proxycraft-webapp

@@ -33,13 +33,13 @@ class User(Base):
         referral (Referral | None): The Referral record if this user was invited.
     """
 
-    __tablename__ = "vpncraft_users"
+    __tablename__ = "proxycraft_users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tg_id: Mapped[int] = mapped_column(unique=True, nullable=False)
     vpn_id: Mapped[str] = mapped_column(String(36), unique=True, nullable=False)
     server_id: Mapped[int | None] = mapped_column(
-        ForeignKey("vpncraft_servers.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("proxycraft_servers.id", ondelete="SET NULL"), nullable=True
     )
     first_name: Mapped[str] = mapped_column(String(length=32), nullable=False)
     username: Mapped[str | None] = mapped_column(String(length=32), nullable=True)

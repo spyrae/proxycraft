@@ -24,7 +24,7 @@ class SubscriptionEvent(Base):
         sent_at: Timestamp when the notification was sent.
     """
 
-    __tablename__ = "vpncraft_subscription_events"
+    __tablename__ = "proxycraft_subscription_events"
     __table_args__ = (
         UniqueConstraint("tg_id", "expiry_time", "stage", name="uq_subscription_event_cycle"),
     )

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "vpncraft"
+name = "proxycraft"
 version = "0.1.0"
 description = "Telegram bot for selling VPN & proxy subscriptions via 3X-UI."
 authors = ["Roman Belov"]

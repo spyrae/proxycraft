@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class Invite(Base):
-    __tablename__ = "vpncraft_invites"
+    __tablename__ = "proxycraft_invites"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)

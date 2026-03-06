@@ -11,7 +11,7 @@ from app.db.models import WhatsAppSubscription
 logger = logging.getLogger(__name__)
 
 DOCKER_SOCKET_PATH = "/var/run/docker.sock"
-WHATSAPP_CONTAINER_NAME = "vpncraft-whatsapp"
+WHATSAPP_CONTAINER_NAME = "proxycraft-whatsapp"
 
 
 class WhatsAppService:

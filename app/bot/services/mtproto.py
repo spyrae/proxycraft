@@ -210,7 +210,7 @@ class MTProtoService:
         """Send SIGUSR2 to mtprotoproxy container for hot reload."""
         try:
             result = subprocess.run(
-                ["docker", "kill", "-s", "SIGUSR2", "vpncraft-mtproto"],
+                ["docker", "kill", "-s", "SIGUSR2", "proxycraft-mtproto"],
                 capture_output=True,
                 text=True,
                 timeout=10,

@@ -27,7 +27,7 @@ class Server(Base):
         users (list[User]): List of users associated with the server.
     """
 
-    __tablename__ = "vpncraft_servers"
+    __tablename__ = "proxycraft_servers"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)

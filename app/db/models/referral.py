@@ -27,14 +27,14 @@ class Referral(Base):
         referrer (User): Relationship to the user who invited.
     """
 
-    __tablename__ = "vpncraft_referrals"
+    __tablename__ = "proxycraft_referrals"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     referred_tg_id: Mapped[int] = mapped_column(
-        ForeignKey("vpncraft_users.tg_id", ondelete="CASCADE"), unique=True, nullable=False
+        ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"), unique=True, nullable=False
     )
     referrer_tg_id: Mapped[int] = mapped_column(
-        ForeignKey("vpncraft_users.tg_id", ondelete="CASCADE"), nullable=False
+        ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=False)
     referred_rewarded_at: Mapped[datetime | None] = mapped_column(nullable=True)

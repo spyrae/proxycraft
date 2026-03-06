@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 class BalanceLog(Base):
     """Audit log for balance changes (top-ups, purchases, auto-renewals, refunds)."""
 
-    __tablename__ = "vpncraft_balance_log"
+    __tablename__ = "proxycraft_balance_log"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    tg_id: Mapped[int] = mapped_column(ForeignKey("vpncraft_users.tg_id"), nullable=False)
+    tg_id: Mapped[int] = mapped_column(ForeignKey("proxycraft_users.tg_id"), nullable=False)
     amount: Mapped[int] = mapped_column(nullable=False)  # kopecks, positive=topup, negative=purchase
     type: Mapped[str] = mapped_column(String(20), nullable=False)  # topup, purchase, auto_renew, refund
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)

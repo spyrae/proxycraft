@@ -18,10 +18,10 @@ API_PREFIX = "/api/v1/"
 
 ALLOWED_ORIGINS = [
     "https://app.proxycraft.tech",
-    "https://app.vpncraft.tech",
-    "https://vpncraft-webapp.pages.dev",
+    "https://app.proxycraft.tech",
+    "https://proxycraft-webapp.pages.dev",
     "https://admin.proxycraft.tech",
-    "https://admin.vpncraft.tech",
+    "https://admin.proxycraft.tech",
     "http://localhost:5173",
     "http://localhost:4173",
 ]
@@ -40,9 +40,9 @@ def _is_allowed_origin(origin: str) -> bool:
     if origin in ALLOWED_ORIGINS:
         return True
     # Allow Cloudflare Pages preview deployments
-    if origin.endswith(".vpncraft-webapp.pages.dev") and origin.startswith("https://"):
+    if origin.endswith(".proxycraft-webapp.pages.dev") and origin.startswith("https://"):
         return True
-    if origin.endswith(".vpncraft-admin.pages.dev") and origin.startswith("https://"):
+    if origin.endswith(".proxycraft-admin.pages.dev") and origin.startswith("https://"):
         return True
     if origin.endswith(".proxycraft-landing.pages.dev") and origin.startswith("https://"):
         return True

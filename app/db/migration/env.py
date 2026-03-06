@@ -22,7 +22,7 @@ target_metadata = Base.metadata
 
 def include_name(name, type_, parent_names):
     if type_ == "table":
-        return name.startswith("vpncraft_")
+        return name.startswith("proxycraft_")
     return True
 
 

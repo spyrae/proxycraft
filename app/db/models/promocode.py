@@ -27,7 +27,7 @@ class Promocode(Base):
         activations (list[ActivatedPromocode]): List of activation records
     """
 
-    __tablename__ = "vpncraft_promocodes"
+    __tablename__ = "proxycraft_promocodes"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     code: Mapped[str] = mapped_column(String(length=32), unique=True, nullable=False)

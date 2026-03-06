@@ -27,10 +27,10 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             set -e
-            cd /opt/vpncraft
+            cd /opt/proxycraft
             git pull origin main
             sudo docker compose build bot
             sudo docker compose up -d bot
             echo "--- Bot logs (last 10 lines) ---"
             sleep 3
-            sudo docker logs vpncraft-bot --tail 10 2>&1
+            sudo docker logs proxycraft-bot --tail 10 2>&1

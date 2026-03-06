@@ -1,14 +1,14 @@
 services:
   redis:
     image: redis:7-alpine
-    container_name: vpncraft-redis
+    container_name: proxycraft-redis
     restart: always
     volumes:
       - redis_data:/data
 
   mtproto:
     image: python:3.12-slim
-    container_name: vpncraft-mtproto
+    container_name: proxycraft-mtproto
     restart: unless-stopped
     ports:
       - "8444:8444"
@@ -22,7 +22,7 @@ services:
 
   whatsapp:
     image: haproxy:2.9-alpine
-    container_name: vpncraft-whatsapp
+    container_name: proxycraft-whatsapp
     restart: unless-stopped
     ports:
       - "587:587"
@@ -35,7 +35,7 @@ services:
 
   bot:
     build: .
-    container_name: vpncraft-bot
+    container_name: proxycraft-bot
     volumes:
       - ./app/data:/app/data
       - ./app/locales:/app/locales

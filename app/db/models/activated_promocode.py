@@ -18,19 +18,19 @@ class ActivatedPromocode(Base):
 
     Attributes:
         id (int): Primary key.
-        promocode_id (int): FK to vpncraft_promocodes.
-        user_tg_id (int): FK to vpncraft_users.tg_id.
+        promocode_id (int): FK to proxycraft_promocodes.
+        user_tg_id (int): FK to proxycraft_users.tg_id.
         activated_at (datetime): When the activation occurred.
     """
 
-    __tablename__ = "vpncraft_activated_promocodes"
+    __tablename__ = "proxycraft_activated_promocodes"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     promocode_id: Mapped[int] = mapped_column(
-        ForeignKey("vpncraft_promocodes.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("proxycraft_promocodes.id", ondelete="CASCADE"), nullable=False
     )
     user_tg_id: Mapped[int] = mapped_column(
-        ForeignKey("vpncraft_users.tg_id", ondelete="CASCADE"), nullable=False
+        ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"), nullable=False
     )
     activated_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=False)
 
