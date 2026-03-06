@@ -8,7 +8,7 @@ Create Date: 2026-03-06
 import sqlalchemy as sa
 from alembic import op
 
-revision = "008_add_server_transport_overrides"
+revision = "008_server_overrides"
 down_revision = "007_rename_to_proxycraft"
 branch_labels = None
 depends_on = None
