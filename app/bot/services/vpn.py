@@ -428,13 +428,9 @@ class VPNService:
                 )
                 return True
 
-            # Delete from old inbound
-            await self.server_pool_service.execute_api_call(
-                connection,
-                lambda: connection.api.client.delete(old_inbound_id, user.vpn_id),
-            )
-
-            # Create in new inbound with same settings
+            # Create the replacement client first. 3X-UI can reject deleting the
+            # last client from an inbound, so "delete then add" is not reliable.
+            # This order also avoids a transient window without an active client.
             new_client = Client(
                 email=str(user.tg_id),
                 enable=True,
@@ -449,6 +445,33 @@ class VPNService:
                 connection,
                 lambda: connection.api.client.add(inbound_id=new_inbound_id, clients=[new_client]),
             )
+
+            try:
+                await self.server_pool_service.execute_api_call(
+                    connection,
+                    lambda: connection.api.client.delete(old_inbound_id, user.vpn_id),
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to delete old inbound client for user %s after creating replacement "
+                    "in inbound %s. Rolling back the new client.",
+                    user.tg_id,
+                    new_inbound_id,
+                )
+                try:
+                    await self.server_pool_service.execute_api_call(
+                        connection,
+                        lambda: connection.api.client.delete(new_inbound_id, user.vpn_id),
+                    )
+                except Exception:
+                    logger.exception(
+                        "Rollback failed while removing replacement client for user %s from "
+                        "inbound %s.",
+                        user.tg_id,
+                        new_inbound_id,
+                    )
+                return False
+
             await self._persist_vpn_profile(user, target_profile)
             logger.info(
                 "User %s moved from inbound %s to %s (profile: %s -> %s)",
