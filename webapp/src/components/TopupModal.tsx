@@ -81,12 +81,12 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end"
+      className="fixed inset-0 z-[60] flex items-end animate-overlay-fade"
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="w-full rounded-t-3xl animate-slide-up"
+        className="w-full rounded-t-3xl animate-sheet-up"
         style={{ backgroundColor: 'var(--bg-primary)' }}
       >
         {/* Bottom sheet handle */}
