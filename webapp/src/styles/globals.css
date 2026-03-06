@@ -25,6 +25,12 @@
   --warning: #F59E0B;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   padding: 0;

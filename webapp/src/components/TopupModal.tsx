@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { openInvoice } from '@telegram-apps/sdk-react';
 import { openLink } from '@telegram-apps/sdk';
 import { useTopup } from '../api/hooks';
@@ -47,8 +48,12 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
   const starsAmount = Math.max(1, Math.round(selectedAmount / STARS_RATE));
 
   useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     return () => {
       if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      document.body.style.overflow = previousOverflow;
     };
   }, []);
 
@@ -79,21 +84,44 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
     }
   }, [selectedAmount, currency, topupMutation, onClose]);
 
-  return (
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(
     <>
-      {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[60] animate-overlay-fade"
-        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        aria-hidden="true"
         onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9000,
+          background: 'rgba(0, 0, 0, 0.5)',
+          animation: 'overlay-fade 0.2s ease-out forwards',
+        }}
       />
 
-      {/* Sheet */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-[61] rounded-t-3xl animate-sheet-up"
-        style={{ backgroundColor: 'var(--bg-primary)' }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="topup-modal-title"
+        className="rounded-t-3xl"
+        onClick={(event) => event.stopPropagation()}
+        style={{
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          maxWidth: '100vw',
+          zIndex: 9001,
+          backgroundColor: 'var(--bg-primary)',
+          borderRadius: '24px 24px 0 0',
+          animation: 'sheet-up 0.3s ease-out forwards',
+          boxShadow: '0 -20px 50px rgba(0, 0, 0, 0.45)',
+        }}
       >
-        {/* Bottom sheet handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div
             className="w-10 h-1 rounded-full"
@@ -101,9 +129,16 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
           />
         </div>
 
-        <div className="px-6 pb-8 pt-3">
+        <div
+          className="px-6 pt-3"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)' }}
+        >
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+            <h2
+              id="topup-modal-title"
+              className="text-lg font-bold"
+              style={{ color: 'var(--text-primary)' }}
+            >
               Top up balance
             </h2>
             <button
@@ -115,7 +150,6 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
             </button>
           </div>
 
-          {/* Amount selection */}
           <div className="grid grid-cols-4 gap-2 mb-4">
             {TOPUP_AMOUNTS.map((amount) => (
               <button
@@ -136,7 +170,6 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
             ))}
           </div>
 
-          {/* Payment method toggle */}
           <div
             className="flex rounded-xl p-1 mb-4"
             style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
@@ -160,14 +193,12 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
             })}
           </div>
 
-          {/* Conversion info for Stars */}
           {currency === 'stars' && (
             <p className="text-xs text-center mb-4" style={{ color: 'var(--text-dim)' }}>
               {selectedAmount}₽ = {starsAmount} ★
             </p>
           )}
 
-          {/* Submit button */}
           <button
             onClick={status === 'redirected' ? onClose : handleTopup}
             disabled={status === 'loading'}
@@ -200,6 +231,7 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
           )}
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
