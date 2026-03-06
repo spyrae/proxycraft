@@ -303,10 +303,10 @@ function VpnProfileSelector({
                   },
                 );
               }}
-              className="min-h-[44px] px-3 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-100"
+              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 disabled:opacity-100"
               style={{
-                backgroundColor: isActive ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-secondary)',
-                color: isActive ? '#10B981' : 'var(--text-primary)',
+                backgroundColor: isActive ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-card)',
+                color: isActive ? '#10B981' : 'var(--text-dim)',
                 border: isActive
                   ? '1px solid rgba(16, 185, 129, 0.35)'
                   : '1px solid var(--border)',
