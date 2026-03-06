@@ -20,7 +20,10 @@ class NavReferral(str, Enum):
 
 class NavSupport(str, Enum):
     MAIN = "support"
-    HOW_TO_CONNECT = "how_to_connect"
+    INSTALL_IOS = "support_install_ios"
+    INSTALL_ANDROID = "support_install_android"
+    TELEGRAM_PROXY = "support_telegram"
+    WHATSAPP_PROXY = "support_whatsapp"
     VPN_NOT_WORKING = "vpn_not_working"
 
 
