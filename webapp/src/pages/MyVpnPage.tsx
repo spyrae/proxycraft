@@ -35,7 +35,11 @@ function useLocationLabel(location: string | null | undefined): string | undefin
 }
 
 export function MyVpnPage() {
-  const { data: me } = useMe();
+  const {
+    data: me,
+    isLoading: meLoading,
+    isFetching: meFetching,
+  } = useMe();
   const { t } = useLanguage();
 
   const { data: vpnSub, isLoading: vpnLoading, isFetching: vpnFetching } = useVpnSubscription();
@@ -48,15 +52,23 @@ export function MyVpnPage() {
   const isLoading = vpnLoading
     || (mtprotoEnabled && mtprotoLoading)
     || (whatsappEnabled && whatsappLoading);
-  const isFetching = vpnFetching
-    || mtprotoFetching
-    || whatsappFetching;
 
   const showVpn = !!(vpnSub && (vpnSub.active || vpnSub.expired));
   const showMtproto = !!(mtprotoEnabled && mtprotoSub && (mtprotoSub.active || mtprotoSub.expired));
   const showWhatsapp = !!(whatsappEnabled && whatsappSub && (whatsappSub.active || whatsappSub.expired));
   const hasAnything = showVpn || showMtproto || showWhatsapp;
-  const showInitialSkeleton = !hasAnything && (isLoading || isFetching);
+  const reserveMtprotoSlot = me ? mtprotoEnabled : true;
+  const reserveWhatsappSlot = me ? whatsappEnabled : true;
+
+  const showVpnSkeleton = !showVpn && (vpnLoading || vpnFetching);
+  const showMtprotoSkeleton = reserveMtprotoSlot
+    && !showMtproto
+    && (mtprotoLoading || mtprotoFetching || meLoading || meFetching);
+  const showWhatsappSkeleton = reserveWhatsappSlot
+    && !showWhatsapp
+    && (whatsappLoading || whatsappFetching || meLoading || meFetching);
+
+  const hasPendingSections = showVpnSkeleton || showMtprotoSkeleton || showWhatsappSkeleton;
 
   return (
     <div className="animate-fade-in">
@@ -64,18 +76,16 @@ export function MyVpnPage() {
         {t('my_vpn')}
       </h1>
 
-      {showInitialSkeleton && (
-        <>
-          <SkeletonCard />
-          <SkeletonCard />
-        </>
-      )}
-
-      {!isLoading && !hasAnything && <EmptyState />}
-
       {showVpn && <VpnSection sub={vpnSub!} />}
+      {showVpnSkeleton && <SkeletonCard />}
+
       {showMtproto && <MtprotoSection sub={mtprotoSub!} />}
+      {showMtprotoSkeleton && <SkeletonCard />}
+
       {showWhatsapp && <WhatsappSection sub={whatsappSub!} />}
+      {showWhatsappSkeleton && <SkeletonCard />}
+
+      {!hasAnything && !hasPendingSections && !isLoading && <EmptyState />}
     </div>
   );
 }
