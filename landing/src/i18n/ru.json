@@ -1,9 +1,9 @@
 {
   "meta": {
-    "title": "ProxyCraft — VPN, Telegram и WhatsApp без ограничений",
-    "description": "Быстрый VPN на базе VLESS, Telegram Proxy и WhatsApp Proxy. Работает по всему миру. Бесплатный пробный период.",
-    "ogTitle": "ProxyCraft — Свобода интернета без компромиссов",
-    "ogDescription": "VLESS VPN, Telegram Proxy и WhatsApp Proxy. Обходит блокировки в любой стране. Попробуйте бесплатно."
+    "title": "ProxyCraft — Защищённый интернет в любой стране",
+    "description": "VPN, Telegram Proxy и WhatsApp Proxy. Стабильное защищённое соединение для всех ваших устройств. Бесплатный пробный период.",
+    "ogTitle": "ProxyCraft — Защищённый интернет в любой стране",
+    "ogDescription": "VPN, Telegram Proxy и WhatsApp Proxy. Безопасное соединение для мессенджеров и сети — в любой стране. Попробуйте бесплатно."
   },
   "nav": {
     "features": "Возможности",
