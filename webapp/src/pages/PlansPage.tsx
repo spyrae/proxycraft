@@ -25,6 +25,8 @@ import {
 } from '../api/hooks';
 import { ApiRequestError } from '../api/client';
 import { PlanCard } from '../components/PlanCard';
+import { StatusOverlay } from '../components/StatusOverlay';
+import type { OverlayMode } from '../components/StatusOverlay';
 
 type Tab = 'vpn' | 'mtproto' | 'whatsapp';
 
@@ -168,32 +170,6 @@ function BalanceBanner({ balance }: { balance: number }) {
   );
 }
 
-function PurchaseSuccessBanner({ onDismiss }: { onDismiss: () => void }) {
-  const { t } = useLanguage();
-  return (
-    <div
-      className="rounded-2xl p-4 mb-4 text-center"
-      style={{
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        border: '1px solid rgba(16, 185, 129, 0.3)',
-      }}
-    >
-      <p className="text-sm font-semibold mb-1" style={{ color: '#10B981' }}>
-        {t('sub_activated')}
-      </p>
-      <p className="text-xs mb-3" style={{ color: 'var(--text-dim)' }}>
-        {t('plan_now_active')}
-      </p>
-      <button
-        onClick={onDismiss}
-        className="text-xs font-medium px-3 py-1 rounded-lg"
-        style={{ color: 'var(--text-dim)' }}
-      >
-        {t('dismiss')}
-      </button>
-    </div>
-  );
-}
 
 function InsufficientBalanceBanner({ onTopup }: { onTopup: () => void }) {
   const { t } = useLanguage();
@@ -230,7 +206,7 @@ function VpnPlans({ location }: { location: string | null }) {
   const { t, lang } = useLanguage();
   const [selectedDevices, setSelectedDevices] = useState<number | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [overlayMode, setOverlayMode] = useState<OverlayMode>('hidden');
   const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
   const [showTopup, setShowTopup] = useState(false);
 
@@ -244,6 +220,7 @@ function VpnPlans({ location }: { location: string | null }) {
   const handleBuy = async () => {
     if (!selectedDevices || !selectedDuration) return;
     setShowInsufficientBalance(false);
+    setOverlayMode('loading');
 
     try {
       await buyPlan.mutateAsync({
@@ -252,8 +229,9 @@ function VpnPlans({ location }: { location: string | null }) {
         duration: selectedDuration,
         ...(location && { location }),
       });
-      setShowSuccess(true);
+      setOverlayMode('success');
     } catch (err) {
+      setOverlayMode('hidden');
       if (err instanceof ApiRequestError) {
         const body = err.body as { error?: string } | undefined;
         if (body?.error === 'Insufficient balance') {
@@ -264,7 +242,13 @@ function VpnPlans({ location }: { location: string | null }) {
   };
 
   const handleTrial = async () => {
-    await trialVpn.mutateAsync();
+    setOverlayMode('loading');
+    try {
+      await trialVpn.mutateAsync();
+      setOverlayMode('success');
+    } catch {
+      setOverlayMode('hidden');
+    }
   };
 
   // Get price for selected plan in RUB
@@ -281,7 +265,7 @@ function VpnPlans({ location }: { location: string | null }) {
   return (
     <div>
       {showTopup && <TopupModal onClose={() => setShowTopup(false)} />}
-      {showSuccess && <PurchaseSuccessBanner onDismiss={() => setShowSuccess(false)} />}
+      <StatusOverlay mode={overlayMode} loadingKey="activating" onDismiss={() => setOverlayMode('hidden')} />
       {showInsufficientBalance && <InsufficientBalanceBanner onTopup={() => { setShowInsufficientBalance(false); setShowTopup(true); }} />}
 
       {trialAvailable && (
@@ -470,7 +454,7 @@ function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
   const trialWhatsapp = useTrialWhatsapp();
   const { t } = useLanguage();
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [overlayMode, setOverlayMode] = useState<OverlayMode>('hidden');
   const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
   const [showTopup, setShowTopup] = useState(false);
 
@@ -490,14 +474,16 @@ function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
   const handleBuy = async () => {
     if (!selectedDuration) return;
     setShowInsufficientBalance(false);
+    setOverlayMode('loading');
 
     try {
       await buyPlan.mutateAsync({
         product,
         duration: selectedDuration,
       });
-      setShowSuccess(true);
+      setOverlayMode('success');
     } catch (err) {
+      setOverlayMode('hidden');
       if (err instanceof ApiRequestError) {
         const body = err.body as { error?: string } | undefined;
         if (body?.error === 'Insufficient balance') {
@@ -508,13 +494,19 @@ function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
   };
 
   const handleTrial = async () => {
-    await trialMutation.mutateAsync();
+    setOverlayMode('loading');
+    try {
+      await trialMutation.mutateAsync();
+      setOverlayMode('success');
+    } catch {
+      setOverlayMode('hidden');
+    }
   };
 
   return (
     <div>
       {showTopup && <TopupModal onClose={() => setShowTopup(false)} />}
-      {showSuccess && <PurchaseSuccessBanner onDismiss={() => setShowSuccess(false)} />}
+      <StatusOverlay mode={overlayMode} loadingKey="activating" onDismiss={() => setOverlayMode('hidden')} />
       {showInsufficientBalance && <InsufficientBalanceBanner onTopup={() => { setShowInsufficientBalance(false); setShowTopup(true); }} />}
 
       {trialAvailable && (

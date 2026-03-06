@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { openLink } from '@telegram-apps/sdk';
+import { StatusOverlay } from '../components/StatusOverlay';
+import type { OverlayMode } from '../components/StatusOverlay';
 import {
   useMe,
   useVpnSubscription,
@@ -125,6 +127,7 @@ function CancelButton({
   const { t } = useLanguage();
   const cancel = useCancelSubscription();
   const [confirming, setConfirming] = useState(false);
+  const [overlayMode, setOverlayMode] = useState<OverlayMode>('hidden');
 
   if (cancelledAt) {
     return (
@@ -167,17 +170,29 @@ function CancelButton({
           </button>
           <button
             onClick={() => {
-              cancel.mutate({ product }, { onSuccess: () => { setConfirming(false); onCancelled?.(); } });
+              setOverlayMode('loading');
+              cancel.mutate(
+                { product },
+                {
+                  onSuccess: () => {
+                    setOverlayMode('hidden');
+                    setConfirming(false);
+                    onCancelled?.();
+                  },
+                  onError: () => setOverlayMode('hidden'),
+                },
+              );
             }}
             disabled={cancel.isPending}
             className="flex-1 rounded-xl py-2 text-xs font-semibold transition-all"
             style={{
-              backgroundColor: cancel.isPending ? 'rgba(239, 68, 68, 0.5)' : '#EF4444',
+              backgroundColor: '#EF4444',
               color: '#ffffff',
             }}
           >
-            {cancel.isPending ? t('cancelling') : t('cancel_confirm_yes')}
+            {t('cancel_confirm_yes')}
           </button>
+          <StatusOverlay mode={overlayMode} loadingKey="cancelling" />
         </div>
       </div>
     );
