@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface Props {
   title: string;
@@ -6,13 +7,15 @@ interface Props {
   children?: ReactNode;
 }
 
-const statusConfig = {
-  active: { label: 'Active', color: '#10B981', bg: 'rgba(16, 185, 129, 0.12)' },
-  expired: { label: 'Expired', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.12)' },
-  none: { label: 'No subscription', color: '#6B7280', bg: 'rgba(107, 114, 128, 0.12)' },
-};
-
 export function SubscriptionCard({ title, status, children }: Props) {
+  const { t } = useLanguage();
+
+  const statusConfig = {
+    active: { label: t('status_active'), color: '#10B981', bg: 'rgba(16, 185, 129, 0.12)' },
+    expired: { label: t('status_expired'), color: '#EF4444', bg: 'rgba(239, 68, 68, 0.12)' },
+    none: { label: t('status_none'), color: '#6B7280', bg: 'rgba(107, 114, 128, 0.12)' },
+  };
+
   const cfg = statusConfig[status];
 
   return (

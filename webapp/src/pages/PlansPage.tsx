@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { TopupModal } from '../components/TopupModal';
+import { useLanguage } from '../i18n/LanguageContext';
 import {
   useMe,
   usePlans,
@@ -27,6 +28,7 @@ export function PlansPage() {
   const { data: locData } = useLocations();
   const [tab, setTab] = useState<Tab>('vpn');
   const [location, setLocation] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   const locations = locData?.locations || [];
 
@@ -37,16 +39,16 @@ export function PlansPage() {
   }, [locations, location]);
 
   const tabs: { key: Tab; label: string }[] = useMemo(() => {
-    const t: { key: Tab; label: string }[] = [{ key: 'vpn', label: 'VPN' }];
-    if (me?.features.mtproto_enabled) t.push({ key: 'mtproto', label: 'Telegram' });
-    if (me?.features.whatsapp_enabled) t.push({ key: 'whatsapp', label: 'WhatsApp' });
-    return t;
+    const tabList: { key: Tab; label: string }[] = [{ key: 'vpn', label: 'VPN' }];
+    if (me?.features.mtproto_enabled) tabList.push({ key: 'mtproto', label: 'Telegram' });
+    if (me?.features.whatsapp_enabled) tabList.push({ key: 'whatsapp', label: 'WhatsApp' });
+    return tabList;
   }, [me]);
 
   return (
     <div className="animate-fade-in">
       <h1 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-        Plans
+        {t('plans_title')}
       </h1>
 
       {/* Balance info */}
@@ -58,7 +60,7 @@ export function PlansPage() {
       {locations.length > 1 && (
         <div className="mb-4">
           <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
-            Location
+            {t('location')}
           </p>
           <div
             className="flex rounded-xl p-1"
@@ -118,6 +120,7 @@ export function PlansPage() {
 
 function BalanceBanner({ balance }: { balance: number }) {
   const [showTopup, setShowTopup] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <>
@@ -130,7 +133,7 @@ function BalanceBanner({ balance }: { balance: number }) {
       >
         <div className="flex items-center gap-2">
           <span className="text-xs" style={{ color: 'var(--text-dim)' }}>
-            Balance:
+            {t('balance_plans')}
           </span>
           <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
             {balance.toFixed(0)} ₽
@@ -141,7 +144,7 @@ function BalanceBanner({ balance }: { balance: number }) {
           className="text-xs font-semibold px-3 py-1 rounded-lg"
           style={{ color: '#10B981' }}
         >
-          Top up
+          {t('top_up')}
         </button>
       </div>
 
@@ -151,6 +154,7 @@ function BalanceBanner({ balance }: { balance: number }) {
 }
 
 function PurchaseSuccessBanner({ onDismiss }: { onDismiss: () => void }) {
+  const { t } = useLanguage();
   return (
     <div
       className="rounded-2xl p-4 mb-4 text-center"
@@ -160,23 +164,24 @@ function PurchaseSuccessBanner({ onDismiss }: { onDismiss: () => void }) {
       }}
     >
       <p className="text-sm font-semibold mb-1" style={{ color: '#10B981' }}>
-        Subscription activated!
+        {t('sub_activated')}
       </p>
       <p className="text-xs mb-3" style={{ color: 'var(--text-dim)' }}>
-        Your plan is now active
+        {t('plan_now_active')}
       </p>
       <button
         onClick={onDismiss}
         className="text-xs font-medium px-3 py-1 rounded-lg"
         style={{ color: 'var(--text-dim)' }}
       >
-        Dismiss
+        {t('dismiss')}
       </button>
     </div>
   );
 }
 
 function InsufficientBalanceBanner({ onTopup }: { onTopup: () => void }) {
+  const { t } = useLanguage();
   return (
     <div
       className="rounded-2xl p-4 mb-4 text-center"
@@ -186,17 +191,17 @@ function InsufficientBalanceBanner({ onTopup }: { onTopup: () => void }) {
       }}
     >
       <p className="text-sm font-semibold mb-1" style={{ color: '#EF4444' }}>
-        Insufficient balance
+        {t('insufficient_bal')}
       </p>
       <p className="text-xs mb-3" style={{ color: 'var(--text-dim)' }}>
-        Top up your balance to purchase this plan
+        {t('topup_to_purchase')}
       </p>
       <button
         onClick={onTopup}
         className="text-xs font-semibold px-4 py-2 rounded-xl"
         style={{ backgroundColor: '#10B981', color: '#ffffff' }}
       >
-        Top up balance
+        {t('top_up_balance')}
       </button>
     </div>
   );
@@ -207,6 +212,7 @@ function VpnPlans({ location }: { location: string | null }) {
   const { data: me } = useMe();
   const buyPlan = useBuyPlan();
   const trialVpn = useTrialVpn();
+  const { t } = useLanguage();
   const [selectedDevices, setSelectedDevices] = useState<number | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -274,12 +280,12 @@ function VpnPlans({ location }: { location: string | null }) {
             border: '1px dashed rgba(16, 185, 129, 0.4)',
           }}
         >
-          {trialVpn.isPending ? 'Activating...' : '🎉 Try for Free (7 days)'}
+          {trialVpn.isPending ? t('activating') : t('try_free_7')}
         </button>
       )}
 
       <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
-        Select devices
+        {t('select_devices')}
       </p>
       {plans.map((plan, idx) => {
         const rubPrices = plan.prices['RUB'] || {};
@@ -289,8 +295,8 @@ function VpnPlans({ location }: { location: string | null }) {
         return (
           <PlanCard
             key={plan.devices}
-            title={`${plan.devices} device${plan.devices > 1 ? 's' : ''}`}
-            description={`from ${displayPrice} ₽`}
+            title={plan.devices > 1 ? t('n_devices_plural', { n: plan.devices }) : t('n_devices', { n: plan.devices })}
+            description={t('from_price', { price: displayPrice })}
             price={displayPrice}
             currency="₽"
             popular={idx === 1}
@@ -308,7 +314,7 @@ function VpnPlans({ location }: { location: string | null }) {
       {selectedDevices && (
         <>
           <p className="text-xs font-semibold mt-4 mb-2" style={{ color: 'var(--text-muted)' }}>
-            Select duration
+            {t('select_duration')}
           </p>
           {(() => {
             const plan = plans.find((p) => p.devices === selectedDevices);
@@ -319,7 +325,7 @@ function VpnPlans({ location }: { location: string | null }) {
               return (
                 <PlanCard
                   key={d}
-                  title={`${d} days`}
+                  title={t('n_days', { d })}
                   description=""
                   price={displayPrice}
                   currency="₽"
@@ -343,7 +349,7 @@ function VpnPlans({ location }: { location: string | null }) {
             boxShadow: buyPlan.isPending ? 'none' : '0 4px 15px rgba(16, 185, 129, 0.3)',
           }}
         >
-          {buyPlan.isPending ? 'Processing...' : `Buy for ${selectedPrice} ₽`}
+          {buyPlan.isPending ? t('processing') : t('buy_for', { price: selectedPrice })}
         </button>
       )}
 
@@ -356,6 +362,7 @@ function PromoCodeSection() {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState('');
   const activate = useActivatePromocode();
+  const { t } = useLanguage();
 
   const handleActivate = async () => {
     if (!code.trim()) return;
@@ -375,7 +382,7 @@ function PromoCodeSection() {
         }}
       >
         <p className="text-sm font-semibold" style={{ color: '#10B981' }}>
-          Promo activated! +{activate.data.duration} days
+          {t('promo_activated', { days: activate.data.duration })}
         </p>
       </div>
     );
@@ -388,16 +395,16 @@ function PromoCodeSection() {
         className="w-full mt-3 text-xs text-center transition-colors"
         style={{ color: 'var(--text-dim)' }}
       >
-        Have a promo code?
+        {t('have_promo')}
       </button>
     );
   }
 
   const errorMessage =
     activate.error instanceof ApiRequestError
-      ? ((activate.error.body as { error?: string })?.error || 'Invalid or used promo code')
+      ? ((activate.error.body as { error?: string })?.error || t('invalid_promo'))
       : activate.error
-        ? 'Invalid or used promo code'
+        ? t('invalid_promo')
         : null;
 
   return (
@@ -408,7 +415,7 @@ function PromoCodeSection() {
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === 'Enter' && handleActivate()}
-          placeholder="Enter promo code"
+          placeholder={t('promo_placeholder')}
           className="flex-1 rounded-xl px-3 py-2 text-sm outline-none transition-colors"
           style={{
             backgroundColor: 'var(--bg-card)',
@@ -427,7 +434,7 @@ function PromoCodeSection() {
             color: '#ffffff',
           }}
         >
-          {activate.isPending ? '...' : 'Apply'}
+          {activate.isPending ? '...' : t('apply')}
         </button>
       </div>
       {activate.isError && (
@@ -446,6 +453,7 @@ function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
   const buyPlan = useBuyPlan();
   const trialMtproto = useTrialMtproto();
   const trialWhatsapp = useTrialWhatsapp();
+  const { t } = useLanguage();
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
@@ -505,17 +513,17 @@ function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
             border: '1px dashed rgba(16, 185, 129, 0.4)',
           }}
         >
-          {trialMutation.isPending ? 'Activating...' : '🎉 Try for Free (3 days)'}
+          {trialMutation.isPending ? t('activating') : t('try_free_3')}
         </button>
       )}
 
       <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
-        Select duration
+        {t('select_duration')}
       </p>
       {plans.map((plan) => (
         <PlanCard
           key={plan.duration}
-          title={`${plan.duration} days`}
+          title={t('n_days', { d: plan.duration })}
           description=""
           price={plan.price_rub}
           currency="₽"
@@ -538,7 +546,7 @@ function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
               boxShadow: buyPlan.isPending ? 'none' : '0 4px 15px rgba(16, 185, 129, 0.3)',
             }}
           >
-            {buyPlan.isPending ? 'Processing...' : `Buy for ${selectedPlan.price_rub} ₽`}
+            {buyPlan.isPending ? t('processing') : t('buy_for', { price: selectedPlan.price_rub })}
           </button>
         );
       })()}

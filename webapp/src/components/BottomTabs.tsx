@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useMemo } from 'react';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface TabDef {
   path: string;
@@ -7,19 +8,20 @@ interface TabDef {
   icon: (props: { active: boolean }) => React.ReactElement;
 }
 
-const tabs: TabDef[] = [
-  { path: '/', label: 'Home', icon: HomeIcon },
-  { path: '/plans', label: 'Plans', icon: PlansIcon },
-  { path: '/my-vpn', label: 'My VPN', icon: VpnIcon },
-];
-
 export function BottomTabs() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useLanguage();
+
+  const tabs: TabDef[] = [
+    { path: '/', label: t('tab_home'), icon: HomeIcon },
+    { path: '/plans', label: t('tab_plans'), icon: PlansIcon },
+    { path: '/my-vpn', label: t('tab_vpn'), icon: VpnIcon },
+  ];
 
   const activeIndex = useMemo(
-    () => tabs.findIndex((t) => t.path === location.pathname),
-    [location.pathname],
+    () => tabs.findIndex((tab) => tab.path === location.pathname),
+    [location.pathname, tabs],
   );
 
   const handleTap = (path: string) => {

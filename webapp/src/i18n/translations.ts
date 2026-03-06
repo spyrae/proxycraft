@@ -1,0 +1,230 @@
+export type Lang = 'en' | 'ru';
+
+const translations = {
+  en: {
+    // Navigation
+    tab_home: 'Home',
+    tab_plans: 'Plans',
+    tab_vpn: 'My VPN',
+
+    // SubscriptionCard statuses
+    status_active: 'Active',
+    status_expired: 'Expired',
+    status_none: 'No subscription',
+
+    // HomePage — general
+    greeting: 'Hi, {name}',
+    protected: 'Protected',
+    unprotected: 'Unprotected',
+    balance_label: 'Balance',
+    top_up_btn: 'Top Up',
+    failed_load: 'Failed to load profile',
+    retry: 'Retry',
+
+    // HomePage — ActiveStats
+    subscription: 'Subscription',
+    days_left: '{n} days left',
+    expires_date: 'Expires {date}',
+    upload: 'Upload',
+    download: 'Download',
+    total_used: 'Total Used',
+    devices: 'Devices',
+
+    // HomePage — QuickSetup
+    get_started: 'Get Started',
+    step1_title: 'Top up balance',
+    step1_desc: 'Add funds via Stars or card',
+    step2_title: 'Choose a Plan',
+    step2_desc: 'Select the plan that fits your needs',
+    step3_title: 'Connect',
+    step3_desc: 'Scan QR or copy the config link',
+    free_trial_available: 'Free 7-day trial available!',
+    no_payment_required: 'No payment required to start',
+
+    // HomePage — Setup Guides
+    setup_guides: 'Setup Guides',
+    guide_vpn_title: 'VPN Setup',
+    guide_vpn_desc: 'Configure VPN for your entire device',
+    guide_vpn_content: 'VPN setup instructions coming soon.',
+    guide_telegram_title: 'Telegram Proxy',
+    guide_telegram_desc: 'Connect Telegram through MTProto proxy',
+    guide_telegram_content: 'Telegram proxy setup instructions coming soon.',
+    guide_whatsapp_title: 'WhatsApp Proxy',
+    guide_whatsapp_desc: 'Route WhatsApp through a proxy server',
+    guide_whatsapp_content: 'WhatsApp proxy setup instructions coming soon.',
+    coming_soon: 'Coming soon',
+
+    // HomePage — FAQ
+    help_faq: 'Help & FAQ',
+    faq1_q: "Proxy isn't working",
+    faq1_a: "Check that the proxy is enabled in your app settings. If the issue persists, try switching to a different server in the Plans tab.",
+    faq2_q: 'How to change server',
+    faq2_a: 'Go to Plans → select a tariff → choose a server location (Amsterdam or Saint Petersburg). Your connection will switch automatically.',
+    faq3_q: 'How to change mobile carrier',
+    faq3_a: "Some carriers block proxy traffic. Try switching to Wi-Fi or contact support — we'll help configure the proxy for your carrier.",
+    faq4_q: "My balance didn't top up",
+    faq4_a: 'Payments via Stars are confirmed instantly. For card/SBP payments, it can take up to 5 minutes. If nothing changes — contact support.',
+    faq5_q: 'How to connect on multiple devices',
+    faq5_a: 'Choose a plan with 2+ devices. Each device needs to be configured separately using the same credentials from your subscription.',
+
+    // PlansPage
+    plans_title: 'Plans',
+    balance_plans: 'Balance:',
+    top_up: 'Top up',
+    location: 'Location',
+    select_devices: 'Select devices',
+    select_duration: 'Select duration',
+    n_devices: '{n} device',
+    n_devices_plural: '{n} devices',
+    n_days: '{d} days',
+    from_price: 'from {price} ₽',
+    buy_for: 'Buy for {price} ₽',
+    processing: 'Processing...',
+    activating: 'Activating...',
+    try_free_7: '🎉 Try for Free (7 days)',
+    try_free_3: '🎉 Try for Free (3 days)',
+    sub_activated: 'Subscription activated!',
+    plan_now_active: 'Your plan is now active',
+    dismiss: 'Dismiss',
+    insufficient_bal: 'Insufficient balance',
+    topup_to_purchase: 'Top up your balance to purchase this plan',
+    top_up_balance: 'Top up balance',
+    have_promo: 'Have a promo code?',
+    promo_placeholder: 'Enter promo code',
+    apply: 'Apply',
+    invalid_promo: 'Invalid or used promo code',
+    promo_activated: 'Promo activated! +{days} days',
+
+    // MyVpnPage
+    my_vpn: 'My VPN',
+    connection_key: 'Connection Key',
+    apply_in_tg: 'Apply in Telegram',
+    expired_sub: 'Your subscription has expired.',
+    no_active_vpn: 'No active VPN subscription.',
+    no_active_mtproto: 'No active Telegram Proxy subscription.',
+    no_active_whatsapp: 'No active WhatsApp subscription.',
+
+    // TopupModal
+    topup_title: 'Top up balance',
+    topup_success: 'Success!',
+    done: 'Done',
+    topup_amount_btn: 'Top up {amount}₽',
+    topup_redirected_msg: 'Complete the payment in the opened page. Balance will update automatically.',
+    topup_error_msg: 'Failed to create payment. Try again.',
+  },
+
+  ru: {
+    // Navigation
+    tab_home: 'Главная',
+    tab_plans: 'Тарифы',
+    tab_vpn: 'Мой VPN',
+
+    // SubscriptionCard statuses
+    status_active: 'Активна',
+    status_expired: 'Истекла',
+    status_none: 'Нет подписки',
+
+    // HomePage — general
+    greeting: 'Привет, {name}',
+    protected: 'Защищено',
+    unprotected: 'Не защищено',
+    balance_label: 'Баланс',
+    top_up_btn: 'Пополнить',
+    failed_load: 'Не удалось загрузить профиль',
+    retry: 'Повторить',
+
+    // HomePage — ActiveStats
+    subscription: 'Подписка',
+    days_left: 'Осталось {n} дн.',
+    expires_date: 'Истекает {date}',
+    upload: 'Отправлено',
+    download: 'Получено',
+    total_used: 'Всего',
+    devices: 'Устройства',
+
+    // HomePage — QuickSetup
+    get_started: 'Начать',
+    step1_title: 'Пополнить баланс',
+    step1_desc: 'Пополните через Stars или карту',
+    step2_title: 'Выбрать тариф',
+    step2_desc: 'Выберите подходящий тариф',
+    step3_title: 'Подключиться',
+    step3_desc: 'Отсканируйте QR или скопируйте ссылку',
+    free_trial_available: 'Доступно 7 дней бесплатно!',
+    no_payment_required: 'Без оплаты для начала',
+
+    // HomePage — Setup Guides
+    setup_guides: 'Инструкции',
+    guide_vpn_title: 'Настройка VPN',
+    guide_vpn_desc: 'Настройте VPN для всего устройства',
+    guide_vpn_content: 'Инструкция по настройке VPN появится скоро.',
+    guide_telegram_title: 'Прокси Telegram',
+    guide_telegram_desc: 'Подключите Telegram через MTProto-прокси',
+    guide_telegram_content: 'Инструкция по настройке Telegram-прокси появится скоро.',
+    guide_whatsapp_title: 'Прокси WhatsApp',
+    guide_whatsapp_desc: 'Настройте WhatsApp через прокси-сервер',
+    guide_whatsapp_content: 'Инструкция по настройке WhatsApp-прокси появится скоро.',
+    coming_soon: 'Скоро',
+
+    // HomePage — FAQ
+    help_faq: 'Помощь',
+    faq1_q: 'Прокси не работает',
+    faq1_a: 'Убедитесь, что прокси включён в настройках приложения. Если проблема остаётся — попробуйте сменить сервер в разделе Тарифы.',
+    faq2_q: 'Как сменить сервер',
+    faq2_a: 'Перейдите в Тарифы → выберите тариф → выберите локацию (Амстердам или Санкт-Петербург). Соединение переключится автоматически.',
+    faq3_q: 'Как сменить мобильного оператора',
+    faq3_a: 'Некоторые операторы блокируют прокси-трафик. Попробуйте Wi-Fi или обратитесь в поддержку — поможем настроить под вашего оператора.',
+    faq4_q: 'Баланс не пополнился',
+    faq4_a: 'Оплата через Stars подтверждается мгновенно. Для карты и СБП — до 5 минут. Если ничего не изменилось — обратитесь в поддержку.',
+    faq5_q: 'Как подключить несколько устройств',
+    faq5_a: 'Выберите тариф на 2+ устройства. Каждое устройство настраивается отдельно с теми же данными из подписки.',
+
+    // PlansPage
+    plans_title: 'Тарифы',
+    balance_plans: 'Баланс:',
+    top_up: 'Пополнить',
+    location: 'Локация',
+    select_devices: 'Выберите устройства',
+    select_duration: 'Выберите срок',
+    n_devices: '{n} устройство',
+    n_devices_plural: '{n} устройства',
+    n_days: '{d} дней',
+    from_price: 'от {price} ₽',
+    buy_for: 'Купить за {price} ₽',
+    processing: 'Обработка...',
+    activating: 'Активация...',
+    try_free_7: '🎉 Попробовать бесплатно (7 дней)',
+    try_free_3: '🎉 Попробовать бесплатно (3 дня)',
+    sub_activated: 'Подписка активирована!',
+    plan_now_active: 'Ваш тариф теперь активен',
+    dismiss: 'Понятно',
+    insufficient_bal: 'Недостаточно средств',
+    topup_to_purchase: 'Пополните баланс для покупки тарифа',
+    top_up_balance: 'Пополнить баланс',
+    have_promo: 'Есть промокод?',
+    promo_placeholder: 'Введите промокод',
+    apply: 'Применить',
+    invalid_promo: 'Неверный или использованный промокод',
+    promo_activated: 'Промокод активирован! +{days} дней',
+
+    // MyVpnPage
+    my_vpn: 'Мой VPN',
+    connection_key: 'Ключ подключения',
+    apply_in_tg: 'Применить в Telegram',
+    expired_sub: 'Ваша подписка истекла.',
+    no_active_vpn: 'Нет активной VPN-подписки.',
+    no_active_mtproto: 'Нет активной подписки Telegram Proxy.',
+    no_active_whatsapp: 'Нет активной подписки WhatsApp.',
+
+    // TopupModal
+    topup_title: 'Пополнить баланс',
+    topup_success: 'Готово!',
+    done: 'Закрыть',
+    topup_amount_btn: 'Пополнить на {amount}₽',
+    topup_redirected_msg: 'Завершите оплату на открытой странице. Баланс обновится автоматически.',
+    topup_error_msg: 'Не удалось создать платёж. Попробуйте снова.',
+  },
+} as const;
+
+export type TranslationKey = keyof typeof translations.en;
+export default translations;

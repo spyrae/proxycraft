@@ -3,14 +3,16 @@ import { useMe, useVpnSubscription, useMtprotoSubscription, useWhatsappSubscript
 import { SubscriptionCard } from '../components/SubscriptionCard';
 import { QRCode } from '../components/QRCode';
 import { CopyButton } from '../components/CopyButton';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export function MyVpnPage() {
   const { data: me } = useMe();
+  const { t } = useLanguage();
 
   return (
     <div className="animate-fade-in">
       <h1 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-        My VPN
+        {t('my_vpn')}
       </h1>
 
       <VpnSection />
@@ -23,6 +25,7 @@ export function MyVpnPage() {
 
 function VpnSection() {
   const { data: sub, isLoading } = useVpnSubscription();
+  const { t } = useLanguage();
 
   if (isLoading) return <SkeletonCard />;
   if (!sub) return null;
@@ -35,10 +38,10 @@ function VpnSection() {
         <div className="space-y-3">
           {/* Traffic stats */}
           <div className="grid grid-cols-2 gap-2">
-            <StatItem label="Upload" value={formatBytes(sub.traffic_up || 0)} icon="↑" color="#06B6D4" />
-            <StatItem label="Download" value={formatBytes(sub.traffic_down || 0)} icon="↓" color="#10B981" />
-            <StatItem label="Total Used" value={formatBytes(sub.traffic_used || 0)} icon="◎" color="#8B5CF6" />
-            <StatItem label="Devices" value={sub.max_devices === -1 ? '∞' : String(sub.max_devices)} icon="⊞" color="#F59E0B" />
+            <StatItem label={t('upload')} value={formatBytes(sub.traffic_up || 0)} icon="↑" color="#06B6D4" />
+            <StatItem label={t('download')} value={formatBytes(sub.traffic_down || 0)} icon="↓" color="#10B981" />
+            <StatItem label={t('total_used')} value={formatBytes(sub.traffic_used || 0)} icon="◎" color="#8B5CF6" />
+            <StatItem label={t('devices')} value={sub.max_devices === -1 ? '∞' : String(sub.max_devices)} icon="⊞" color="#F59E0B" />
           </div>
 
           {sub.expiry_time && sub.expiry_time > 0 && (
@@ -53,7 +56,7 @@ function VpnSection() {
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
-              Expires {new Date(sub.expiry_time).toLocaleDateString()}
+              {t('expires_date', { date: new Date(sub.expiry_time).toLocaleDateString() })}
             </div>
           )}
 
@@ -61,7 +64,7 @@ function VpnSection() {
           {sub.key && (
             <div className="space-y-3">
               <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                Connection Key
+                {t('connection_key')}
               </p>
               <div className="flex items-center gap-2">
                 <div
@@ -84,7 +87,7 @@ function VpnSection() {
 
       {!sub.active && (
         <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
-          {sub.expired ? 'Your subscription has expired.' : 'No active VPN subscription.'}
+          {sub.expired ? t('expired_sub') : t('no_active_vpn')}
         </p>
       )}
     </SubscriptionCard>
@@ -93,6 +96,7 @@ function VpnSection() {
 
 function MtprotoSection() {
   const { data: sub, isLoading } = useMtprotoSubscription();
+  const { t } = useLanguage();
 
   if (isLoading) return <SkeletonCard />;
   if (!sub) return null;
@@ -115,7 +119,7 @@ function MtprotoSection() {
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
-              Expires {new Date(sub.expires_at).toLocaleDateString()}
+              {t('expires_date', { date: new Date(sub.expires_at).toLocaleDateString() })}
             </div>
           )}
           <div className="flex items-center gap-2">
@@ -144,13 +148,13 @@ function MtprotoSection() {
               <line x1="22" y1="2" x2="11" y2="13" />
               <polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>
-            Apply in Telegram
+            {t('apply_in_tg')}
           </button>
         </div>
       )}
       {!sub.active && (
         <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
-          No active Telegram Proxy subscription.
+          {t('no_active_mtproto')}
         </p>
       )}
     </SubscriptionCard>
@@ -159,6 +163,7 @@ function MtprotoSection() {
 
 function WhatsappSection() {
   const { data: sub, isLoading } = useWhatsappSubscription();
+  const { t } = useLanguage();
 
   if (isLoading) return <SkeletonCard />;
   if (!sub) return null;
@@ -182,7 +187,7 @@ function WhatsappSection() {
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
-              Expires {new Date(sub.expires_at).toLocaleDateString()}
+              {t('expires_date', { date: new Date(sub.expires_at).toLocaleDateString() })}
             </div>
           )}
           <div className="flex items-center gap-2">
@@ -202,7 +207,7 @@ function WhatsappSection() {
       )}
       {!sub.active && (
         <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
-          No active WhatsApp subscription.
+          {t('no_active_whatsapp')}
         </p>
       )}
     </SubscriptionCard>

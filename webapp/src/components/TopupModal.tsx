@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { openInvoice } from '@telegram-apps/sdk-react';
 import { openLink } from '@telegram-apps/sdk';
 import { useTopup } from '../api/hooks';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const STARS_RATE = 1.8;
 const TOPUP_AMOUNTS = [250, 500, 1000, 2000];
@@ -44,6 +45,7 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
   const topupMutation = useTopup();
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'redirected' | 'error'>('idle');
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { t } = useLanguage();
 
   const starsAmount = Math.max(1, Math.round(selectedAmount / STARS_RATE));
 
@@ -139,7 +141,7 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
               className="text-lg font-bold"
               style={{ color: 'var(--text-primary)' }}
             >
-              Top up balance
+              {t('topup_title')}
             </h2>
             <button
               onClick={onClose}
@@ -210,23 +212,23 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
             }}
           >
             {status === 'loading'
-              ? 'Processing...'
+              ? t('processing')
               : status === 'success'
-                ? 'Success!'
+                ? t('topup_success')
                 : status === 'redirected'
-                  ? 'Done'
-                  : `Top up ${selectedAmount}₽`}
+                  ? t('done')
+                  : t('topup_amount_btn', { amount: selectedAmount })}
           </button>
 
           {status === 'redirected' && (
             <p className="text-xs text-center mt-2" style={{ color: 'var(--text-dim)' }}>
-              Complete the payment in the opened page. Balance will update automatically.
+              {t('topup_redirected_msg')}
             </p>
           )}
 
           {status === 'error' && (
             <p className="text-xs text-center mt-2" style={{ color: 'var(--danger, #EF4444)' }}>
-              Failed to create payment. Try again.
+              {t('topup_error_msg')}
             </p>
           )}
         </div>

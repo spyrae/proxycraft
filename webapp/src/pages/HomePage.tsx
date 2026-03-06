@@ -4,10 +4,13 @@ import { useTelegram } from '../hooks/useTelegram';
 import { useMe, useVpnSubscription } from '../api/hooks';
 import { TopupModal } from '../components/TopupModal';
 import { createPortal } from 'react-dom';
+import { useLanguage } from '../i18n/LanguageContext';
+import type { TranslationKey } from '../i18n/translations';
 
 export function HomePage() {
   const { user } = useTelegram();
   const { data: me, isLoading, error } = useMe();
+  const { t } = useLanguage();
 
   if (isLoading) return <HomeLoading />;
   if (error || !me) return <HomeError />;
@@ -16,12 +19,15 @@ export function HomePage() {
 
   return (
     <div className="animate-fade-in">
-      {/* Greeting + Protected badge */}
+      {/* Greeting + Language toggle + Protected badge */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-          Hi, {user?.first_name || me.first_name}
+          {t('greeting', { name: user?.first_name || me.first_name })}
         </p>
-        <ProtectedBadge active={hasActiveVpn} />
+        <div className="flex items-center gap-2">
+          <LangToggle />
+          <ProtectedBadge active={hasActiveVpn} />
+        </div>
       </div>
 
       {/* Balance Card */}
@@ -39,7 +45,25 @@ export function HomePage() {
   );
 }
 
+function LangToggle() {
+  const { lang, setLang } = useLanguage();
+  return (
+    <button
+      onClick={() => setLang(lang === 'en' ? 'ru' : 'en')}
+      className="text-[11px] font-bold px-2 py-1 rounded-full"
+      style={{
+        backgroundColor: 'rgba(107, 114, 128, 0.12)',
+        color: 'var(--text-dim)',
+        border: '1px solid var(--border)',
+      }}
+    >
+      {lang.toUpperCase()}
+    </button>
+  );
+}
+
 function ProtectedBadge({ active }: { active: boolean }) {
+  const { t } = useLanguage();
   return (
     <div
       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold"
@@ -57,13 +81,14 @@ function ProtectedBadge({ active }: { active: boolean }) {
         alt=""
         style={{ opacity: active ? 1 : 0.5 }}
       />
-      {active ? 'Protected' : 'Unprotected'}
+      {active ? t('protected') : t('unprotected')}
     </div>
   );
 }
 
 function BalanceCard({ balance }: { balance: number }) {
   const [showTopup, setShowTopup] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <>
@@ -71,7 +96,7 @@ function BalanceCard({ balance }: { balance: number }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-              Balance
+              {t('balance_label')}
             </span>
             <span className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
               {balance.toFixed(0)} ₽
@@ -97,6 +122,7 @@ function BalanceCard({ balance }: { balance: number }) {
 
 function ActiveStats() {
   const { data: sub, isLoading } = useVpnSubscription();
+  const { t } = useLanguage();
 
   if (isLoading || !sub) {
     return (
@@ -122,13 +148,13 @@ function ActiveStats() {
         <div className="card-gradient-border p-4">
           <div className="flex justify-between items-center mb-2">
             <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-              Subscription
+              {t('subscription')}
             </span>
             <span
               className="text-xs font-bold"
               style={{ color: daysLeft <= 3 ? 'var(--danger)' : '#10B981' }}
             >
-              {daysLeft} days left
+              {t('days_left', { n: daysLeft })}
             </span>
           </div>
           <div
@@ -146,36 +172,16 @@ function ActiveStats() {
             />
           </div>
           <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-dim)' }}>
-            Expires {new Date(sub.expiry_time).toLocaleDateString()}
+            {t('expires_date', { date: new Date(sub.expiry_time).toLocaleDateString() })}
           </p>
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        <StatCard
-          icon="↑"
-          label="Upload"
-          value={formatBytes(sub.traffic_up || 0)}
-          color="#06B6D4"
-        />
-        <StatCard
-          icon="↓"
-          label="Download"
-          value={formatBytes(sub.traffic_down || 0)}
-          color="#10B981"
-        />
-        <StatCard
-          icon="◎"
-          label="Total Used"
-          value={formatBytes(sub.traffic_used || 0)}
-          color="#8B5CF6"
-        />
-        <StatCard
-          icon="⊞"
-          label="Devices"
-          value={sub.max_devices === -1 ? '∞' : String(sub.max_devices || 0)}
-          color="#F59E0B"
-        />
+        <StatCard icon="↑" label={t('upload')} value={formatBytes(sub.traffic_up || 0)} color="#06B6D4" />
+        <StatCard icon="↓" label={t('download')} value={formatBytes(sub.traffic_down || 0)} color="#10B981" />
+        <StatCard icon="◎" label={t('total_used')} value={formatBytes(sub.traffic_used || 0)} color="#8B5CF6" />
+        <StatCard icon="⊞" label={t('devices')} value={sub.max_devices === -1 ? '∞' : String(sub.max_devices || 0)} color="#F59E0B" />
       </div>
     </div>
   );
@@ -228,26 +234,27 @@ interface MeData {
 
 function QuickSetup({ me }: { me: MeData }) {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const steps = [
     {
       num: '1',
-      title: 'Top up balance',
-      desc: 'Add funds via Stars or card',
+      title: t('step1_title'),
+      desc: t('step1_desc'),
       action: undefined as (() => void) | undefined,
       color: '#F59E0B',
     },
     {
       num: '2',
-      title: 'Choose a Plan',
-      desc: 'Select the plan that fits your needs',
+      title: t('step2_title'),
+      desc: t('step2_desc'),
       action: () => navigate('/plans'),
       color: '#10B981',
     },
     {
       num: '3',
-      title: 'Connect',
-      desc: 'Scan QR or copy the config link',
+      title: t('step3_title'),
+      desc: t('step3_desc'),
       color: '#8B5CF6',
     },
   ];
@@ -255,7 +262,7 @@ function QuickSetup({ me }: { me: MeData }) {
   return (
     <div className="space-y-3 animate-slide-up">
       <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>
-        Get Started
+        {t('get_started')}
       </h2>
 
       {steps.map((step, i) => (
@@ -304,10 +311,10 @@ function QuickSetup({ me }: { me: MeData }) {
           style={{ borderColor: 'rgba(16, 185, 129, 0.3)' }}
         >
           <p className="text-sm font-semibold" style={{ color: '#10B981' }}>
-            Free 7-day trial available!
+            {t('free_trial_available')}
           </p>
           <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>
-            No payment required to start
+            {t('no_payment_required')}
           </p>
         </div>
       )}
@@ -317,58 +324,60 @@ function QuickSetup({ me }: { me: MeData }) {
 
 // ── Setup Guides ──────────────────────────────────────────────────────────────
 
-const GUIDES = [
+type GuideId = 'vpn' | 'telegram' | 'whatsapp';
+
+const GUIDE_DEFS: { id: GuideId; color: string; icon: React.ReactElement }[] = [
   {
     id: 'vpn',
-    title: 'VPN Setup',
-    desc: 'Configure VPN for your entire device',
+    color: '#10B981',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
       </svg>
     ),
-    color: '#10B981',
-    content: 'VPN setup instructions coming soon.',
   },
   {
     id: 'telegram',
-    title: 'Telegram Proxy',
-    desc: 'Connect Telegram through MTProto proxy',
+    color: '#3390EC',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="22" y1="2" x2="11" y2="13" />
         <polygon points="22 2 15 22 11 13 2 9 22 2" />
       </svg>
     ),
-    color: '#3390EC',
-    content: 'Telegram proxy setup instructions coming soon.',
   },
   {
     id: 'whatsapp',
-    title: 'WhatsApp Proxy',
-    desc: 'Route WhatsApp through a proxy server',
+    color: '#25D366',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
         <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.528 5.855L.057 23.882l6.198-1.624A11.93 11.93 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.793 9.793 0 01-5.017-1.378l-.36-.213-3.681.965.981-3.593-.234-.369A9.794 9.794 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182c5.43 0 9.818 4.388 9.818 9.818 0 5.43-4.388 9.818-9.818 9.818z" />
       </svg>
     ),
-    color: '#25D366',
-    content: 'WhatsApp proxy setup instructions coming soon.',
   },
 ];
 
 function SetupGuides() {
-  const [openGuide, setOpenGuide] = useState<string | null>(null);
-  const guide = GUIDES.find((g) => g.id === openGuide);
+  const [openGuide, setOpenGuide] = useState<GuideId | null>(null);
+  const { t } = useLanguage();
+
+  const guides = GUIDE_DEFS.map((g) => ({
+    ...g,
+    title: t(`guide_${g.id}_title` as TranslationKey),
+    desc: t(`guide_${g.id}_desc` as TranslationKey),
+    content: t(`guide_${g.id}_content` as TranslationKey),
+  }));
+
+  const guide = guides.find((g) => g.id === openGuide);
 
   return (
     <>
       <div className="mt-4 space-y-2">
         <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
-          Setup Guides
+          {t('setup_guides')}
         </p>
-        {GUIDES.map((g) => (
+        {guides.map((g) => (
           <button
             key={g.id}
             onClick={() => setOpenGuide(g.id)}
@@ -413,6 +422,7 @@ function GuideSheet({ title, color, content, onClose }: {
   content: string;
   onClose: () => void;
 }) {
+  const { t } = useLanguage();
   return createPortal(
     <>
       <div
@@ -458,7 +468,7 @@ function GuideSheet({ title, color, content, onClose }: {
             style={{ backgroundColor: 'var(--bg-card)', border: `1px dashed ${color}40` }}
           >
             <p className="text-sm font-semibold mb-1" style={{ color }}>
-              Coming soon
+              {t('coming_soon')}
             </p>
             <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
               {content}
@@ -473,36 +483,22 @@ function GuideSheet({ title, color, content, onClose }: {
 
 // ── Help / FAQ ─────────────────────────────────────────────────────────────────
 
-const FAQ_ITEMS = [
-  {
-    q: "Proxy isn't working",
-    a: "Check that the proxy is enabled in your app settings. If the issue persists, try switching to a different server in the Plans tab.",
-  },
-  {
-    q: "How to change server",
-    a: "Go to Plans → select a tariff → choose a server location (Amsterdam or Saint Petersburg). Your connection will switch automatically.",
-  },
-  {
-    q: "How to change mobile carrier",
-    a: "Some carriers block proxy traffic. Try switching to Wi-Fi or contact support — we'll help configure the proxy for your carrier.",
-  },
-  {
-    q: "My balance didn't top up",
-    a: "Payments via Stars are confirmed instantly. For card/SBP payments, it can take up to 5 minutes. If nothing changes — contact support.",
-  },
-  {
-    q: "How to connect on multiple devices",
-    a: "Choose a plan with 2+ devices. Each device needs to be configured separately using the same credentials from your subscription.",
-  },
-];
-
 function HelpFaq() {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const { t } = useLanguage();
+
+  const FAQ_ITEMS = [
+    { q: t('faq1_q'), a: t('faq1_a') },
+    { q: t('faq2_q'), a: t('faq2_a') },
+    { q: t('faq3_q'), a: t('faq3_a') },
+    { q: t('faq4_q'), a: t('faq4_a') },
+    { q: t('faq5_q'), a: t('faq5_a') },
+  ];
 
   return (
     <div className="mt-4 mb-2">
       <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
-        Help &amp; FAQ
+        {t('help_faq')}
       </p>
       <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
         {FAQ_ITEMS.map((item, idx) => {
@@ -573,6 +569,7 @@ function HomeLoading() {
 }
 
 function HomeError() {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col items-center justify-center h-60 gap-3 animate-fade-in">
       <div
@@ -586,7 +583,7 @@ function HomeError() {
         </svg>
       </div>
       <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-        Failed to load profile
+        {t('failed_load')}
       </p>
       <button
         onClick={() => window.location.reload()}
@@ -596,7 +593,7 @@ function HomeError() {
           color: '#ffffff',
         }}
       >
-        Retry
+        {t('retry')}
       </button>
     </div>
   );
