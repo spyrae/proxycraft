@@ -1752,6 +1752,32 @@ msgstr ""
 "Баланс: {balance}₽, требуется: {price}₽.\n"
 "Пополните баланс, чтобы подписка не прервалась."
 
+#: app/bot/tasks/auto_renew.py
+msgid "task:message:mtproto_renew_success"
+msgstr ""
+"✅ Telegram Proxy автоматически продлён на 30 дней.\n"
+"Списано: {price}₽. Баланс: {balance}₽"
+
+#: app/bot/tasks/auto_renew.py
+msgid "task:message:mtproto_renew_insufficient"
+msgstr ""
+"⚠️ Не удалось автопродлить Telegram Proxy: недостаточно средств.\n"
+"Баланс: {balance}₽, требуется: {price}₽.\n"
+"Пополните баланс, чтобы подписка не прервалась."
+
+#: app/bot/tasks/auto_renew.py
+msgid "task:message:whatsapp_renew_success"
+msgstr ""
+"✅ WhatsApp Proxy автоматически продлён на 30 дней.\n"
+"Списано: {price}₽. Баланс: {balance}₽"
+
+#: app/bot/tasks/auto_renew.py
+msgid "task:message:whatsapp_renew_insufficient"
+msgstr ""
+"⚠️ Не удалось автопродлить WhatsApp Proxy: недостаточно средств.\n"
+"Баланс: {balance}₽, требуется: {price}₽.\n"
+"Пополните баланс, чтобы подписка не прервалась."
+
 #: app/bot/routers/subscription/keyboard.py
 msgid "task:button:renew"
 msgstr "🔄 Продлить подписку"

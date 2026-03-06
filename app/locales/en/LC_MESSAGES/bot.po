@@ -1736,6 +1736,32 @@ msgstr ""
 "Balance: {balance}₽, required: {price}₽.\n"
 "Top up your balance to keep the subscription active."
 
+#: app/bot/tasks/auto_renew.py
+msgid "task:message:mtproto_renew_success"
+msgstr ""
+"✅ Telegram Proxy automatically renewed for 30 days.\n"
+"Charged: {price}₽. Balance: {balance}₽"
+
+#: app/bot/tasks/auto_renew.py
+msgid "task:message:mtproto_renew_insufficient"
+msgstr ""
+"⚠️ Telegram Proxy auto-renewal failed: insufficient balance.\n"
+"Balance: {balance}₽, required: {price}₽.\n"
+"Top up your balance to keep the subscription active."
+
+#: app/bot/tasks/auto_renew.py
+msgid "task:message:whatsapp_renew_success"
+msgstr ""
+"✅ WhatsApp Proxy automatically renewed for 30 days.\n"
+"Charged: {price}₽. Balance: {balance}₽"
+
+#: app/bot/tasks/auto_renew.py
+msgid "task:message:whatsapp_renew_insufficient"
+msgstr ""
+"⚠️ WhatsApp Proxy auto-renewal failed: insufficient balance.\n"
+"Balance: {balance}₽, required: {price}₽.\n"
+"Top up your balance to keep the subscription active."
+
 #: app/bot/routers/subscription/keyboard.py
 msgid "task:button:renew"
 msgstr "🔄 Renew subscription"

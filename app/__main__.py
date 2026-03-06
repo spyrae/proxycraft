@@ -88,6 +88,8 @@ async def on_startup(
         redis=redis,
         i18n=i18n,
         vpn_service=services.vpn,
+        mtproto_service=services.mtproto,
+        whatsapp_service=services.whatsapp,
         notification_service=services.notification,
         product_catalog=services.product_catalog,
     )
