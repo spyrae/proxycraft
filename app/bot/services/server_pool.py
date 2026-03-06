@@ -174,19 +174,27 @@ class ServerPoolService:
 
         logger.info(f"Sync complete. Currently active servers: {len(self._servers)}")
 
-    async def assign_server_to_user(self, user: User) -> None:
+    async def assign_server_to_user(self, user: User, location: str | None = None) -> None:
         async with self.session() as session:
-            server = await self.get_available_server()
+            server = await self.get_available_server(location=location)
             user.server_id = server.id
             await User.update(session=session, tg_id=user.tg_id, server_id=server.id)
 
-    async def get_available_server(self) -> Server | None:
+    async def get_available_server(self, location: str | None = None) -> Server | None:
         await self.sync_servers()
 
+        candidates = [conn.server for conn in self._servers.values()]
+
+        if location:
+            location_filtered = [s for s in candidates if s.location == location]
+            if location_filtered:
+                candidates = location_filtered
+            else:
+                logger.warning(f"No servers found for location '{location}', using all servers")
+
         servers_with_free_slots = [
-            conn.server
-            for conn in self._servers.values()
-            if conn.server.current_clients < conn.server.max_clients
+            s for s in candidates
+            if s.current_clients < s.max_clients
         ]
 
         if servers_with_free_slots:
@@ -197,9 +205,8 @@ class ServerPoolService:
             )
             return server
 
-        servers_least_loaded = [conn.server for conn in self._servers.values()]
-        if servers_least_loaded:
-            server = sorted(servers_least_loaded, key=lambda s: s.current_clients)[0]
+        if candidates:
+            server = sorted(candidates, key=lambda s: s.current_clients)[0]
             logger.warning(
                 f"No servers with free slots. Using least loaded server: {server.name} "
                 f"(clients: {server.current_clients}/{server.max_clients})"
@@ -208,3 +215,14 @@ class ServerPoolService:
 
         logger.critical("No available servers found in pool")
         return None
+
+    async def get_locations(self) -> list[dict]:
+        await self.sync_servers()
+        locations: dict[str, bool] = {}
+        for conn in self._servers.values():
+            loc = conn.server.location or "Unknown"
+            if loc not in locations:
+                locations[loc] = conn.server.online
+            elif conn.server.online:
+                locations[loc] = True
+        return [{"name": name, "available": available} for name, available in locations.items()]

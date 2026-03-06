@@ -144,10 +144,11 @@ class VPNService:
         flow: str | None = None,
         total_gb: int = 0,
         inbound_id: int = 1,
+        location: str | None = None,
     ) -> bool:
         logger.info(f"Creating new client {user.tg_id} | {devices} devices {duration} days.")
 
-        await self.server_pool_service.assign_server_to_user(user)
+        await self.server_pool_service.assign_server_to_user(user, location=location)
         connection = await self.server_pool_service.get_connection(user)
 
         if not connection:
@@ -235,9 +236,9 @@ class VPNService:
             logger.error(f"Error updating client {user.tg_id}: {exception}")
             return False
 
-    async def create_subscription(self, user: User, devices: int, duration: int) -> bool:
+    async def create_subscription(self, user: User, devices: int, duration: int, location: str | None = None) -> bool:
         if not await self.is_client_exists(user):
-            return await self.create_client(user=user, devices=devices, duration=duration)
+            return await self.create_client(user=user, devices=devices, duration=duration, location=location)
         return False
 
     async def extend_subscription(self, user: User, devices: int, duration: int) -> bool:

@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { TopupModal } from '../components/TopupModal';
 import {
   useMe,
   usePlans,
   useMtprotoPlans,
   useWhatsappPlans,
+  useLocations,
   useTrialVpn,
   useTrialMtproto,
   useTrialWhatsapp,
@@ -16,9 +17,24 @@ import { PlanCard } from '../components/PlanCard';
 
 type Tab = 'vpn' | 'mtproto' | 'whatsapp';
 
+const LOCATION_FLAGS: Record<string, string> = {
+  'Amsterdam': '🇳🇱',
+  'Saint Petersburg': '🇷🇺',
+};
+
 export function PlansPage() {
   const { data: me } = useMe();
+  const { data: locData } = useLocations();
   const [tab, setTab] = useState<Tab>('vpn');
+  const [location, setLocation] = useState<string | null>(null);
+
+  const locations = locData?.locations || [];
+
+  useEffect(() => {
+    if (locations.length > 0 && location === null) {
+      setLocation(locations[0].name);
+    }
+  }, [locations, location]);
 
   const tabs: { key: Tab; label: string }[] = useMemo(() => {
     const t: { key: Tab; label: string }[] = [{ key: 'vpn', label: 'VPN' }];
@@ -36,6 +52,39 @@ export function PlansPage() {
       {/* Balance info */}
       {me && (
         <BalanceBanner balance={me.balance} />
+      )}
+
+      {/* Location selector */}
+      {locations.length > 1 && (
+        <div className="mb-4">
+          <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
+            Location
+          </p>
+          <div
+            className="flex rounded-xl p-1"
+            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+          >
+            {locations.map((loc) => {
+              const active = location === loc.name;
+              const flag = LOCATION_FLAGS[loc.name] || '🌐';
+              return (
+                <button
+                  key={loc.name}
+                  onClick={() => setLocation(loc.name)}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold py-2 rounded-lg transition-all duration-200"
+                  style={{
+                    backgroundColor: active ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                    color: active ? '#10B981' : 'var(--text-dim)',
+                    opacity: loc.available ? 1 : 0.5,
+                  }}
+                >
+                  <span>{flag}</span>
+                  {loc.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* Segment control */}
@@ -60,7 +109,7 @@ export function PlansPage() {
         </div>
       )}
 
-      {tab === 'vpn' && <VpnPlans />}
+      {tab === 'vpn' && <VpnPlans location={location} />}
       {tab === 'mtproto' && <ServicePlans product="mtproto" />}
       {tab === 'whatsapp' && <ServicePlans product="whatsapp" />}
     </div>
@@ -153,7 +202,7 @@ function InsufficientBalanceBanner({ onTopup }: { onTopup: () => void }) {
   );
 }
 
-function VpnPlans() {
+function VpnPlans({ location }: { location: string | null }) {
   const { data, isLoading } = usePlans();
   const { data: me } = useMe();
   const buyPlan = useBuyPlan();
@@ -180,6 +229,7 @@ function VpnPlans() {
         product: 'vpn',
         devices: selectedDevices,
         duration: selectedDuration,
+        ...(location && { location }),
       });
       setShowSuccess(true);
     } catch (err) {

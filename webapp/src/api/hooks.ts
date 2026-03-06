@@ -51,6 +51,14 @@ export function useWhatsappPlans() {
   });
 }
 
+export function useLocations() {
+  return useQuery<{ locations: { name: string; available: boolean }[] }>({
+    queryKey: ['locations'],
+    queryFn: () => api('/api/v1/locations'),
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useVpnSubscription() {
   return useQuery<VpnSubscription>({
     queryKey: ['subscription', 'vpn'],
@@ -164,6 +172,7 @@ interface BuyPlanParams {
   product: 'vpn' | 'mtproto' | 'whatsapp';
   devices?: number;
   duration: number;
+  location?: string;
 }
 
 export function useBuyPlan() {

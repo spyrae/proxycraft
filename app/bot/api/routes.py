@@ -586,7 +586,7 @@ async def handle_balance_topup(request: Request) -> Response:
 async def handle_balance_buy(request: Request) -> Response:
     """POST /api/v1/plans/buy — Purchase a plan from balance.
 
-    Body: {"product": "vpn", "devices": 1, "duration": 30}
+    Body: {"product": "vpn", "devices": 1, "duration": 30, "location": "Amsterdam"}
     """
     user = request["user"]
     tg_id = request["tg_id"]
@@ -601,6 +601,7 @@ async def handle_balance_buy(request: Request) -> Response:
     product = body.get("product", "vpn")
     duration = body.get("duration")
     devices = body.get("devices", 1)
+    location = body.get("location")
 
     if not duration or not isinstance(duration, int) or duration <= 0:
         return web.json_response({"error": "Invalid duration"}, status=400)
@@ -679,7 +680,7 @@ async def handle_balance_buy(request: Request) -> Response:
         if is_extend:
             await services.vpn.extend_subscription(user=user, devices=devices, duration=duration)
         else:
-            await services.vpn.create_subscription(user=user, devices=devices, duration=duration)
+            await services.vpn.create_subscription(user=user, devices=devices, duration=duration, location=location)
 
     elif product == "mtproto":
         is_active = await services.mtproto.is_active(tg_id)
@@ -725,6 +726,16 @@ async def handle_balance_auto_renew(request: Request) -> Response:
 
     logger.info(f"Auto-renew {'enabled' if enabled else 'disabled'} for user {tg_id}")
     return web.json_response({"auto_renew": enabled})
+
+
+# ---------- Locations ----------
+
+
+async def handle_locations(request: Request) -> Response:
+    """GET /api/v1/locations — Available server locations."""
+    services = _services(request)
+    locations = await services.server_pool.get_locations()
+    return web.json_response({"locations": locations})
 
 
 # ---------- Admin endpoints ----------
@@ -938,6 +949,9 @@ def register_routes(app: Application) -> None:
     app.router.add_post("/api/v1/balance/topup", handle_balance_topup)
     app.router.add_post("/api/v1/plans/buy", handle_balance_buy)
     app.router.add_post("/api/v1/balance/auto-renew", handle_balance_auto_renew)
+
+    # Locations
+    app.router.add_get("/api/v1/locations", handle_locations)
 
     # Admin endpoints
     app.router.add_post("/api/v1/admin/auth", handle_admin_auth)
