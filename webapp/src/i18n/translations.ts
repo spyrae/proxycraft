@@ -120,8 +120,8 @@ const translations = {
 
     // MyVpnPage
     no_subscriptions_yet: 'No active subscriptions yet',
-    show_stats: 'Show stats',
-    hide_stats: 'Hide stats',
+    show_details: 'Details',
+    hide_details: 'Hide',
 
     // Location display names
     loc_amsterdam: 'Amsterdam',
@@ -247,8 +247,8 @@ const translations = {
 
     // MyVpnPage
     no_subscriptions_yet: 'Нет активных подписок',
-    show_stats: 'Показать статистику',
-    hide_stats: 'Скрыть статистику',
+    show_details: 'Подробнее',
+    hide_details: 'Скрыть',
 
     // Location display names
     loc_amsterdam: 'Амстердам',

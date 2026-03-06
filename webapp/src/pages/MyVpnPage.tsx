@@ -99,58 +99,110 @@ function ExpiryBadge({ date }: { date: string }) {
   );
 }
 
+function ExpandToggle({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
+  const { t } = useLanguage();
+  return (
+    <button
+      onClick={onToggle}
+      className="text-[11px] font-semibold px-2.5 py-1 rounded-full transition-all"
+      style={{
+        backgroundColor: expanded ? 'rgba(107, 114, 128, 0.15)' : 'rgba(16, 185, 129, 0.12)',
+        color: expanded ? 'var(--text-dim)' : '#10B981',
+      }}
+    >
+      {expanded ? t('hide_details') : t('show_details')}
+    </button>
+  );
+}
+
+function ConnectionRow({ value, onOpen }: { value: string; onOpen?: () => void }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <div
+          className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
+          style={{
+            backgroundColor: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          {value}
+        </div>
+        <CopyButton text={value} />
+      </div>
+      {onOpen && (
+        <button
+          onClick={onOpen}
+          className="w-full rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+          style={{
+            backgroundColor: 'rgba(51, 144, 236, 0.15)',
+            color: '#3390EC',
+            border: '1px solid rgba(51, 144, 236, 0.3)',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
+          Apply in Telegram
+        </button>
+      )}
+    </div>
+  );
+}
+
 function VpnSection({ sub }: { sub: VpnSubscription }) {
   const { t } = useLanguage();
   const locationLabel = useLocationLabel(sub.location);
-  const [showStats, setShowStats] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const status = sub.active ? 'active' : 'expired';
 
   return (
-    <SubscriptionCard title="VPN" status={status} location={locationLabel}>
+    <SubscriptionCard
+      title="VPN"
+      status={status}
+      location={locationLabel}
+      action={sub.active ? <ExpandToggle expanded={expanded} onToggle={() => setExpanded(!expanded)} /> : undefined}
+    >
       {sub.active && (
         <div className="space-y-3">
           {sub.expiry_time && sub.expiry_time > 0 && (
             <ExpiryBadge date={new Date(sub.expiry_time).toLocaleDateString()} />
           )}
 
-          <button
-            onClick={() => setShowStats(!showStats)}
-            className="text-xs font-medium transition-colors"
-            style={{ color: 'var(--text-dim)' }}
-          >
-            {showStats ? t('hide_stats') : t('show_stats')}
-          </button>
-
-          {showStats && (
-            <div className="grid grid-cols-2 gap-2">
-              <StatItem label={t('upload')} value={formatBytes(sub.traffic_up || 0)} icon="↑" color="#06B6D4" />
-              <StatItem label={t('download')} value={formatBytes(sub.traffic_down || 0)} icon="↓" color="#10B981" />
-              <StatItem label={t('total_used')} value={formatBytes(sub.traffic_used || 0)} icon="◎" color="#8B5CF6" />
-              <StatItem label={t('devices')} value={sub.max_devices === -1 ? '∞' : String(sub.max_devices)} icon="⊞" color="#F59E0B" />
-            </div>
-          )}
-
-          {sub.key && (
-            <div className="space-y-3">
-              <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                {t('connection_key')}
-              </p>
-              <div className="flex items-center gap-2 min-w-0">
-                <div
-                  className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
-                  style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    color: 'var(--text-primary)',
-                    border: '1px solid var(--border)',
-                  }}
-                >
-                  {sub.key}
-                </div>
-                <CopyButton text={sub.key} />
+          {expanded && (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <StatItem label={t('upload')} value={formatBytes(sub.traffic_up || 0)} icon="↑" color="#06B6D4" />
+                <StatItem label={t('download')} value={formatBytes(sub.traffic_down || 0)} icon="↓" color="#10B981" />
+                <StatItem label={t('total_used')} value={formatBytes(sub.traffic_used || 0)} icon="◎" color="#8B5CF6" />
+                <StatItem label={t('devices')} value={sub.max_devices === -1 ? '∞' : String(sub.max_devices)} icon="⊞" color="#F59E0B" />
               </div>
-              <QRCode value={sub.key} />
-            </div>
+
+              {sub.key && (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    {t('connection_key')}
+                  </p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
+                      style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      {sub.key}
+                    </div>
+                    <CopyButton text={sub.key} />
+                  </div>
+                  <QRCode value={sub.key} />
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -167,44 +219,28 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
 function MtprotoSection({ sub }: { sub: MtprotoSubscription }) {
   const { t } = useLanguage();
   const locationLabel = useLocationLabel(sub.location);
+  const [expanded, setExpanded] = useState(false);
 
   const status = sub.active ? 'active' : 'expired';
 
   return (
-    <SubscriptionCard title="Telegram Proxy" status={status} location={locationLabel}>
-      {sub.active && sub.link && (
+    <SubscriptionCard
+      title="Telegram Proxy"
+      status={status}
+      location={locationLabel}
+      action={sub.active ? <ExpandToggle expanded={expanded} onToggle={() => setExpanded(!expanded)} /> : undefined}
+    >
+      {sub.active && (
         <div className="space-y-3">
           {sub.expires_at && (
             <ExpiryBadge date={new Date(sub.expires_at).toLocaleDateString()} />
           )}
-          <div className="flex items-center gap-2 min-w-0">
-            <div
-              className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
-              style={{
-                backgroundColor: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              {sub.link}
-            </div>
-            <CopyButton text={sub.link} />
-          </div>
-          <button
-            onClick={() => openLink(sub.link!)}
-            className="w-full rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all"
-            style={{
-              backgroundColor: 'rgba(51, 144, 236, 0.15)',
-              color: '#3390EC',
-              border: '1px solid rgba(51, 144, 236, 0.3)',
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13" />
-              <polygon points="22 2 15 22 11 13 2 9 22 2" />
-            </svg>
-            {t('apply_in_tg')}
-          </button>
+          {expanded && sub.link && (
+            <ConnectionRow
+              value={sub.link}
+              onOpen={() => openLink(sub.link!)}
+            />
+          )}
         </div>
       )}
       {!sub.active && (
@@ -219,30 +255,26 @@ function MtprotoSection({ sub }: { sub: MtprotoSubscription }) {
 function WhatsappSection({ sub }: { sub: WhatsappSubscription }) {
   const { t } = useLanguage();
   const locationLabel = useLocationLabel(sub.location);
+  const [expanded, setExpanded] = useState(false);
 
   const status = sub.active ? 'active' : 'expired';
-  const connectionString = sub.active && sub.host && sub.port ? `${sub.host}:${sub.port}` : null;
+  const connectionString = sub.host && sub.port ? `${sub.host}:${sub.port}` : null;
 
   return (
-    <SubscriptionCard title="WhatsApp Proxy" status={status} location={locationLabel}>
-      {sub.active && connectionString && (
+    <SubscriptionCard
+      title="WhatsApp Proxy"
+      status={status}
+      location={locationLabel}
+      action={sub.active ? <ExpandToggle expanded={expanded} onToggle={() => setExpanded(!expanded)} /> : undefined}
+    >
+      {sub.active && (
         <div className="space-y-3">
           {sub.expires_at && (
             <ExpiryBadge date={new Date(sub.expires_at).toLocaleDateString()} />
           )}
-          <div className="flex items-center gap-2 min-w-0">
-            <div
-              className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
-              style={{
-                backgroundColor: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              {connectionString}
-            </div>
-            <CopyButton text={connectionString} />
-          </div>
+          {expanded && connectionString && (
+            <ConnectionRow value={connectionString} />
+          )}
         </div>
       )}
       {!sub.active && (

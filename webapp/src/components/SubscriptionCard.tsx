@@ -5,10 +5,11 @@ interface Props {
   title: string;
   status: 'active' | 'expired' | 'none';
   location?: string | null;
+  action?: ReactNode;
   children?: ReactNode;
 }
 
-export function SubscriptionCard({ title, status, location, children }: Props) {
+export function SubscriptionCard({ title, status, location, action, children }: Props) {
   const { t } = useLanguage();
 
   const statusConfig = {
@@ -46,12 +47,15 @@ export function SubscriptionCard({ title, status, location, children }: Props) {
             )}
           </div>
         </div>
-        <span
-          className="text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ml-2"
-          style={{ color: cfg.color, backgroundColor: cfg.bg }}
-        >
-          {cfg.label}
-        </span>
+        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+          {action}
+          <span
+            className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+            style={{ color: cfg.color, backgroundColor: cfg.bg }}
+          >
+            {cfg.label}
+          </span>
+        </div>
       </div>
       {children}
     </div>
