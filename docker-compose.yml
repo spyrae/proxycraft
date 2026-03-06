@@ -7,18 +7,16 @@ services:
       - redis_data:/data
 
   mtproto:
-    image: python:3.12-slim
+    build:
+      context: ./mtproto
+      dockerfile: Dockerfile
+    image: proxycraft-mtproto:latest
     container_name: proxycraft-mtproto
     restart: unless-stopped
     ports:
       - "8444:8444"
     volumes:
       - ./mtproto/config.py:/app/config.py
-      - ./mtproto/mtprotoproxy.py:/app/mtprotoproxy.py
-    working_dir: /app
-    command: sh -c "pip install --quiet cryptography && python mtprotoproxy.py"
-    environment:
-      - PYTHONUNBUFFERED=1
 
   whatsapp:
     image: haproxy:2.9-alpine
