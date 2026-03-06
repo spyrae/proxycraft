@@ -222,13 +222,67 @@ export function useCancelSubscription() {
 
 export function useChangeVpnProfile() {
   const qc = useQueryClient();
-  return useMutation<ChangeVpnProfileResponse, Error, { profileSlug: string }>({
+  return useMutation<
+    ChangeVpnProfileResponse,
+    Error,
+    { profileSlug: string },
+    {
+      previousSubscription?: VpnSubscription;
+      previousMe?: UserProfile;
+    }
+  >({
     mutationFn: ({ profileSlug }) =>
       api('/api/v1/subscription/vpn-profile', {
         method: 'POST',
         body: JSON.stringify({ profile_slug: profileSlug }),
       }),
-    onSuccess: () => {
+    onMutate: async ({ profileSlug }) => {
+      await qc.cancelQueries({ queryKey: ['subscription', 'vpn'] });
+
+      const previousSubscription = qc.getQueryData<VpnSubscription>(['subscription', 'vpn']);
+      const previousMe = qc.getQueryData<UserProfile>(['me']);
+
+      if (previousSubscription) {
+        const nextProfile = previousSubscription.available_profiles?.find(
+          (profile) => profile.slug === profileSlug,
+        );
+
+        qc.setQueryData<VpnSubscription>(['subscription', 'vpn'], {
+          ...previousSubscription,
+          current_profile: nextProfile ?? previousSubscription.current_profile ?? null,
+        });
+      }
+
+      if (previousMe) {
+        qc.setQueryData<UserProfile>(['me'], {
+          ...previousMe,
+          vpn_profile_slug: profileSlug,
+        });
+      }
+
+      return { previousSubscription, previousMe };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousSubscription) {
+        qc.setQueryData(['subscription', 'vpn'], context.previousSubscription);
+      }
+
+      if (context?.previousMe) {
+        qc.setQueryData(['me'], context.previousMe);
+      }
+    },
+    onSuccess: (data) => {
+      qc.setQueryData(['subscription', 'vpn'], data);
+
+      const previousMe = qc.getQueryData<UserProfile>(['me']);
+      if (previousMe) {
+        qc.setQueryData<UserProfile>(['me'], {
+          ...previousMe,
+          vpn_profile_slug: data.current_profile?.slug ?? null,
+        });
+      }
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['me'] });
       qc.invalidateQueries({ queryKey: ['subscription', 'vpn'] });
     },
