@@ -81,8 +81,9 @@ const translations = {
     n_days: '{d} days',
     from_price: 'from {price} ₽',
     buy_for: 'Buy for {price} ₽',
-    processing: 'Processing...',
-    activating: 'Activating...',
+    processing: 'Processing',
+    activating: 'Activating',
+    switching_profile: 'Applying settings',
     try_free_7: '🎉 Try for Free (7 days)',
     try_free_3: '🎉 Try for Free (3 days)',
     sub_activated: 'Subscription activated!',
@@ -132,7 +133,7 @@ const translations = {
     cancel_confirm: 'Cancel subscription? Access remains until the end of the paid period.',
     cancel_confirm_yes: 'Yes, cancel',
     cancel_confirm_no: 'Keep',
-    cancelling: 'Cancelling...',
+    cancelling: 'Cancelling',
     cancelled_until: 'Cancels on {date}',
 
     // Location display names
@@ -220,8 +221,9 @@ const translations = {
     n_days: '{d} дней',
     from_price: 'от {price} ₽',
     buy_for: 'Купить за {price} ₽',
-    processing: 'Обработка...',
-    activating: 'Активация...',
+    processing: 'Обработка',
+    activating: 'Активация',
+    switching_profile: 'Применяем настройки',
     try_free_7: '🎉 Попробовать бесплатно (7 дней)',
     try_free_3: '🎉 Попробовать бесплатно (3 дня)',
     sub_activated: 'Подписка активирована!',
@@ -271,7 +273,7 @@ const translations = {
     cancel_confirm: 'Отменить подписку? Доступ сохранится до конца оплаченного периода.',
     cancel_confirm_yes: 'Да, отменить',
     cancel_confirm_no: 'Оставить',
-    cancelling: 'Отмена...',
+    cancelling: 'Отмена',
     cancelled_until: 'Отменяется {date}',
 
     // Location display names

@@ -277,6 +277,7 @@ function VpnProfileSelector({
   const { t } = useLanguage();
   const changeProfile = useChangeVpnProfile();
   const [error, setError] = useState<string | null>(null);
+  const [overlayMode, setOverlayMode] = useState<OverlayMode>('hidden');
 
   const availableProfiles = profiles ?? [];
   const activeSlug = currentProfile?.slug ?? availableProfiles[0]?.slug ?? null;
@@ -288,6 +289,8 @@ function VpnProfileSelector({
 
   return (
     <div className="space-y-2.5">
+      <StatusOverlay mode={overlayMode} loadingKey="switching_profile" />
+
       <div className="space-y-1">
         <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
           {t('connection_profile')}
@@ -310,11 +313,18 @@ function VpnProfileSelector({
               onClick={() => {
                 if (!isSwitchable || isActive) return;
                 setError(null);
+                setOverlayMode('loading');
                 changeProfile.mutate(
                   { profileSlug: profile.slug },
                   {
-                    onSuccess: () => setError(null),
-                    onError: () => setError(t('connection_profile_failed')),
+                    onSuccess: () => {
+                      setError(null);
+                      setOverlayMode('hidden');
+                    },
+                    onError: () => {
+                      setOverlayMode('hidden');
+                      setError(t('connection_profile_failed'));
+                    },
                   },
                 );
               }}
@@ -335,12 +345,6 @@ function VpnProfileSelector({
           );
         })}
       </div>
-
-      {changeProfile.isPending && (
-        <p className="text-[11px]" style={{ color: 'var(--text-dim)' }}>
-          {t('connection_profile_switching')}
-        </p>
-      )}
 
       {error && (
         <p className="text-[11px]" style={{ color: '#EF4444' }}>
