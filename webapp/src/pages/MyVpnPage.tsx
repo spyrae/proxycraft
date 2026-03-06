@@ -115,10 +115,12 @@ function CancelButton({
   product,
   cancelledAt,
   expiryDate,
+  onCancelled,
 }: {
   product: 'vpn' | 'mtproto' | 'whatsapp';
   cancelledAt?: string | null;
   expiryDate?: string;
+  onCancelled?: () => void;
 }) {
   const { t } = useLanguage();
   const cancel = useCancelSubscription();
@@ -165,7 +167,7 @@ function CancelButton({
           </button>
           <button
             onClick={() => {
-              cancel.mutate({ product }, { onSuccess: () => setConfirming(false) });
+              cancel.mutate({ product }, { onSuccess: () => { setConfirming(false); onCancelled?.(); } });
             }}
             disabled={cancel.isPending}
             className="flex-1 rounded-xl py-2 text-xs font-semibold transition-all"
@@ -203,8 +205,8 @@ function ExpandToggle({ expanded, onToggle }: { expanded: boolean; onToggle: () 
       onClick={onToggle}
       className="text-[11px] font-semibold px-2.5 py-1 rounded-full transition-all"
       style={{
-        backgroundColor: expanded ? 'rgba(107, 114, 128, 0.15)' : 'rgba(16, 185, 129, 0.12)',
-        color: expanded ? 'var(--text-dim)' : '#10B981',
+        backgroundColor: 'rgba(107, 114, 128, 0.15)',
+        color: 'var(--text-dim)',
       }}
     >
       {expanded ? t('hide_details') : t('show_details')}
@@ -213,6 +215,7 @@ function ExpandToggle({ expanded, onToggle }: { expanded: boolean; onToggle: () 
 }
 
 function ConnectionRow({ value, onOpen }: { value: string; onOpen?: () => void }) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 min-w-0">
@@ -242,7 +245,7 @@ function ConnectionRow({ value, onOpen }: { value: string; onOpen?: () => void }
             <line x1="22" y1="2" x2="11" y2="13" />
             <polygon points="22 2 15 22 11 13 2 9 22 2" />
           </svg>
-          Apply in Telegram
+          {t('apply_in_tg')}
         </button>
       )}
     </div>
@@ -337,8 +340,10 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
   const { t } = useLanguage();
   const locationLabel = useLocationLabel(sub.location);
   const [expanded, setExpanded] = useState(false);
+  const [wasJustCancelled, setWasJustCancelled] = useState(false);
 
-  const status = sub.active ? 'active' : 'expired';
+  const effectiveCancelled = wasJustCancelled || !!sub.cancelled_at;
+  const status = effectiveCancelled ? (sub.active ? 'cancelled' : 'expired') : (sub.active ? 'active' : 'expired');
 
   return (
     <SubscriptionCard
@@ -391,8 +396,9 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
 
               <CancelButton
                 product="vpn"
-                cancelledAt={sub.cancelled_at}
+                cancelledAt={effectiveCancelled ? (sub.cancelled_at || 'local') : null}
                 expiryDate={sub.expiry_time ? new Date(sub.expiry_time).toLocaleDateString() : undefined}
+                onCancelled={() => setWasJustCancelled(true)}
               />
             </>
           )}
@@ -412,8 +418,10 @@ function MtprotoSection({ sub }: { sub: MtprotoSubscription }) {
   const { t } = useLanguage();
   const locationLabel = useLocationLabel(sub.location);
   const [expanded, setExpanded] = useState(false);
+  const [wasJustCancelled, setWasJustCancelled] = useState(false);
 
-  const status = sub.active ? 'active' : 'expired';
+  const effectiveCancelled = wasJustCancelled || !!sub.cancelled_at;
+  const status = effectiveCancelled ? (sub.active ? 'cancelled' : 'expired') : (sub.active ? 'active' : 'expired');
 
   return (
     <SubscriptionCard
@@ -437,8 +445,9 @@ function MtprotoSection({ sub }: { sub: MtprotoSubscription }) {
               )}
               <CancelButton
                 product="mtproto"
-                cancelledAt={sub.cancelled_at}
+                cancelledAt={effectiveCancelled ? (sub.cancelled_at || 'local') : null}
                 expiryDate={sub.expires_at ? new Date(sub.expires_at).toLocaleDateString() : undefined}
+                onCancelled={() => setWasJustCancelled(true)}
               />
             </>
           )}
@@ -457,8 +466,10 @@ function WhatsappSection({ sub }: { sub: WhatsappSubscription }) {
   const { t } = useLanguage();
   const locationLabel = useLocationLabel(sub.location);
   const [expanded, setExpanded] = useState(false);
+  const [wasJustCancelled, setWasJustCancelled] = useState(false);
 
-  const status = sub.active ? 'active' : 'expired';
+  const effectiveCancelled = wasJustCancelled || !!sub.cancelled_at;
+  const status = effectiveCancelled ? (sub.active ? 'cancelled' : 'expired') : (sub.active ? 'active' : 'expired');
   const connectionString = sub.host && sub.port ? `${sub.host}:${sub.port}` : null;
 
   return (
@@ -478,8 +489,9 @@ function WhatsappSection({ sub }: { sub: WhatsappSubscription }) {
               {connectionString && <ConnectionRow value={connectionString} />}
               <CancelButton
                 product="whatsapp"
-                cancelledAt={sub.cancelled_at}
+                cancelledAt={effectiveCancelled ? (sub.cancelled_at || 'local') : null}
                 expiryDate={sub.expires_at ? new Date(sub.expires_at).toLocaleDateString() : undefined}
+                onCancelled={() => setWasJustCancelled(true)}
               />
             </>
           )}
@@ -509,7 +521,7 @@ function StatItem({
     <div
       className="rounded-xl p-2.5"
       style={{
-        backgroundColor: 'var(--bg-secondary)',
+        backgroundColor: 'var(--bg-card)',
         border: '1px solid var(--border)',
       }}
     >

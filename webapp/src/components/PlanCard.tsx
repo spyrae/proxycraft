@@ -1,3 +1,5 @@
+import { useLanguage } from '../i18n/LanguageContext';
+
 interface Props {
   title: string;
   description: string;
@@ -17,6 +19,7 @@ export function PlanCard({
   popular,
   onSelect,
 }: Props) {
+  const { t } = useLanguage();
   return (
     <button
       onClick={onSelect}
@@ -36,7 +39,7 @@ export function PlanCard({
             boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
           }}
         >
-          Popular
+          {t('popular')}
         </span>
       )}
       <div className="flex items-center justify-between">

@@ -3,7 +3,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 
 interface Props {
   title: string;
-  status: 'active' | 'expired' | 'none';
+  status: 'active' | 'expired' | 'none' | 'cancelled';
   location?: string | null;
   action?: ReactNode;
   children?: ReactNode;
@@ -16,6 +16,7 @@ export function SubscriptionCard({ title, status, location, action, children }: 
     active: { label: t('status_active'), color: '#10B981', bg: 'rgba(16, 185, 129, 0.12)' },
     expired: { label: t('status_expired'), color: '#EF4444', bg: 'rgba(239, 68, 68, 0.12)' },
     none: { label: t('status_none'), color: '#6B7280', bg: 'rgba(107, 114, 128, 0.12)' },
+    cancelled: { label: t('status_cancelled'), color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.12)' },
   };
 
   const cfg = statusConfig[status];
@@ -24,7 +25,7 @@ export function SubscriptionCard({ title, status, location, action, children }: 
     <div
       className="card-gradient-border p-4 mb-3 animate-fade-in"
       style={{
-        borderColor: status === 'active' ? 'rgba(16, 185, 129, 0.2)' : undefined,
+        borderColor: status === 'active' ? 'rgba(16, 185, 129, 0.2)' : status === 'cancelled' ? 'rgba(245, 158, 11, 0.2)' : undefined,
       }}
     >
       <div className="flex items-start justify-between mb-3">

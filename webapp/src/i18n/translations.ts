@@ -11,6 +11,7 @@ const translations = {
     status_active: 'Active',
     status_expired: 'Expired',
     status_none: 'No subscription',
+    status_cancelled: 'Stopped',
 
     // HomePage — general
     greeting: 'Hi, {name}',
@@ -68,6 +69,7 @@ const translations = {
     faq5_a: 'Choose a plan with 2+ devices. Each device needs to be configured separately using the same credentials from your subscription.',
 
     // PlansPage
+    popular: 'Popular',
     plans_title: 'Plans',
     balance_plans: 'Balance:',
     top_up: 'Top up',
@@ -148,6 +150,7 @@ const translations = {
     status_active: 'Активна',
     status_expired: 'Истекла',
     status_none: 'Нет подписки',
+    status_cancelled: 'Остановлена',
 
     // HomePage — general
     greeting: 'Привет, {name}',
@@ -205,6 +208,7 @@ const translations = {
     faq5_a: 'Выберите тариф на 2+ устройства. Каждое устройство настраивается отдельно с теми же данными из подписки.',
 
     // PlansPage
+    popular: 'Популярный',
     plans_title: 'Тарифы',
     balance_plans: 'Баланс:',
     top_up: 'Пополнить',
