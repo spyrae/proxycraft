@@ -15,6 +15,8 @@ from app.db.models import BalanceLog, MTProtoSubscription, User, WhatsAppSubscri
 logger = logging.getLogger(__name__)
 
 RENEWAL_DURATION = 30  # days
+# How long after expiry we still attempt auto-renewal (avoid retrying ancient subscriptions)
+RENEWAL_RETRY_WINDOW = timedelta(days=7)
 
 
 async def process_auto_renewals(
@@ -27,7 +29,7 @@ async def process_auto_renewals(
     notification_service: NotificationService,
     product_catalog: ProductCatalog,
 ) -> None:
-    """Check all subscriptions and auto-renew if expiring within 24h and not cancelled."""
+    """Auto-renew expired subscriptions (VPN, MTProto, WhatsApp) if not cancelled."""
     await _renew_vpn(session_factory, redis, i18n, vpn_service, notification_service, product_catalog)
     await _renew_mtproto(session_factory, redis, i18n, mtproto_service, notification_service)
     await _renew_whatsapp(session_factory, redis, i18n, whatsapp_service, notification_service)
@@ -41,7 +43,7 @@ async def _renew_vpn(
     notification_service: NotificationService,
     product_catalog: ProductCatalog,
 ) -> None:
-    """Auto-renew VPN subscriptions expiring within 24h (auto_renew=True, not cancelled)."""
+    """Auto-renew VPN subscriptions that have already expired (auto_renew=True, not cancelled)."""
     async with session_factory() as session:
         result = await session.execute(
             select(User).where(
@@ -61,15 +63,22 @@ async def _renew_vpn(
     for user in users:
         client_data = all_clients.get(str(user.tg_id))
 
+        # Skip if no subscription or unlimited (expiry_time == 0 means unlimited)
         if not client_data or client_data._expiry_time <= 0:
             continue
 
         expiry_datetime = datetime.fromtimestamp(
             client_data._expiry_time / 1000, timezone.utc
         )
-        time_left = expiry_datetime - now
+        time_since_expiry = now - expiry_datetime
 
-        if not (timedelta(0) < time_left <= timedelta(hours=24)):
+        # Only renew if subscription has actually expired (and not too long ago)
+        if not (timedelta(0) <= time_since_expiry <= RENEWAL_RETRY_WINDOW):
+            continue
+
+        # Deduplicate: skip if already charged for this expiry cycle
+        charge_key = f"auto_renew:charged:vpn:{user.tg_id}:{expiry_datetime.date()}"
+        if await redis.get(charge_key):
             continue
 
         max_devices = client_data._max_devices if client_data._max_devices > 0 else 1
@@ -111,6 +120,7 @@ async def _renew_vpn(
             await vpn_service.extend_subscription(
                 user=user, devices=max_devices, duration=RENEWAL_DURATION
             )
+            await redis.set(charge_key, "1", ex=timedelta(hours=25))
 
             locale = user.language_code or "ru"
             text = i18n.gettext("task:message:auto_renew_success", locale=locale).format(
@@ -151,26 +161,29 @@ async def _renew_mtproto(
     mtproto_service: MTProtoService,
     notification_service: NotificationService,
 ) -> None:
-    """Auto-renew MTProto subscriptions expiring within 24h (not cancelled)."""
+    """Auto-renew MTProto subscriptions that have already expired (not cancelled)."""
     now = datetime.utcnow()
-    threshold = now + timedelta(hours=24)
+    cutoff = now - RENEWAL_RETRY_WINDOW
 
     async with session_factory() as session:
         result = await session.execute(
             select(MTProtoSubscription).where(
-                MTProtoSubscription.is_active == True,  # noqa: E712
                 MTProtoSubscription.cancelled_at == None,  # noqa: E711
-                MTProtoSubscription.expires_at > now,
-                MTProtoSubscription.expires_at <= threshold,
+                MTProtoSubscription.expires_at <= now,
+                MTProtoSubscription.expires_at >= cutoff,
             )
         )
         subs = result.scalars().all()
 
-    logger.info(f"[auto_renew/mtproto] Checking {len(subs)} expiring subscriptions.")
+    logger.info(f"[auto_renew/mtproto] Checking {len(subs)} expired subscriptions.")
     renewed = 0
     insufficient = 0
 
     for sub in subs:
+        charge_key = f"auto_renew:charged:mtproto:{sub.user_tg_id}:{sub.expires_at.date()}"
+        if await redis.get(charge_key):
+            continue
+
         price_rub = mtproto_service.get_price(RENEWAL_DURATION)
         if price_rub is None:
             logger.warning(f"[auto_renew/mtproto] No price for {RENEWAL_DURATION}d, user {sub.user_tg_id}")
@@ -204,6 +217,7 @@ async def _renew_mtproto(
                 )
 
             await mtproto_service.extend(sub.user_tg_id, RENEWAL_DURATION)
+            await redis.set(charge_key, "1", ex=timedelta(hours=25))
 
             locale = user.language_code or "ru"
             text = i18n.gettext("task:message:mtproto_renew_success", locale=locale).format(
@@ -243,26 +257,29 @@ async def _renew_whatsapp(
     whatsapp_service: WhatsAppService,
     notification_service: NotificationService,
 ) -> None:
-    """Auto-renew WhatsApp subscriptions expiring within 24h (not cancelled)."""
+    """Auto-renew WhatsApp subscriptions that have already expired (not cancelled)."""
     now = datetime.utcnow()
-    threshold = now + timedelta(hours=24)
+    cutoff = now - RENEWAL_RETRY_WINDOW
 
     async with session_factory() as session:
         result = await session.execute(
             select(WhatsAppSubscription).where(
-                WhatsAppSubscription.is_active == True,  # noqa: E712
                 WhatsAppSubscription.cancelled_at == None,  # noqa: E711
-                WhatsAppSubscription.expires_at > now,
-                WhatsAppSubscription.expires_at <= threshold,
+                WhatsAppSubscription.expires_at <= now,
+                WhatsAppSubscription.expires_at >= cutoff,
             )
         )
         subs = result.scalars().all()
 
-    logger.info(f"[auto_renew/whatsapp] Checking {len(subs)} expiring subscriptions.")
+    logger.info(f"[auto_renew/whatsapp] Checking {len(subs)} expired subscriptions.")
     renewed = 0
     insufficient = 0
 
     for sub in subs:
+        charge_key = f"auto_renew:charged:whatsapp:{sub.user_tg_id}:{sub.expires_at.date()}"
+        if await redis.get(charge_key):
+            continue
+
         price_rub = whatsapp_service.get_price(RENEWAL_DURATION)
         if price_rub is None:
             logger.warning(f"[auto_renew/whatsapp] No price for {RENEWAL_DURATION}d, user {sub.user_tg_id}")
@@ -296,6 +313,7 @@ async def _renew_whatsapp(
                 )
 
             await whatsapp_service.extend(sub.user_tg_id, RENEWAL_DURATION)
+            await redis.set(charge_key, "1", ex=timedelta(hours=25))
 
             locale = user.language_code or "ru"
             text = i18n.gettext("task:message:whatsapp_renew_success", locale=locale).format(
