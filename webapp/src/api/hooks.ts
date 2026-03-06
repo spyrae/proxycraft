@@ -110,8 +110,8 @@ export function useTrialVpn() {
   return useMutation<TrialVpnResponse, Error>({
     mutationFn: () => api('/api/v1/trial/vpn', { method: 'POST' }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['me'] });
-      qc.invalidateQueries({ queryKey: ['subscription', 'vpn'] });
+      qc.invalidateQueries({ queryKey: ['me'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscription', 'vpn'], refetchType: 'all' });
     },
   });
 }
@@ -121,8 +121,8 @@ export function useTrialMtproto() {
   return useMutation<TrialMtprotoResponse, Error>({
     mutationFn: () => api('/api/v1/trial/mtproto', { method: 'POST' }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['me'] });
-      qc.invalidateQueries({ queryKey: ['subscription', 'mtproto'] });
+      qc.invalidateQueries({ queryKey: ['me'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscription', 'mtproto'], refetchType: 'all' });
     },
   });
 }
@@ -132,8 +132,8 @@ export function useTrialWhatsapp() {
   return useMutation<TrialWhatsappResponse, Error>({
     mutationFn: () => api('/api/v1/trial/whatsapp', { method: 'POST' }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['me'] });
-      qc.invalidateQueries({ queryKey: ['subscription', 'whatsapp'] });
+      qc.invalidateQueries({ queryKey: ['me'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscription', 'whatsapp'], refetchType: 'all' });
     },
   });
 }
@@ -186,8 +186,8 @@ export function useBuyPlan() {
         body: JSON.stringify(params),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['me'] });
-      qc.invalidateQueries({ queryKey: ['subscription'] });
+      qc.invalidateQueries({ queryKey: ['me'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscription'], refetchType: 'all' });
     },
   });
 }
