@@ -104,21 +104,23 @@ export function PlansPage() {
         </div>
       )}
 
-      {/* Tab chips */}
+      {/* Segment control */}
       {tabs.length > 1 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {tabs.map((tabItem) => (
+        <div
+          className="flex rounded-xl p-1 mb-4"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        >
+          {tabs.map((t) => (
             <button
-              key={tabItem.key}
-              onClick={() => setTab(tabItem.key)}
-              className="px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-200"
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className="flex-1 text-sm font-semibold py-2 rounded-lg transition-all duration-200"
               style={{
-                backgroundColor: tab === tabItem.key ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-card)',
-                color: tab === tabItem.key ? '#10B981' : 'var(--text-dim)',
-                border: tab === tabItem.key ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid var(--border)',
+                backgroundColor: tab === t.key ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                color: tab === t.key ? '#10B981' : 'var(--text-dim)',
               }}
             >
-              {tabItem.label}
+              {t.label}
             </button>
           ))}
         </div>
