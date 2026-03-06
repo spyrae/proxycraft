@@ -32,6 +32,9 @@ export function HomePage() {
 
       {/* Setup Guides */}
       <SetupGuides />
+
+      {/* Help / FAQ */}
+      <HelpFaq />
     </div>
   );
 }
@@ -465,6 +468,88 @@ function GuideSheet({ title, color, content, onClose }: {
       </div>
     </>,
     document.body
+  );
+}
+
+// ── Help / FAQ ─────────────────────────────────────────────────────────────────
+
+const FAQ_ITEMS = [
+  {
+    q: "Proxy isn't working",
+    a: "Check that the proxy is enabled in your app settings. If the issue persists, try switching to a different server in the Plans tab.",
+  },
+  {
+    q: "How to change server",
+    a: "Go to Plans → select a tariff → choose a server location (Amsterdam or Saint Petersburg). Your connection will switch automatically.",
+  },
+  {
+    q: "How to change mobile carrier",
+    a: "Some carriers block proxy traffic. Try switching to Wi-Fi or contact support — we'll help configure the proxy for your carrier.",
+  },
+  {
+    q: "My balance didn't top up",
+    a: "Payments via Stars are confirmed instantly. For card/SBP payments, it can take up to 5 minutes. If nothing changes — contact support.",
+  },
+  {
+    q: "How to connect on multiple devices",
+    a: "Choose a plan with 2+ devices. Each device needs to be configured separately using the same credentials from your subscription.",
+  },
+];
+
+function HelpFaq() {
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+
+  return (
+    <div className="mt-4 mb-2">
+      <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
+        Help &amp; FAQ
+      </p>
+      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+        {FAQ_ITEMS.map((item, idx) => {
+          const isOpen = openIdx === idx;
+          const isLast = idx === FAQ_ITEMS.length - 1;
+          return (
+            <div key={idx} style={{ borderBottom: isLast ? 'none' : '1px solid var(--border)' }}>
+              <button
+                onClick={() => setOpenIdx(isOpen ? null : idx)}
+                className="w-full flex items-center justify-between px-4 py-3.5 text-left transition-colors"
+                style={{ backgroundColor: isOpen ? 'var(--bg-card-hover)' : 'var(--bg-card)' }}
+              >
+                <span className="text-sm font-medium pr-3" style={{ color: 'var(--text-primary)' }}>
+                  {item.q}
+                </span>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{
+                    color: 'var(--text-dim)',
+                    flexShrink: 0,
+                    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease',
+                  }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {isOpen && (
+                <div
+                  className="px-4 pb-4 text-sm"
+                  style={{ color: 'var(--text-muted)', backgroundColor: 'var(--bg-card)' }}
+                >
+                  {item.a}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
