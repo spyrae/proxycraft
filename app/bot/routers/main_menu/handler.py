@@ -102,13 +102,8 @@ async def command_main_menu(
     main_menu = await message.answer(
         text=_("main_menu:message:main").format(name=user.first_name),
         reply_markup=main_menu_keyboard(
-            is_admin,
+            is_admin=is_admin,
             is_referral_available=config.shop.REFERRER_REWARD_ENABLED,
-            is_trial_available=await services.subscription.is_trial_available(user),
-            is_referred_trial_available=await services.referral.is_referred_trial_available(user),
-            is_mtproto_enabled=config.shop.MTPROTO_ENABLED,
-            is_whatsapp_enabled=config.shop.WHATSAPP_ENABLED,
-            is_bundles_enabled=config.shop.MTPROTO_ENABLED and config.shop.WHATSAPP_ENABLED,
         ),
     )
     await state.update_data({MAIN_MESSAGE_ID_KEY: main_menu.message_id})
@@ -129,13 +124,8 @@ async def callback_main_menu(
     await callback.message.edit_text(
         text=_("main_menu:message:main").format(name=user.first_name),
         reply_markup=main_menu_keyboard(
-            is_admin,
+            is_admin=is_admin,
             is_referral_available=config.shop.REFERRER_REWARD_ENABLED,
-            is_trial_available=await services.subscription.is_trial_available(user),
-            is_referred_trial_available=await services.referral.is_referred_trial_available(user),
-            is_mtproto_enabled=config.shop.MTPROTO_ENABLED,
-            is_whatsapp_enabled=config.shop.WHATSAPP_ENABLED,
-            is_bundles_enabled=config.shop.MTPROTO_ENABLED and config.shop.WHATSAPP_ENABLED,
         ),
     )
 
@@ -143,10 +133,10 @@ async def callback_main_menu(
 async def redirect_to_main_menu(
     bot: Bot,
     user: User,
-    services: ServicesContainer,
     config: Config,
     storage: RedisStorage | None = None,
     state: FSMContext | None = None,
+    services: ServicesContainer | None = None,
 ) -> None:
     logger.info(f"User {user.tg_id} redirected to main menu page.")
 
@@ -165,15 +155,8 @@ async def redirect_to_main_menu(
             chat_id=user.tg_id,
             message_id=main_message_id,
             reply_markup=main_menu_keyboard(
-                is_admin,
+                is_admin=is_admin,
                 is_referral_available=config.shop.REFERRER_REWARD_ENABLED,
-                is_trial_available=await services.subscription.is_trial_available(user),
-                is_referred_trial_available=await services.referral.is_referred_trial_available(
-                    user
-                ),
-                is_mtproto_enabled=config.shop.MTPROTO_ENABLED,
-                is_whatsapp_enabled=config.shop.WHATSAPP_ENABLED,
-                is_bundles_enabled=config.shop.MTPROTO_ENABLED and config.shop.WHATSAPP_ENABLED,
             ),
         )
     except Exception as exception:
