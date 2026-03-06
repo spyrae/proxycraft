@@ -1,10 +1,8 @@
 import logging
-import os
-import re
 import secrets
-import signal
 import subprocess
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from pathlib import Path
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
@@ -20,7 +18,11 @@ class MTProtoService:
         self.session_factory = session_factory
         self.host = config.shop.MTPROTO_HOST
         self.port = config.shop.MTPROTO_PORT
-        self.config_path = config.shop.MTPROTO_CONFIG_PATH
+        self.config_path = Path(config.shop.MTPROTO_CONFIG_PATH)
+        self.tls_domain = config.shop.MTPROTO_TLS_DOMAIN
+        self.mask_host = config.shop.MTPROTO_MASK_HOST
+        self.mask_port = config.shop.MTPROTO_MASK_PORT
+        self.fast_mode = config.shop.MTPROTO_FAST_MODE
         logger.info("MTProto Service initialized.")
 
     async def activate(self, user_tg_id: int, duration_days: int, is_trial: bool = False) -> str | None:
@@ -40,8 +42,7 @@ class MTProtoService:
                 logger.error(f"Failed to create MTProto subscription for user {user_tg_id}")
                 return None
 
-        self._update_config_add_user(sub.id, secret)
-        self._reload_proxy()
+        await self.sync_runtime_config()
         logger.info(f"MTProto activated for user {user_tg_id}, expires {expires_at}")
         return secret
 
@@ -92,8 +93,7 @@ class MTProtoService:
             )
 
         if result:
-            self._update_config_remove_user(sub.id, legacy_user_tg_id=sub.user_tg_id)
-            self._reload_proxy()
+            await self.sync_runtime_config()
             logger.info(f"MTProto deactivated for user {user_tg_id}")
         return result
 
@@ -103,7 +103,7 @@ class MTProtoService:
             return None
 
         # FakeTLS secret = "ee" + hex_secret + hex_encoded_domain
-        tls_domain_hex = "www.google.com".encode().hex()
+        tls_domain_hex = self.tls_domain.encode().hex()
         secret = f"ee{subscription.secret}{tls_domain_hex}"
         return f"https://t.me/proxy?server={self.host}&port={self.port}&secret={secret}"
 
@@ -155,11 +155,10 @@ class MTProtoService:
                     sub.user_tg_id,
                     subscription_id=sub.id,
                 )
-                self._update_config_remove_user(sub.id, legacy_user_tg_id=sub.user_tg_id)
                 count += 1
 
         if count > 0:
-            self._reload_proxy()
+            await self.sync_runtime_config()
             logger.info(f"MTProto cleanup: deactivated {count} expired subscriptions")
         return count
 
@@ -183,72 +182,74 @@ class MTProtoService:
             return None
         return max(1, round(rub_price / 1.8))
 
-    # --- Config management ---
+    async def sync_runtime_config(self) -> bool:
+        """Regenerate mtprotoproxy config from DB + env and hot-reload the proxy if needed."""
+        async with self.session_factory() as session:
+            subscriptions = await MTProtoSubscription.get_all_active(session)
+
+        active_subscriptions = [
+            sub for sub in subscriptions
+            if sub.is_active and sub.expires_at > datetime.utcnow()
+        ]
+        rendered = self._render_config(active_subscriptions)
+        changed = self._write_config(rendered)
+        if changed:
+            self._reload_proxy()
+            logger.info(
+                "MTProto runtime config synced with %d active subscriptions",
+                len(active_subscriptions),
+            )
+        else:
+            logger.info("MTProto runtime config already up to date")
+        return changed
+
+    def _render_config(self, subscriptions: list[MTProtoSubscription]) -> str:
+        user_lines = [
+            f'    "tg_{sub.id}": "{sub.secret}",'
+            for sub in sorted(subscriptions, key=lambda item: item.id)
+        ]
+        users_block = "\n".join(user_lines)
+        if users_block:
+            users_block = f"\n{users_block}\n"
+
+        return (
+            "PORT = {port}\n\n"
+            "USERS = {{{users_block}}}\n\n"
+            "# Managed by ProxyCraft bot — do not edit manually.\n"
+            "TLS_DOMAIN = {tls_domain!r}\n"
+            "MASK = True\n"
+            "MASK_HOST = {mask_host!r}\n"
+            "MASK_PORT = {mask_port}\n"
+            "FAST_MODE = {fast_mode}\n"
+            'MODES = {{"classic": False, "secure": False, "tls": True}}\n'
+        ).format(
+            port=self.port,
+            users_block=users_block,
+            tls_domain=self.tls_domain,
+            mask_host=self.mask_host,
+            mask_port=self.mask_port,
+            fast_mode="True" if self.fast_mode else "False",
+        )
 
     def _read_config(self) -> str:
         """Read mtprotoproxy config.py."""
         try:
-            with open(self.config_path, "r") as f:
-                return f.read()
+            return self.config_path.read_text(encoding="utf-8")
         except FileNotFoundError:
-            logger.error(f"MTProto config not found: {self.config_path}")
+            logger.warning("MTProto config not found at %s, recreating it", self.config_path)
             return ""
 
-    def _write_config(self, content: str) -> None:
-        """Write mtprotoproxy config.py."""
-        try:
-            with open(self.config_path, "w") as f:
-                f.write(content)
-        except Exception as e:
-            logger.error(f"Failed to write MTProto config: {e}")
+    def _write_config(self, content: str) -> bool:
+        """Write mtprotoproxy config.py atomically. Returns True when content changed."""
+        current = self._read_config()
+        if current == content:
+            return False
 
-    def _update_config_add_user(self, subscription_id: int, secret: str) -> None:
-        """Add user entry to USERS dict in config.py."""
-        content = self._read_config()
-        if not content:
-            return
-
-        key = f"tg_{subscription_id}"
-        entry = f'    "{key}": "{secret}",'
-
-        # Check if user already exists
-        if f'"{key}"' in content:
-            # Update existing entry
-            content = re.sub(
-                rf'(\s*"{key}"\s*:\s*")[^"]*(")',
-                rf'\g<1>{secret}\2',
-                content,
-            )
-        else:
-            # Add new entry before closing brace of USERS dict
-            # Match } on its own line (closing brace of the dict)
-            content = re.sub(
-                r"(USERS\s*=\s*\{)(.*?)(^\})",
-                rf"\1\2{entry}\n\3",
-                content,
-                flags=re.DOTALL | re.MULTILINE,
-            )
-
-        self._write_config(content)
-
-    def _update_config_remove_user(
-        self,
-        subscription_id: int,
-        legacy_user_tg_id: int | None = None,
-    ) -> None:
-        """Remove user entry from USERS dict in config.py."""
-        content = self._read_config()
-        if not content:
-            return
-
-        keys = [f"tg_{subscription_id}"]
-        if legacy_user_tg_id is not None:
-            keys.append(f"tg_{legacy_user_tg_id}")
-
-        for key in keys:
-            content = re.sub(rf'\s*"{key}"\s*:\s*"[^"]*"\s*,?\n?', "\n", content)
-
-        self._write_config(content)
+        self.config_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = self.config_path.with_suffix(".tmp")
+        tmp_path.write_text(content, encoding="utf-8")
+        tmp_path.replace(self.config_path)
+        return True
 
     def _reload_proxy(self) -> None:
         """Send SIGUSR2 to mtprotoproxy container for hot reload."""

@@ -1,8 +1,12 @@
 PORT = 8444
 
 USERS = {
-    # Managed by VPNCraft bot — do not edit manually
+    # Managed by ProxyCraft bot — do not edit manually.
 }
 
-# FakeTLS — masquerade as regular HTTPS traffic
-TLS_DOMAIN = "www.google.com"
+TLS_DOMAIN = "www.cloudflare.com"
+MASK = True
+MASK_HOST = "www.cloudflare.com"
+MASK_PORT = 443
+FAST_MODE = True
+MODES = {"classic": False, "secure": False, "tls": True}

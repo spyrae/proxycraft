@@ -16,7 +16,13 @@ services:
     ports:
       - "8444:8444"
     volumes:
-      - ./mtproto/config.py:/app/config.py
+      - ./mtproto/config.py:/app/config.py:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1', 8444), 2); s.close()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   whatsapp:
     image: haproxy:2.9-alpine

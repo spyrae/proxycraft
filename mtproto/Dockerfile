@@ -1,8 +1,10 @@
 FROM python:3.10-slim
 
 ARG MTPROTO_PROXY_VERSION=v1.1.1
+ARG CRYPTOGRAPHY_VERSION=46.0.5
 
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
@@ -15,8 +17,12 @@ RUN curl -fsSL "https://github.com/alexbers/mtprotoproxy/archive/refs/tags/${MTP
     && tar -xzf /tmp/mtprotoproxy.tar.gz -C /tmp \
     && cp -R /tmp/mtprotoproxy-${MTPROTO_PROXY_VERSION#v}/. /app/ \
     && rm -rf /tmp/mtprotoproxy.tar.gz /tmp/mtprotoproxy-${MTPROTO_PROXY_VERSION#v} \
-    && pip install --no-cache-dir cryptography
+    && pip install --no-cache-dir "cryptography==${CRYPTOGRAPHY_VERSION}" \
+    && useradd --create-home --home-dir /app --shell /usr/sbin/nologin mtproxy \
+    && chown -R mtproxy:mtproxy /app
 
 EXPOSE 8444
+
+USER mtproxy
 
 CMD ["python", "mtprotoproxy.py"]

@@ -53,6 +53,9 @@ async def on_startup(
 
     logging.info("Bot started.")
 
+    if config.shop.MTPROTO_ENABLED:
+        await services.mtproto.sync_runtime_config()
+
     tasks.transactions.start_scheduler(db.session)
     if config.shop.REFERRER_REWARD_ENABLED:
         tasks.referral.start_scheduler(

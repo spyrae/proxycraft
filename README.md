@@ -6,6 +6,7 @@ Telegram bot for selling VPN & proxy subscriptions. Built on top of [3xui-shop](
 
 - Python 3.12, aiogram 3
 - 3X-UI panel (VLESS+WebSocket+CDN)
+- MTProto proxy packaged as a dedicated Docker image with runtime config synced from DB + env
 - SQLite (→ PostgreSQL later)
 - Redis (FSM storage)
 - Traefik (reverse proxy, SSL)
@@ -27,6 +28,7 @@ docker compose up -d
 Cloudflare CDN → nginx :443 → Xray (VLESS+WS)
 Telegram → Traefik → Bot :8080
 Bot → 3X-UI API (manage VPN clients)
+Bot → MTProto runtime config (render + hot reload)
 ```
 
 ## License
