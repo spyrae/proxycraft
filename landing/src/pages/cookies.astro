@@ -1,0 +1,117 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+---
+
+<BaseLayout title="Политика использования cookie — ProxyCraft" noindex>
+  <Header />
+  <main class="pt-28 pb-20">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6">
+      <h1 class="text-3xl font-bold">Политика использования cookie</h1>
+      <div class="prose-invert mt-8 space-y-6 text-text-muted">
+        <p>Последнее обновление: март 2026</p>
+        <p>
+          Настоящая Политика объясняет, как сайт ProxyCraft использует файлы cookie и
+          аналогичные технологии для анализа трафика и улучшения качества сервиса.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">1. Что такое cookie</h2>
+        <p>
+          Cookie — небольшие текстовые файлы, сохраняемые на вашем устройстве при посещении
+          сайта. Они помогают сайтам запоминать ваши предпочтения и собирать статистику.
+          Cookie не являются программами и не могут причинить вред вашему устройству.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">2. Какие cookie мы используем</h2>
+
+        <h3 class="text-lg font-medium text-text">Технические cookie (обязательные)</h3>
+        <p>
+          Необходимы для корректной работы сайта. Без них некоторые функции сайта могут
+          работать неправильно. Эти cookie не требуют вашего согласия.
+        </p>
+        <ul class="list-disc space-y-1 pl-6">
+          <li>Сохранение выбранного языка интерфейса.</li>
+          <li>Хранение состояния согласия с политикой cookie.</li>
+        </ul>
+
+        <h3 class="text-lg font-medium text-text mt-4">Аналитические cookie</h3>
+        <p>
+          Используются для понимания того, как посетители взаимодействуют с сайтом.
+          Данные собираются в обезличенном виде.
+        </p>
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-white/10">
+                <th class="py-2 pr-4 text-left text-text font-semibold">Сервис</th>
+                <th class="py-2 pr-4 text-left text-text font-semibold">Цель</th>
+                <th class="py-2 text-left text-text font-semibold">Срок</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-white/5">
+                <td class="py-2 pr-4">Яндекс.Метрика</td>
+                <td class="py-2 pr-4">Анализ посещаемости, поведение пользователей</td>
+                <td class="py-2">До 1 года</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Яндекс.Метрика обрабатывает данные о посещении страниц, источниках трафика, времени
+          на сайте и нажатиях кнопок. Данные передаются в Яндекс и обрабатываются в соответствии
+          с их политикой конфиденциальности. Функция «Вебвизор» для записи сессий не используется.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">3. Как управлять cookie</h2>
+        <p>
+          При первом посещении сайта вы можете отклонить аналитические cookie через баннер.
+          Также вы можете управлять cookie через настройки браузера:
+        </p>
+        <ul class="list-disc space-y-1 pl-6">
+          <li>
+            <strong class="text-text">Chrome:</strong> Настройки → Конфиденциальность → Файлы cookie
+          </li>
+          <li>
+            <strong class="text-text">Firefox:</strong> Настройки → Приватность → Управление данными
+          </li>
+          <li>
+            <strong class="text-text">Safari:</strong> Настройки → Конфиденциальность → Cookie
+          </li>
+          <li>
+            <strong class="text-text">Edge:</strong> Настройки → Файлы cookie и разрешения сайтов
+          </li>
+        </ul>
+        <p>
+          Обратите внимание: отключение cookie может повлиять на работу некоторых функций сайта.
+        </p>
+        <p>
+          Для отказа от отслеживания Яндекс.Метрикой вы можете установить{' '}
+          <a
+            href="https://yandex.ru/support/metrica/general/opt-out.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-accent hover:underline"
+          >
+            официальный плагин Яндекс
+          </a>.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">4. Изменения политики</h2>
+        <p>
+          Мы вправе обновлять данную политику. Актуальная версия всегда доступна на этой странице.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">5. Контакты</h2>
+        <p>
+          По вопросам использования cookie:
+          <a href="mailto:support@proxycraft.tech" class="text-accent hover:underline ml-1">
+            support@proxycraft.tech
+          </a>
+        </p>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

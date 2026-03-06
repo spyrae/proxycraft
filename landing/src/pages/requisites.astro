@@ -1,0 +1,68 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+---
+
+<BaseLayout title="Реквизиты — ProxyCraft" noindex>
+  <Header />
+  <main class="pt-28 pb-20">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6">
+      <h1 class="text-3xl font-bold">Реквизиты</h1>
+      <div class="prose-invert mt-8 space-y-6 text-text-muted">
+        <p>Последнее обновление: март 2026</p>
+
+        <h2 class="text-xl font-semibold text-text">Оператор сервиса</h2>
+        <div class="space-y-2">
+          <div class="flex flex-col sm:flex-row sm:gap-4">
+            <span class="min-w-[180px] text-text/60">Наименование</span>
+            <span>ProxyCraft</span>
+          </div>
+          <div class="flex flex-col sm:flex-row sm:gap-4">
+            <span class="min-w-[180px] text-text/60">Сайт</span>
+            <span>proxycraft.tech</span>
+          </div>
+          <div class="flex flex-col sm:flex-row sm:gap-4">
+            <span class="min-w-[180px] text-text/60">Email</span>
+            <a href="mailto:support@proxycraft.tech" class="text-accent hover:underline">
+              support@proxycraft.tech
+            </a>
+          </div>
+          <div class="flex flex-col sm:flex-row sm:gap-4">
+            <span class="min-w-[180px] text-text/60">Telegram</span>
+            <a href="https://t.me/proxycraftapp_bot" class="text-accent hover:underline">
+              @proxycraftapp_bot
+            </a>
+          </div>
+        </div>
+
+        <h2 class="text-xl font-semibold text-text">Платёжная информация</h2>
+        <p>
+          Оплата услуг ProxyCraft производится через Telegram-бота{' '}
+          <a href="https://t.me/proxycraftapp_bot" class="text-accent hover:underline">
+            @proxycraftapp_bot
+          </a>{' '}
+          с использованием доступных методов оплаты: банковские карты (через Telegram Payments),
+          Telegram Stars.
+        </p>
+        <p>
+          Все транзакции обрабатываются через сертифицированные платёжные шлюзы. ProxyCraft
+          не сохраняет данные банковских карт пользователей.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">Контакты для юридических вопросов</h2>
+        <p>
+          По вопросам, требующим официального ответа (претензии, запросы о возврате данных,
+          юридические уведомления):
+          <a href="mailto:support@proxycraft.tech" class="text-accent hover:underline ml-1">
+            support@proxycraft.tech
+          </a>
+        </p>
+        <p>
+          Обращения обрабатываются в течение 30 рабочих дней.
+        </p>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

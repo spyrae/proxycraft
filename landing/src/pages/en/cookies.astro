@@ -1,0 +1,109 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+---
+
+<BaseLayout title="Cookie Policy — ProxyCraft" noindex>
+  <Header />
+  <main class="pt-28 pb-20">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6">
+      <h1 class="text-3xl font-bold">Cookie Policy</h1>
+      <div class="prose-invert mt-8 space-y-6 text-text-muted">
+        <p>Last updated: March 2026</p>
+        <p>
+          This Cookie Policy explains how the ProxyCraft website uses cookies and similar
+          technologies to analyze traffic and improve service quality.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">1. What Are Cookies</h2>
+        <p>
+          Cookies are small text files stored on your device when you visit a website. They help
+          websites remember your preferences and gather usage statistics. Cookies are not programs
+          and cannot harm your device.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">2. Cookies We Use</h2>
+
+        <h3 class="text-lg font-medium text-text">Technical Cookies (Required)</h3>
+        <p>
+          Necessary for the correct operation of the website. Without them, some site functions
+          may not work correctly. These cookies do not require your consent.
+        </p>
+        <ul class="list-disc space-y-1 pl-6">
+          <li>Storing the selected interface language.</li>
+          <li>Storing cookie consent preferences.</li>
+        </ul>
+
+        <h3 class="text-lg font-medium text-text mt-4">Analytics Cookies</h3>
+        <p>
+          Used to understand how visitors interact with the website.
+          Data is collected in anonymized form.
+        </p>
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-white/10">
+                <th class="py-2 pr-4 text-left text-text font-semibold">Service</th>
+                <th class="py-2 pr-4 text-left text-text font-semibold">Purpose</th>
+                <th class="py-2 text-left text-text font-semibold">Duration</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-white/5">
+                <td class="py-2 pr-4">Yandex.Metrica</td>
+                <td class="py-2 pr-4">Traffic analysis, user behavior</td>
+                <td class="py-2">Up to 1 year</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Yandex.Metrica processes data about page visits, traffic sources, time on site, and
+          button clicks. Data is transferred to Yandex and processed according to their privacy
+          policy. The session recording feature (WebVisor) is not used.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">3. How to Manage Cookies</h2>
+        <p>
+          On your first visit, you can decline analytics cookies via the consent banner.
+          You can also manage cookies through your browser settings:
+        </p>
+        <ul class="list-disc space-y-1 pl-6">
+          <li><strong class="text-text">Chrome:</strong> Settings → Privacy → Cookies</li>
+          <li><strong class="text-text">Firefox:</strong> Settings → Privacy → Manage Data</li>
+          <li><strong class="text-text">Safari:</strong> Preferences → Privacy → Cookies</li>
+          <li><strong class="text-text">Edge:</strong> Settings → Cookies and site permissions</li>
+        </ul>
+        <p>
+          Note: disabling cookies may affect some website functionality.
+        </p>
+        <p>
+          To opt out of Yandex.Metrica tracking, you can install the{' '}
+          <a
+            href="https://yandex.ru/support/metrica/general/opt-out.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-accent hover:underline"
+          >
+            official Yandex opt-out plugin
+          </a>.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">4. Policy Changes</h2>
+        <p>
+          We may update this policy. The current version is always available on this page.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">5. Contact</h2>
+        <p>
+          For cookie-related questions:
+          <a href="mailto:support@proxycraft.tech" class="text-accent hover:underline ml-1">
+            support@proxycraft.tech
+          </a>
+        </p>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

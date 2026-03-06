@@ -1,0 +1,65 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+---
+
+<BaseLayout title="Company Details — ProxyCraft" noindex>
+  <Header />
+  <main class="pt-28 pb-20">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6">
+      <h1 class="text-3xl font-bold">Company Details</h1>
+      <div class="prose-invert mt-8 space-y-6 text-text-muted">
+        <p>Last updated: March 2026</p>
+
+        <h2 class="text-xl font-semibold text-text">Service Operator</h2>
+        <div class="space-y-2">
+          <div class="flex flex-col sm:flex-row sm:gap-4">
+            <span class="min-w-[180px] text-text/60">Name</span>
+            <span>ProxyCraft</span>
+          </div>
+          <div class="flex flex-col sm:flex-row sm:gap-4">
+            <span class="min-w-[180px] text-text/60">Website</span>
+            <span>proxycraft.tech</span>
+          </div>
+          <div class="flex flex-col sm:flex-row sm:gap-4">
+            <span class="min-w-[180px] text-text/60">Email</span>
+            <a href="mailto:support@proxycraft.tech" class="text-accent hover:underline">
+              support@proxycraft.tech
+            </a>
+          </div>
+          <div class="flex flex-col sm:flex-row sm:gap-4">
+            <span class="min-w-[180px] text-text/60">Telegram</span>
+            <a href="https://t.me/proxycraftapp_bot" class="text-accent hover:underline">
+              @proxycraftapp_bot
+            </a>
+          </div>
+        </div>
+
+        <h2 class="text-xl font-semibold text-text">Payment Information</h2>
+        <p>
+          ProxyCraft services are paid through the Telegram bot{' '}
+          <a href="https://t.me/proxycraftapp_bot" class="text-accent hover:underline">
+            @proxycraftapp_bot
+          </a>{' '}
+          using available payment methods: bank cards (via Telegram Payments) and Telegram Stars.
+        </p>
+        <p>
+          All transactions are processed through certified payment gateways. ProxyCraft does
+          not store users' bank card data.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">Legal Inquiries</h2>
+        <p>
+          For matters requiring an official response (complaints, data deletion requests, legal
+          notices):
+          <a href="mailto:support@proxycraft.tech" class="text-accent hover:underline ml-1">
+            support@proxycraft.tech
+          </a>
+        </p>
+        <p>Requests are processed within 30 business days.</p>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>
