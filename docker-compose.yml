@@ -25,17 +25,27 @@ services:
       start_period: 10s
 
   whatsapp:
-    image: haproxy:2.9-alpine
+    build:
+      context: ./whatsapp
+      dockerfile: Dockerfile
+    image: proxycraft-whatsapp:latest
     container_name: proxycraft-whatsapp
     restart: unless-stopped
     ports:
       - "587:587"
       - "7777:7777"
       - "10001-10999:10001-10999"
+    env_file:
+      - .env
     volumes:
-      - ./whatsapp/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
-      - ./whatsapp/ssl:/etc/haproxy/ssl:ro
-    command: haproxy -f /usr/local/etc/haproxy/haproxy.cfg
+      - ./whatsapp/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - whatsapp_ssl:/etc/haproxy/ssl
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   bot:
     build: .
@@ -62,3 +72,4 @@ services:
 
 volumes:
   redis_data:
+  whatsapp_ssl:

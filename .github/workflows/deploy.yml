@@ -32,8 +32,8 @@ jobs:
             set -e
             cd /opt/proxycraft
             git pull origin main
-            sudo docker compose build bot mtproto
-            for service in bot mtproto; do
+            sudo docker compose build bot mtproto whatsapp
+            for service in bot mtproto whatsapp; do
               stale_ids="$(sudo docker ps -a --format '{{.ID}} {{.Names}}' | awk -v svc="$service" '$2 ~ ("_proxycraft-" svc "$") { print $1 }')"
               if [ -n "$stale_ids" ]; then
                 echo "Removing stale temporary containers for $service"
@@ -46,3 +46,5 @@ jobs:
             sudo docker logs proxycraft-bot --tail 10 2>&1
             echo "--- MTProto logs (last 10 lines) ---"
             sudo docker logs proxycraft-mtproto --tail 10 2>&1
+            echo "--- WhatsApp logs (last 10 lines) ---"
+            sudo docker logs proxycraft-whatsapp --tail 10 2>&1

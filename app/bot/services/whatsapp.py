@@ -1,6 +1,9 @@
 import http.client
+import json
 import logging
+import os
 import socket
+import tempfile
 from datetime import datetime, timedelta
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -12,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 DOCKER_SOCKET_PATH = "/var/run/docker.sock"
 WHATSAPP_CONTAINER_NAME = "proxycraft-whatsapp"
+HAPROXY_CONTAINER_CONFIG_PATH = "/usr/local/etc/haproxy/haproxy.cfg"
 
 
 class WhatsAppService:
@@ -199,8 +203,14 @@ class WhatsAppService:
             active_subs = await WhatsAppSubscription.get_all_active(session)
 
         config_content = self._generate_haproxy_config(active_subs)
-        self._write_haproxy_config(config_content)
-        self._reload_haproxy()
+        if not self._write_haproxy_config(config_content):
+            logger.error("Skipping HAProxy reload because config write failed")
+            return
+        if not self._validate_haproxy_config():
+            logger.error("Skipping HAProxy reload because config validation failed")
+            return
+        if not self._reload_haproxy():
+            logger.error("HAProxy reload failed after successful config validation")
 
     def _generate_haproxy_config(self, active_subs: list[WhatsAppSubscription]) -> str:
         """Generate the full HAProxy config matching the official WhatsApp proxy spec.
@@ -266,36 +276,117 @@ class WhatsAppService:
 
         return "\n".join(lines)
 
-    def _write_haproxy_config(self, content: str) -> None:
-        """Write HAProxy config file."""
+    def _write_haproxy_config(self, content: str) -> bool:
+        """Write HAProxy config file atomically."""
+        config_dir = os.path.dirname(self.haproxy_config_path)
+        temp_path: str | None = None
         try:
-            with open(self.haproxy_config_path, "w") as f:
+            os.makedirs(config_dir, exist_ok=True)
+            with tempfile.NamedTemporaryFile(
+                "w",
+                dir=config_dir,
+                prefix=".haproxy.",
+                suffix=".cfg",
+                delete=False,
+            ) as f:
                 f.write(content)
+                temp_path = f.name
+            os.replace(temp_path, self.haproxy_config_path)
             logger.debug("HAProxy config written successfully")
+            return True
         except Exception as e:
             logger.error(f"Failed to write HAProxy config: {e}")
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    logger.warning(f"Failed to remove temp HAProxy config: {temp_path}")
+            return False
 
-    def _reload_haproxy(self) -> None:
-        """Send HUP signal to HAProxy container via Docker socket API."""
+    def _docker_request(self, method: str, path: str, body: dict | None = None) -> tuple[int, bytes]:
+        payload = json.dumps(body).encode() if body is not None else None
+        headers = {"Content-Type": "application/json"} if body is not None else {}
+        conn = http.client.HTTPConnection("localhost")
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
         try:
-            conn = http.client.HTTPConnection("localhost")
-            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             sock.connect(DOCKER_SOCKET_PATH)
             conn.sock = sock
+            conn.request(method, path, body=payload, headers=headers)
+            response = conn.getresponse()
+            response_body = response.read()
+            return response.status, response_body
+        finally:
+            conn.close()
 
-            conn.request(
+    def _docker_exec(self, cmd: list[str]) -> tuple[int | None, str]:
+        try:
+            status, body = self._docker_request(
+                "POST",
+                f"/containers/{WHATSAPP_CONTAINER_NAME}/exec",
+                {
+                    "AttachStdout": True,
+                    "AttachStderr": True,
+                    "Tty": True,
+                    "Cmd": cmd,
+                },
+            )
+            if status not in (200, 201):
+                return None, body.decode(errors="replace")
+
+            exec_id = json.loads(body.decode())["Id"]
+            _, start_body = self._docker_request(
+                "POST",
+                f"/exec/{exec_id}/start",
+                {"Detach": False, "Tty": True},
+            )
+            inspect_status, inspect_body = self._docker_request("GET", f"/exec/{exec_id}/json")
+            if inspect_status != 200:
+                return None, inspect_body.decode(errors="replace")
+
+            exit_code = json.loads(inspect_body.decode()).get("ExitCode")
+            return exit_code, start_body.decode(errors="replace").strip()
+        except FileNotFoundError:
+            logger.error(f"Docker socket not found at {DOCKER_SOCKET_PATH}. Mount it in docker-compose.yml")
+            return None, "docker socket not found"
+        except Exception as e:
+            logger.error(f"Error executing command in whatsapp container: {e}")
+            return None, str(e)
+
+    def _validate_haproxy_config(self) -> bool:
+        exit_code, output = self._docker_exec(
+            ["haproxy", "-c", "-f", HAPROXY_CONTAINER_CONFIG_PATH]
+        )
+        if exit_code == 0:
+            logger.info("HAProxy config validation passed")
+            return True
+
+        logger.error(
+            "HAProxy config validation failed: %s",
+            output or f"exit code {exit_code}",
+        )
+        return False
+
+    def _reload_haproxy(self) -> bool:
+        """Send HUP signal to the whatsapp container entrypoint via Docker socket API."""
+        try:
+            status, body = self._docker_request(
                 "POST",
                 f"/containers/{WHATSAPP_CONTAINER_NAME}/kill?signal=HUP",
             )
-            response = conn.getresponse()
-            conn.close()
-
-            if response.status == 204:
+            if status == 204:
                 logger.info("HAProxy reloaded (HUP via Docker socket)")
-            else:
-                body = response.read().decode()
-                logger.error(f"Failed to reload HAProxy: HTTP {response.status} — {body}")
+                return True
+
+            logger.error(
+                "Failed to reload HAProxy: HTTP %s — %s",
+                status,
+                body.decode(errors="replace"),
+            )
+            return False
         except FileNotFoundError:
             logger.error(f"Docker socket not found at {DOCKER_SOCKET_PATH}. Mount it in docker-compose.yml")
+            return False
         except Exception as e:
             logger.error(f"Error sending HUP to whatsapp container: {e}")
+            return False
