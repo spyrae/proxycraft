@@ -26,29 +26,28 @@ export function SubscriptionCard({ title, status, location, children }: Props) {
         borderColor: status === 'active' ? 'rgba(16, 185, 129, 0.2)' : undefined,
       }}
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start gap-2">
           <div
-            className="w-2 h-2 rounded-full"
+            className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
             style={{
               backgroundColor: cfg.color,
               boxShadow: status === 'active' ? `0 0 8px ${cfg.color}` : 'none',
             }}
           />
-          <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-            {title}
-          </h3>
-          {location && (
-            <span
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
-              style={{ color: 'var(--text-dim)', backgroundColor: 'var(--bg-secondary)' }}
-            >
-              📍 {location}
-            </span>
-          )}
+          <div>
+            <h3 className="text-base font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>
+              {title}
+            </h3>
+            {location && (
+              <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-dim)' }}>
+                📍 {location}
+              </p>
+            )}
+          </div>
         </div>
         <span
-          className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+          className="text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ml-2"
           style={{ color: cfg.color, backgroundColor: cfg.bg }}
         >
           {cfg.label}

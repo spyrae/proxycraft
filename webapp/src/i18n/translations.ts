@@ -118,6 +118,11 @@ const translations = {
     copy: 'Copy',
     copied: 'Copied!',
 
+    // MyVpnPage
+    no_subscriptions_yet: 'No active subscriptions yet',
+    show_stats: 'Show stats',
+    hide_stats: 'Hide stats',
+
     // Location display names
     loc_amsterdam: 'Amsterdam',
     loc_saint_petersburg: 'Saint Petersburg',
@@ -239,6 +244,11 @@ const translations = {
     // CopyButton
     copy: 'Копировать',
     copied: 'Скопировано!',
+
+    // MyVpnPage
+    no_subscriptions_yet: 'Нет активных подписок',
+    show_stats: 'Показать статистику',
+    hide_stats: 'Скрыть статистику',
 
     // Location display names
     loc_amsterdam: 'Амстердам',

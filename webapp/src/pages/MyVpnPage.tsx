@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { openLink } from '@telegram-apps/sdk';
 import { useMe, useVpnSubscription, useMtprotoSubscription, useWhatsappSubscription } from '../api/hooks';
 import { SubscriptionCard } from '../components/SubscriptionCard';
@@ -5,29 +6,12 @@ import { QRCode } from '../components/QRCode';
 import { CopyButton } from '../components/CopyButton';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translations';
+import type { VpnSubscription, MtprotoSubscription, WhatsappSubscription } from '../api/types';
 
 const LOCATION_KEYS: Record<string, TranslationKey> = {
   'Amsterdam': 'loc_amsterdam',
   'Saint Petersburg': 'loc_saint_petersburg',
 };
-
-export function MyVpnPage() {
-  const { data: me } = useMe();
-  const { t } = useLanguage();
-
-  return (
-    <div className="animate-fade-in">
-      <h1 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-        {t('my_vpn')}
-      </h1>
-
-      <VpnSection />
-
-      {me?.features.mtproto_enabled && <MtprotoSection />}
-      {me?.features.whatsapp_enabled && <WhatsappSection />}
-    </div>
-  );
-}
 
 function useLocationLabel(location: string | null | undefined): string | undefined {
   const { t } = useLanguage();
@@ -36,53 +20,125 @@ function useLocationLabel(location: string | null | undefined): string | undefin
   return key ? t(key) : location;
 }
 
-function VpnSection() {
-  const { data: sub, isLoading } = useVpnSubscription();
+export function MyVpnPage() {
+  const { data: me } = useMe();
   const { t } = useLanguage();
-  const locationLabel = useLocationLabel(sub?.location);
 
-  if (isLoading) return <SkeletonCard />;
-  if (!sub) return null;
+  const { data: vpnSub, isLoading: vpnLoading } = useVpnSubscription();
+  const { data: mtprotoSub, isLoading: mtprotoLoading } = useMtprotoSubscription();
+  const { data: whatsappSub, isLoading: whatsappLoading } = useWhatsappSubscription();
 
-  const status = sub.active ? 'active' : sub.expired ? 'expired' : 'none';
+  const mtprotoEnabled = me?.features.mtproto_enabled ?? false;
+  const whatsappEnabled = me?.features.whatsapp_enabled ?? false;
+
+  const isLoading = vpnLoading
+    || (mtprotoEnabled && mtprotoLoading)
+    || (whatsappEnabled && whatsappLoading);
+
+  const showVpn = !!(vpnSub && (vpnSub.active || vpnSub.expired));
+  const showMtproto = !!(mtprotoEnabled && mtprotoSub && (mtprotoSub.active || mtprotoSub.expired));
+  const showWhatsapp = !!(whatsappEnabled && whatsappSub && (whatsappSub.active || whatsappSub.expired));
+  const hasAnything = showVpn || showMtproto || showWhatsapp;
+
+  return (
+    <div className="animate-fade-in">
+      <h1 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+        {t('my_vpn')}
+      </h1>
+
+      {isLoading && (
+        <>
+          <SkeletonCard />
+          <SkeletonCard />
+        </>
+      )}
+
+      {!isLoading && !hasAnything && <EmptyState />}
+
+      {showVpn && <VpnSection sub={vpnSub!} />}
+      {showMtproto && <MtprotoSection sub={mtprotoSub!} />}
+      {showWhatsapp && <WhatsappSection sub={whatsappSub!} />}
+    </div>
+  );
+}
+
+function EmptyState() {
+  const { t } = useLanguage();
+  return (
+    <div
+      className="rounded-2xl p-8 text-center"
+      style={{
+        backgroundColor: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+      }}
+    >
+      <div className="text-3xl mb-3">🔒</div>
+      <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
+        {t('no_subscriptions_yet')}
+      </p>
+    </div>
+  );
+}
+
+function ExpiryBadge({ date }: { date: string }) {
+  const { t } = useLanguage();
+  return (
+    <div
+      className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl"
+      style={{
+        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+        color: 'var(--text-muted)',
+      }}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      {t('expires_date', { date })}
+    </div>
+  );
+}
+
+function VpnSection({ sub }: { sub: VpnSubscription }) {
+  const { t } = useLanguage();
+  const locationLabel = useLocationLabel(sub.location);
+  const [showStats, setShowStats] = useState(false);
+
+  const status = sub.active ? 'active' : 'expired';
 
   return (
     <SubscriptionCard title="VPN" status={status} location={locationLabel}>
       {sub.active && (
         <div className="space-y-3">
-          {/* Traffic stats */}
-          <div className="grid grid-cols-2 gap-2">
-            <StatItem label={t('upload')} value={formatBytes(sub.traffic_up || 0)} icon="↑" color="#06B6D4" />
-            <StatItem label={t('download')} value={formatBytes(sub.traffic_down || 0)} icon="↓" color="#10B981" />
-            <StatItem label={t('total_used')} value={formatBytes(sub.traffic_used || 0)} icon="◎" color="#8B5CF6" />
-            <StatItem label={t('devices')} value={sub.max_devices === -1 ? '∞' : String(sub.max_devices)} icon="⊞" color="#F59E0B" />
-          </div>
-
           {sub.expiry_time && sub.expiry_time > 0 && (
-            <div
-              className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl"
-              style={{
-                backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-              {t('expires_date', { date: new Date(sub.expiry_time).toLocaleDateString() })}
+            <ExpiryBadge date={new Date(sub.expiry_time).toLocaleDateString()} />
+          )}
+
+          <button
+            onClick={() => setShowStats(!showStats)}
+            className="text-xs font-medium transition-colors"
+            style={{ color: 'var(--text-dim)' }}
+          >
+            {showStats ? t('hide_stats') : t('show_stats')}
+          </button>
+
+          {showStats && (
+            <div className="grid grid-cols-2 gap-2">
+              <StatItem label={t('upload')} value={formatBytes(sub.traffic_up || 0)} icon="↑" color="#06B6D4" />
+              <StatItem label={t('download')} value={formatBytes(sub.traffic_down || 0)} icon="↓" color="#10B981" />
+              <StatItem label={t('total_used')} value={formatBytes(sub.traffic_used || 0)} icon="◎" color="#8B5CF6" />
+              <StatItem label={t('devices')} value={sub.max_devices === -1 ? '∞' : String(sub.max_devices)} icon="⊞" color="#F59E0B" />
             </div>
           )}
 
-          {/* Subscription key + QR */}
           {sub.key && (
             <div className="space-y-3">
               <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
                 {t('connection_key')}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <div
-                  className="flex-1 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
+                  className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
                   style={{
                     backgroundColor: 'var(--bg-secondary)',
                     color: 'var(--text-primary)',
@@ -101,45 +157,29 @@ function VpnSection() {
 
       {!sub.active && (
         <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
-          {sub.expired ? t('expired_sub') : t('no_active_vpn')}
+          {t('expired_sub')}
         </p>
       )}
     </SubscriptionCard>
   );
 }
 
-function MtprotoSection() {
-  const { data: sub, isLoading } = useMtprotoSubscription();
+function MtprotoSection({ sub }: { sub: MtprotoSubscription }) {
   const { t } = useLanguage();
-  const locationLabel = useLocationLabel(sub?.location);
+  const locationLabel = useLocationLabel(sub.location);
 
-  if (isLoading) return <SkeletonCard />;
-  if (!sub) return null;
-
-  const status = sub.active ? 'active' : sub.expired ? 'expired' : 'none';
+  const status = sub.active ? 'active' : 'expired';
 
   return (
     <SubscriptionCard title="Telegram Proxy" status={status} location={locationLabel}>
       {sub.active && sub.link && (
         <div className="space-y-3">
           {sub.expires_at && (
-            <div
-              className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl"
-              style={{
-                backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-              {t('expires_date', { date: new Date(sub.expires_at).toLocaleDateString() })}
-            </div>
+            <ExpiryBadge date={new Date(sub.expires_at).toLocaleDateString()} />
           )}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <div
-              className="flex-1 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
+              className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
               style={{
                 backgroundColor: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
@@ -169,22 +209,18 @@ function MtprotoSection() {
       )}
       {!sub.active && (
         <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
-          {t('no_active_mtproto')}
+          {t('expired_sub')}
         </p>
       )}
     </SubscriptionCard>
   );
 }
 
-function WhatsappSection() {
-  const { data: sub, isLoading } = useWhatsappSubscription();
+function WhatsappSection({ sub }: { sub: WhatsappSubscription }) {
   const { t } = useLanguage();
-  const locationLabel = useLocationLabel(sub?.location);
+  const locationLabel = useLocationLabel(sub.location);
 
-  if (isLoading) return <SkeletonCard />;
-  if (!sub) return null;
-
-  const status = sub.active ? 'active' : sub.expired ? 'expired' : 'none';
+  const status = sub.active ? 'active' : 'expired';
   const connectionString = sub.active && sub.host && sub.port ? `${sub.host}:${sub.port}` : null;
 
   return (
@@ -192,23 +228,11 @@ function WhatsappSection() {
       {sub.active && connectionString && (
         <div className="space-y-3">
           {sub.expires_at && (
-            <div
-              className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl"
-              style={{
-                backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-              {t('expires_date', { date: new Date(sub.expires_at).toLocaleDateString() })}
-            </div>
+            <ExpiryBadge date={new Date(sub.expires_at).toLocaleDateString()} />
           )}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <div
-              className="flex-1 text-[11px] font-mono p-2.5 rounded-xl"
+              className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
               style={{
                 backgroundColor: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
@@ -223,7 +247,7 @@ function WhatsappSection() {
       )}
       {!sub.active && (
         <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
-          {t('no_active_whatsapp')}
+          {t('expired_sub')}
         </p>
       )}
     </SubscriptionCard>

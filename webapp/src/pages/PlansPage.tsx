@@ -431,7 +431,7 @@ function PromoCodeSection() {
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === 'Enter' && handleActivate()}
           placeholder={t('promo_placeholder')}
-          className="flex-1 rounded-xl px-3 py-2 text-sm outline-none transition-colors"
+          className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm outline-none transition-colors"
           style={{
             backgroundColor: 'var(--bg-card)',
             color: 'var(--text-primary)',
