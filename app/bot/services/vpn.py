@@ -428,47 +428,86 @@ class VPNService:
                 )
                 return True
 
-            # Create the replacement client first. 3X-UI can reject deleting the
-            # last client from an inbound, so "delete then add" is not reliable.
-            # This order also avoids a transient window without an active client.
-            new_client = Client(
-                email=str(user.tg_id),
-                enable=True,
-                id=user.vpn_id,
-                expiry_time=client_data._expiry_time,
-                flow=new_flow,
-                limit_ip=limit_ip,
-                sub_id=user.vpn_id,
-                total_gb=0,
+            inbounds = await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.inbound.get_list(),
             )
+            old_inbound = next((inbound for inbound in inbounds if inbound.id == old_inbound_id), None)
+            new_inbound = next((inbound for inbound in inbounds if inbound.id == new_inbound_id), None)
+
+            if old_inbound is None or new_inbound is None:
+                logger.error(
+                    "Failed to load inbounds for profile migration of user %s (%s -> %s).",
+                    user.tg_id,
+                    old_inbound_id,
+                    new_inbound_id,
+                )
+                return False
+
+            old_inbound = old_inbound.model_copy(deep=True)
+            new_inbound = new_inbound.model_copy(deep=True)
+
+            moved_client = None
+            old_clients = []
+            for existing in old_inbound.settings.clients:
+                if existing.id == user.vpn_id or existing.email == str(user.tg_id):
+                    moved_client = existing.model_copy(deep=True)
+                    continue
+                old_clients.append(existing)
+
+            if moved_client is None:
+                logger.error(
+                    "Client %s was not found in old inbound %s during profile migration.",
+                    user.tg_id,
+                    old_inbound_id,
+                )
+                return False
+
+            moved_client.enable = True
+            moved_client.expiry_time = client_data._expiry_time
+            moved_client.flow = new_flow
+            moved_client.limit_ip = limit_ip
+            moved_client.sub_id = user.vpn_id
+            moved_client.total_gb = 0
+
+            new_clients = [
+                existing for existing in new_inbound.settings.clients
+                if existing.id != user.vpn_id and existing.email != str(user.tg_id)
+            ]
+            new_clients.append(moved_client)
+
+            old_inbound.settings.clients = old_clients
+            new_inbound.settings.clients = new_clients
+
             await self.server_pool_service.execute_api_call(
                 connection,
-                lambda: connection.api.client.add(inbound_id=new_inbound_id, clients=[new_client]),
+                lambda: connection.api.inbound.update(old_inbound.id, old_inbound),
             )
 
             try:
                 await self.server_pool_service.execute_api_call(
                     connection,
-                    lambda: connection.api.client.delete(old_inbound_id, user.vpn_id),
+                    lambda: connection.api.inbound.update(new_inbound.id, new_inbound),
                 )
             except Exception:
                 logger.exception(
-                    "Failed to delete old inbound client for user %s after creating replacement "
-                    "in inbound %s. Rolling back the new client.",
+                    "Failed to update target inbound %s for user %s. Restoring source inbound %s.",
+                    new_inbound.id,
                     user.tg_id,
-                    new_inbound_id,
+                    old_inbound.id,
                 )
+                restore_inbound = old_inbound.model_copy(deep=True)
+                restore_inbound.settings.clients = [*old_clients, moved_client]
                 try:
                     await self.server_pool_service.execute_api_call(
                         connection,
-                        lambda: connection.api.client.delete(new_inbound_id, user.vpn_id),
+                        lambda: connection.api.inbound.update(restore_inbound.id, restore_inbound),
                     )
                 except Exception:
                     logger.exception(
-                        "Rollback failed while removing replacement client for user %s from "
-                        "inbound %s.",
+                        "Rollback failed while restoring source inbound %s for user %s.",
+                        restore_inbound.id,
                         user.tg_id,
-                        new_inbound_id,
                     )
                 return False
 
