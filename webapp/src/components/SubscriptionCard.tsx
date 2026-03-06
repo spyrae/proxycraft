@@ -4,10 +4,11 @@ import { useLanguage } from '../i18n/LanguageContext';
 interface Props {
   title: string;
   status: 'active' | 'expired' | 'none';
+  location?: string | null;
   children?: ReactNode;
 }
 
-export function SubscriptionCard({ title, status, children }: Props) {
+export function SubscriptionCard({ title, status, location, children }: Props) {
   const { t } = useLanguage();
 
   const statusConfig = {
@@ -37,6 +38,14 @@ export function SubscriptionCard({ title, status, children }: Props) {
           <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
             {title}
           </h3>
+          {location && (
+            <span
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
+              style={{ color: 'var(--text-dim)', backgroundColor: 'var(--bg-secondary)' }}
+            >
+              📍 {location}
+            </span>
+          )}
         </div>
         <span
           className="text-[11px] font-semibold px-2.5 py-1 rounded-full"

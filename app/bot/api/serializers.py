@@ -101,6 +101,7 @@ def serialize_whatsapp_plans(config) -> list[dict]:
 def serialize_vpn_subscription(
     client_data: ClientData | None,
     key: str | None,
+    location: str | None = None,
 ) -> dict:
     if not client_data:
         return {"active": False}
@@ -116,12 +117,14 @@ def serialize_vpn_subscription(
         "traffic_remaining": client_data._traffic_remaining,
         "expiry_time": client_data._expiry_time,
         "key": key,
+        "location": location,
     }
 
 
 def serialize_mtproto_subscription(
     sub: MTProtoSubscription | None,
     link: str | None,
+    location: str | None = None,
 ) -> dict:
     if not sub or not sub.is_active:
         return {"active": False}
@@ -132,12 +135,14 @@ def serialize_mtproto_subscription(
         "expired": expired,
         "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
         "link": link,
+        "location": location,
     }
 
 
 def serialize_whatsapp_subscription(
     sub: WhatsAppSubscription | None,
     host: str,
+    location: str | None = None,
 ) -> dict:
     if not sub or not sub.is_active:
         return {"active": False}
@@ -149,6 +154,7 @@ def serialize_whatsapp_subscription(
         "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
         "host": host,
         "port": sub.port,
+        "location": location,
     }
 
 

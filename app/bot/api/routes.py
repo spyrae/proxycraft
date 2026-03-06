@@ -134,7 +134,8 @@ async def handle_subscription_vpn(request: Request) -> Response:
         services.vpn.get_key(user),
     )
 
-    return web.json_response(serialize_vpn_subscription(client_data, key))
+    location = user.server.location if user.server else None
+    return web.json_response(serialize_vpn_subscription(client_data, key, location))
 
 
 async def handle_subscription_mtproto(request: Request) -> Response:
@@ -149,7 +150,7 @@ async def handle_subscription_mtproto(request: Request) -> Response:
     sub = await services.mtproto.get_subscription(tg_id)
     link = await services.mtproto.get_link(tg_id) if sub else None
 
-    return web.json_response(serialize_mtproto_subscription(sub, link))
+    return web.json_response(serialize_mtproto_subscription(sub, link, config.shop.MTPROTO_LOCATION))
 
 
 async def handle_subscription_whatsapp(request: Request) -> Response:
@@ -164,7 +165,7 @@ async def handle_subscription_whatsapp(request: Request) -> Response:
     sub = await services.whatsapp.get_subscription(tg_id)
 
     return web.json_response(
-        serialize_whatsapp_subscription(sub, config.shop.WHATSAPP_HOST)
+        serialize_whatsapp_subscription(sub, config.shop.WHATSAPP_HOST, config.shop.WHATSAPP_LOCATION)
     )
 
 

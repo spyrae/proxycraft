@@ -4,6 +4,12 @@ import { SubscriptionCard } from '../components/SubscriptionCard';
 import { QRCode } from '../components/QRCode';
 import { CopyButton } from '../components/CopyButton';
 import { useLanguage } from '../i18n/LanguageContext';
+import type { TranslationKey } from '../i18n/translations';
+
+const LOCATION_KEYS: Record<string, TranslationKey> = {
+  'Amsterdam': 'loc_amsterdam',
+  'Saint Petersburg': 'loc_saint_petersburg',
+};
 
 export function MyVpnPage() {
   const { data: me } = useMe();
@@ -23,9 +29,17 @@ export function MyVpnPage() {
   );
 }
 
+function useLocationLabel(location: string | null | undefined): string | undefined {
+  const { t } = useLanguage();
+  if (!location) return undefined;
+  const key = LOCATION_KEYS[location];
+  return key ? t(key) : location;
+}
+
 function VpnSection() {
   const { data: sub, isLoading } = useVpnSubscription();
   const { t } = useLanguage();
+  const locationLabel = useLocationLabel(sub?.location);
 
   if (isLoading) return <SkeletonCard />;
   if (!sub) return null;
@@ -33,7 +47,7 @@ function VpnSection() {
   const status = sub.active ? 'active' : sub.expired ? 'expired' : 'none';
 
   return (
-    <SubscriptionCard title="VPN" status={status}>
+    <SubscriptionCard title="VPN" status={status} location={locationLabel}>
       {sub.active && (
         <div className="space-y-3">
           {/* Traffic stats */}
@@ -97,6 +111,7 @@ function VpnSection() {
 function MtprotoSection() {
   const { data: sub, isLoading } = useMtprotoSubscription();
   const { t } = useLanguage();
+  const locationLabel = useLocationLabel(sub?.location);
 
   if (isLoading) return <SkeletonCard />;
   if (!sub) return null;
@@ -104,7 +119,7 @@ function MtprotoSection() {
   const status = sub.active ? 'active' : sub.expired ? 'expired' : 'none';
 
   return (
-    <SubscriptionCard title="Telegram Proxy" status={status}>
+    <SubscriptionCard title="Telegram Proxy" status={status} location={locationLabel}>
       {sub.active && sub.link && (
         <div className="space-y-3">
           {sub.expires_at && (
@@ -164,6 +179,7 @@ function MtprotoSection() {
 function WhatsappSection() {
   const { data: sub, isLoading } = useWhatsappSubscription();
   const { t } = useLanguage();
+  const locationLabel = useLocationLabel(sub?.location);
 
   if (isLoading) return <SkeletonCard />;
   if (!sub) return null;
@@ -172,7 +188,7 @@ function WhatsappSection() {
   const connectionString = sub.active && sub.host && sub.port ? `${sub.host}:${sub.port}` : null;
 
   return (
-    <SubscriptionCard title="WhatsApp Proxy" status={status}>
+    <SubscriptionCard title="WhatsApp Proxy" status={status} location={locationLabel}>
       {sub.active && connectionString && (
         <div className="space-y-3">
           {sub.expires_at && (
