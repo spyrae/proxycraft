@@ -5,7 +5,7 @@ import { useMe, useVpnSubscription } from '../api/hooks';
 import { TopupModal } from '../components/TopupModal';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '../i18n/LanguageContext';
-import type { TranslationKey } from '../i18n/translations';
+import type { TranslationKey, Lang } from '../i18n/translations';
 
 export function HomePage() {
   const { user } = useTelegram();
@@ -361,16 +361,15 @@ const GUIDE_DEFS: { id: GuideId; color: string; icon: React.ReactElement }[] = [
 
 function SetupGuides() {
   const [openGuide, setOpenGuide] = useState<GuideId | null>(null);
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const guides = GUIDE_DEFS.map((g) => ({
     ...g,
     title: t(`guide_${g.id}_title` as TranslationKey),
     desc: t(`guide_${g.id}_desc` as TranslationKey),
-    content: t(`guide_${g.id}_content` as TranslationKey),
   }));
 
-  const guide = guides.find((g) => g.id === openGuide);
+  const activeGuide = guides.find((g) => g.id === openGuide);
 
   return (
     <>
@@ -405,11 +404,12 @@ function SetupGuides() {
         ))}
       </div>
 
-      {guide && (
+      {activeGuide && openGuide && (
         <GuideSheet
-          title={guide.title}
-          color={guide.color}
-          content={guide.content}
+          id={openGuide}
+          title={activeGuide.title}
+          color={activeGuide.color}
+          lang={lang}
           onClose={() => setOpenGuide(null)}
         />
       )}
@@ -417,13 +417,13 @@ function SetupGuides() {
   );
 }
 
-function GuideSheet({ title, color, content, onClose }: {
+function GuideSheet({ id, title, color, lang, onClose }: {
+  id: GuideId;
   title: string;
   color: string;
-  content: string;
+  lang: Lang;
   onClose: () => void;
 }) {
-  const { t } = useLanguage();
   return createPortal(
     <>
       <div
@@ -439,12 +439,11 @@ function GuideSheet({ title, color, content, onClose }: {
           zIndex: 9001,
           borderRadius: '24px 24px 0 0',
           backgroundColor: 'var(--bg-primary)',
-          maxHeight: '80vh',
+          maxHeight: '85vh',
           overflowY: 'auto',
           animation: 'sheet-up 0.3s ease-out',
         }}
       >
-        {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full" style={{ backgroundColor: 'var(--border)' }} />
         </div>
@@ -463,22 +462,235 @@ function GuideSheet({ title, color, content, onClose }: {
             </button>
           </div>
 
-          {/* Placeholder */}
-          <div
-            className="rounded-2xl p-5 text-center"
-            style={{ backgroundColor: 'var(--bg-card)', border: `1px dashed ${color}40` }}
-          >
-            <p className="text-sm font-semibold mb-1" style={{ color }}>
-              {t('coming_soon')}
-            </p>
-            <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
-              {content}
-            </p>
-          </div>
+          <GuideContent id={id} lang={lang} color={color} />
         </div>
       </div>
     </>,
     document.body
+  );
+}
+
+// ── Guide step components ───────────────────────────────────────────────────
+
+type Step = { text: string; note?: string; link?: { label: string; url: string } };
+
+function StepList({ steps, color }: { steps: Step[]; color: string }) {
+  return (
+    <div className="space-y-4">
+      {steps.map((step, i) => (
+        <div key={i} className="flex gap-3">
+          <span
+            className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5"
+            style={{ backgroundColor: `${color}20`, color }}
+          >
+            {i + 1}
+          </span>
+          <div className="flex-1">
+            <p className="text-sm leading-snug" style={{ color: 'var(--text-primary)' }}>
+              {step.text}
+            </p>
+            {step.note && (
+              <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>
+                {step.note}
+              </p>
+            )}
+            {step.link && (
+              <a
+                href={step.link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 mt-2 text-xs font-semibold px-3 py-1.5 rounded-xl"
+                style={{ backgroundColor: `${color}20`, color }}
+              >
+                ↗ {step.link.label}
+              </a>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CheckSection({ text, color, lang }: { text: string; color: string; lang: Lang }) {
+  return (
+    <div className="mt-5 rounded-2xl p-4" style={{ backgroundColor: `${color}10`, border: `1px solid ${color}30` }}>
+      <p className="text-xs font-bold mb-1.5" style={{ color }}>
+        ✓ {lang === 'ru' ? 'Как проверить' : 'How to check'}
+      </p>
+      <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+        {text}
+      </p>
+    </div>
+  );
+}
+
+function GuideContent({ id, lang, color }: { id: GuideId; lang: Lang; color: string }) {
+  if (id === 'vpn') return <VpnGuideContent lang={lang} color={color} />;
+  if (id === 'telegram') return <TelegramGuideContent lang={lang} color={color} />;
+  if (id === 'whatsapp') return <WhatsappGuideContent lang={lang} color={color} />;
+  return null;
+}
+
+function VpnGuideContent({ lang, color }: { lang: Lang; color: string }) {
+  const [platform, setPlatform] = useState<'ios' | 'android'>('ios');
+  const isRu = lang === 'ru';
+
+  const iosSteps: Step[] = isRu
+    ? [
+        {
+          text: 'Скачайте приложение V2Box',
+          note: 'Также подходят: Hiddify, Streisand, и другие клиенты с поддержкой VLESS/Xray',
+          link: { label: 'Скачать V2Box — App Store', url: 'https://apps.apple.com/us/app/v2box-v2ray-client/id6446814690' },
+        },
+        { text: 'Перейдите в раздел «Мой VPN» и скопируйте ключ подключения' },
+        { text: 'В V2Box нажмите ➕ → «Импортировать из буфера обмена»' },
+        { text: 'Нажмите кнопку ▶️ для подключения' },
+        { text: 'Разрешите добавление VPN-конфигурации — нажмите «Разрешить»' },
+      ]
+    : [
+        {
+          text: 'Download V2Box app',
+          note: 'Other compatible apps: Hiddify, Streisand, and any VLESS/Xray client',
+          link: { label: 'Download V2Box — App Store', url: 'https://apps.apple.com/us/app/v2box-v2ray-client/id6446814690' },
+        },
+        { text: 'Go to "My VPN" tab and copy your connection key' },
+        { text: 'In V2Box tap ➕ → "Import from clipboard"' },
+        { text: 'Tap ▶️ to connect' },
+        { text: 'Allow VPN configuration when prompted' },
+      ];
+
+  const androidSteps: Step[] = isRu
+    ? [
+        {
+          text: 'Скачайте приложение Hiddify',
+          note: 'Также подходят: v2rayNG, NekoBox, и другие клиенты с поддержкой VLESS/Xray',
+          link: { label: 'Скачать Hiddify — Google Play', url: 'https://play.google.com/store/apps/details?id=app.hiddify.com&hl=ru' },
+        },
+        { text: 'Перейдите в раздел «Мой VPN» и скопируйте ключ подключения' },
+        { text: 'В Hiddify нажмите ➕ → «Добавить из буфера обмена»' },
+        { text: 'Нажмите кнопку подключения' },
+        { text: 'Разрешите VPN-подключение — нажмите «ОК»' },
+      ]
+    : [
+        {
+          text: 'Download Hiddify app',
+          note: 'Other compatible apps: v2rayNG, NekoBox, and any VLESS/Xray client',
+          link: { label: 'Download Hiddify — Google Play', url: 'https://play.google.com/store/apps/details?id=app.hiddify.com' },
+        },
+        { text: 'Go to "My VPN" tab and copy your connection key' },
+        { text: 'In Hiddify tap ➕ → "Add from clipboard"' },
+        { text: 'Tap the connect button' },
+        { text: 'Allow VPN connection when prompted' },
+      ];
+
+  const steps = platform === 'ios' ? iosSteps : androidSteps;
+
+  const checkText = isRu
+    ? 'Откройте Instagram, YouTube или любой заблокированный сайт. Если страница загружается — всё работает. В приложении должен отображаться статус «Подключено».'
+    : 'Open Instagram, YouTube or any blocked site. If it loads — everything works. The app should show "Connected" status.';
+
+  return (
+    <>
+      <div className="flex gap-1 mb-5 p-1 rounded-2xl" style={{ backgroundColor: 'var(--bg-card)' }}>
+        {(['ios', 'android'] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPlatform(p)}
+            className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+            style={{
+              backgroundColor: platform === p ? color : 'transparent',
+              color: platform === p ? '#fff' : 'var(--text-dim)',
+            }}
+          >
+            {p === 'ios' ? 'iOS' : 'Android'}
+          </button>
+        ))}
+      </div>
+
+      <StepList steps={steps} color={color} />
+      <CheckSection text={checkText} color={color} lang={lang} />
+    </>
+  );
+}
+
+function TelegramGuideContent({ lang, color }: { lang: Lang; color: string }) {
+  const isRu = lang === 'ru';
+
+  const mainSteps: Step[] = isRu
+    ? [
+        { text: 'Перейдите в раздел «Мой VPN» → вкладка Telegram' },
+        { text: 'Нажмите кнопку «Применить в Telegram»' },
+        { text: 'Telegram откроется с запросом на подключение прокси — нажмите «Подключить»' },
+      ]
+    : [
+        { text: 'Go to "My VPN" tab → Telegram section' },
+        { text: 'Tap the "Apply in Telegram" button' },
+        { text: 'Telegram will open with a proxy connect prompt — tap "Connect"' },
+      ];
+
+  const manualSteps: Step[] = isRu
+    ? [
+        { text: 'В разделе «Мой VPN» скопируйте ссылку прокси' },
+        { text: 'Вставьте ссылку в адресную строку браузера или откройте её из Telegram' },
+        { text: 'Telegram предложит подключиться — нажмите «Подключить»' },
+      ]
+    : [
+        { text: 'In "My VPN" copy the proxy link' },
+        { text: 'Paste the link into a browser address bar or open it from Telegram' },
+        { text: 'Telegram will prompt to connect — tap "Connect"' },
+      ];
+
+  const checkText = isRu
+    ? 'В статусной строке Telegram появится значок прокси 🔒. В настройках Telegram → Данные и хранилище → Тип соединения — будет показано «Использует прокси».'
+    : 'A proxy icon 🔒 will appear in Telegram\'s status bar. In Settings → Data and Storage → Connection type it will show "Using proxy".';
+
+  return (
+    <>
+      <StepList steps={mainSteps} color={color} />
+
+      <div className="mt-5 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+        <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text-dim)' }}>
+          {isRu ? 'Или вручную:' : 'Or manually:'}
+        </p>
+        <StepList steps={manualSteps} color={color} />
+      </div>
+
+      <CheckSection text={checkText} color={color} lang={lang} />
+    </>
+  );
+}
+
+function WhatsappGuideContent({ lang, color }: { lang: Lang; color: string }) {
+  const isRu = lang === 'ru';
+
+  const steps: Step[] = isRu
+    ? [
+        { text: 'В разделе «Мой VPN» скопируйте адрес прокси (только хост, без протокола)' },
+        { text: 'Откройте WhatsApp → «Настройки» (нижний правый угол)' },
+        { text: 'Выберите «Конфиденциальность» → «Прокси»' },
+        { text: 'Нажмите «Включить использование прокси»' },
+        { text: 'Вставьте скопированный адрес в поле «Хост прокси»' },
+        { text: 'Нажмите «Сохранить»' },
+      ]
+    : [
+        { text: 'In "My VPN" copy the proxy address (host only, without protocol)' },
+        { text: 'Open WhatsApp → "Settings" (bottom right corner)' },
+        { text: 'Go to "Privacy" → "Proxy"' },
+        { text: 'Tap "Use Proxy"' },
+        { text: 'Paste the copied address into "Proxy Host" field' },
+        { text: 'Tap "Save"' },
+      ];
+
+  const checkText = isRu
+    ? 'Рядом с адресом прокси появится зелёная галочка ✓. Если галочка красная — проверьте правильность введённого адреса.'
+    : 'A green checkmark ✓ will appear next to the proxy address. If it\'s red — double-check the address you entered.';
+
+  return (
+    <>
+      <StepList steps={steps} color={color} />
+      <CheckSection text={checkText} color={color} lang={lang} />
+    </>
   );
 }
 
