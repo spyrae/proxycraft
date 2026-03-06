@@ -80,13 +80,17 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
   }, [selectedAmount, currency, topupMutation, onClose]);
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-end animate-overlay-fade"
-      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
+    <>
+      {/* Backdrop */}
       <div
-        className="w-full rounded-t-3xl animate-sheet-up"
+        className="fixed inset-0 z-[60] animate-overlay-fade"
+        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        onClick={onClose}
+      />
+
+      {/* Sheet */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-[61] rounded-t-3xl animate-sheet-up"
         style={{ backgroundColor: 'var(--bg-primary)' }}
       >
         {/* Bottom sheet handle */}
@@ -196,6 +200,6 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
