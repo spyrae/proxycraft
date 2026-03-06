@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.filters import IsAdmin
 from app.bot.models import ServicesContainer
+from app.bot.utils.commands import set_user_menu_button
 from app.bot.utils.constants import MAIN_MESSAGE_ID_KEY
 from app.bot.utils.navigation import NavMain
 from app.config import Config
@@ -97,6 +98,10 @@ async def command_main_menu(
             )
         else:
             await process_invite_attribution(session=session, user=user, invite_hash=command.args)
+
+    await set_user_menu_button(
+        bot=message.bot, chat_id=user.tg_id, language_code=user.language_code
+    )
 
     is_admin = await IsAdmin()(user_id=user.tg_id)
     main_menu = await message.answer(
