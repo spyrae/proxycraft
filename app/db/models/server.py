@@ -20,10 +20,15 @@ class Server(Base):
     Attributes:
         id (int): Unique identifier for the server.
         name (str): Unique server name.
-        host (str): Server host address or IP.
+        host (str): 3X-UI panel/API host address.
         max_clients (int): Maximum allowed number of clients.
         location (str | None): Server location if available.
         online (bool): Indicates whether the server is online.
+        subscription_host (str | None): Optional public host for client subscriptions.
+        subscription_port (int | None): Optional port for subscription endpoint.
+        subscription_path (str | None): Optional path for subscription endpoint.
+        inbound_remark (str | None): Optional inbound remark override for this server.
+        client_flow (str | None): Optional client flow override for this server.
         users (list[User]): List of users associated with the server.
     """
 
@@ -35,6 +40,11 @@ class Server(Base):
     max_clients: Mapped[int] = mapped_column(Integer, nullable=False)
     location: Mapped[str | None] = mapped_column(String(32), nullable=True)
     online: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    subscription_host: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    subscription_port: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    subscription_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    inbound_remark: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    client_flow: Mapped[str | None] = mapped_column(String(128), nullable=True)
     users: Mapped[list["User"]] = relationship("User", back_populates="server")  # type: ignore
 
     @hybrid_property
@@ -50,7 +60,9 @@ class Server(Base):
     def __repr__(self) -> str:
         return (
             f"<Server(id={self.id}, name='{self.name}', host={self.host}, "
-            f"max_clients={self.max_clients}, location={self.location}, online={self.online})>"
+            f"max_clients={self.max_clients}, location={self.location}, online={self.online}, "
+            f"subscription_host={self.subscription_host}, inbound_remark={self.inbound_remark}, "
+            f"client_flow={self.client_flow})>"
         )
 
     @classmethod

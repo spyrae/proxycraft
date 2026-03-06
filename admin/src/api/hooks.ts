@@ -1,10 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client.ts';
 import type {
   AdminStats,
   AdminUser,
   AdminUserDetail,
   AdminServer,
+  AdminServerUpdatePayload,
 } from './types.ts';
 
 export function useAdminStats() {
@@ -37,5 +38,20 @@ export function useAdminServers() {
     queryKey: ['admin', 'servers'],
     queryFn: () => api('/api/v1/admin/servers'),
     staleTime: 60_000,
+  });
+}
+
+export function useUpdateAdminServer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: AdminServerUpdatePayload }) =>
+      api<{ server: AdminServer }>(`/api/v1/admin/servers/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'servers'] });
+    },
   });
 }

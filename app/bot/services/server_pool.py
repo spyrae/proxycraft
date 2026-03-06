@@ -89,7 +89,7 @@ class ServerPoolService:
             logger.error(f"Failed to fetch inbounds for {connection.server.name}: {exception}")
             return None
 
-        target_remark = remark or self.config.xui.INBOUND_REMARK
+        target_remark = remark or connection.server.inbound_remark or self.config.xui.INBOUND_REMARK
         if target_remark:
             for inbound in inbounds:
                 if inbound.remark == target_remark:

@@ -136,9 +136,9 @@ class VPNService:
             return None
 
         subscription = extract_base_url(
-            url=user.server.host,
-            port=self.config.xui.SUBSCRIPTION_PORT,
-            path=self.config.xui.SUBSCRIPTION_PATH,
+            url=user.server.subscription_host or user.server.host,
+            port=user.server.subscription_port or self.config.xui.SUBSCRIPTION_PORT,
+            path=user.server.subscription_path or self.config.xui.SUBSCRIPTION_PATH,
         )
         key = f"{subscription}{user.vpn_id}"
         logger.debug(f"Fetched key for {user.tg_id}: {key}.")
@@ -163,7 +163,11 @@ class VPNService:
         if not connection:
             return False
 
-        client_flow = flow if flow is not None else self.config.xui.CLIENT_FLOW
+        client_flow = (
+            flow
+            if flow is not None
+            else (connection.server.client_flow or self.config.xui.CLIENT_FLOW)
+        )
         operator_remark = None
         if user.operator and self.catalog:
             operator_remark = self.catalog.get_operator_inbound_remark(user.operator)
@@ -234,7 +238,11 @@ class VPNService:
 
             expiry_time = add_days_to_timestamp(timestamp=expiry_time_to_use, days=duration)
 
-            client_flow = flow if flow is not None else self.config.xui.CLIENT_FLOW
+            client_flow = (
+                flow
+                if flow is not None
+                else (connection.server.client_flow or self.config.xui.CLIENT_FLOW)
+            )
 
             client.enable = enable
             client.id = user.vpn_id
@@ -332,7 +340,7 @@ class VPNService:
             limit_ip = client_data._max_devices if client_data._max_devices != -1 else 0
 
             # Resolve client_flow for the new operator
-            new_flow = self.config.xui.CLIENT_FLOW
+            new_flow = connection.server.client_flow or self.config.xui.CLIENT_FLOW
             if self.catalog:
                 operator_flow = self.catalog.get_operator_client_flow(new_operator)
                 if operator_flow is not None:

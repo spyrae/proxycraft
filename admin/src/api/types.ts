@@ -50,6 +50,22 @@ export interface AdminServer {
   online: boolean;
   max_clients: number;
   current_clients: number;
+  subscription_host: string | null;
+  subscription_port: number | null;
+  subscription_path: string | null;
+  inbound_remark: string | null;
+  client_flow: string | null;
+}
+
+export interface AdminServerUpdatePayload {
+  host?: string;
+  location?: string | null;
+  max_clients?: number;
+  subscription_host?: string | null;
+  subscription_port?: number | null;
+  subscription_path?: string | null;
+  inbound_remark?: string | null;
+  client_flow?: string | null;
 }
 
 export interface AuthResponse {

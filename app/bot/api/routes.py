@@ -30,6 +30,7 @@ from app.bot.api.serializers import (
     serialize_whatsapp_subscription,
 )
 from app.bot.filters.is_admin import IsAdmin
+from app.bot.utils.validation import is_valid_client_count, is_valid_host, is_valid_path
 from app.bot.models import ServicesContainer, SubscriptionData
 from app.bot.utils.constants import Currency, TransactionStatus
 from app.bot.utils.navigation import NavSubscription, NavMTProto, NavWhatsApp
@@ -927,6 +928,111 @@ async def handle_admin_servers(request: Request) -> Response:
     })
 
 
+def _normalize_optional_string(value, *, max_length: int | None = None) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError("Expected string value")
+    normalized = value.strip()
+    if not normalized:
+        return None
+    if max_length is not None and len(normalized) > max_length:
+        raise ValueError(f"String exceeds max length {max_length}")
+    return normalized
+
+
+async def handle_admin_server_update(request: Request) -> Response:
+    """PATCH /api/v1/admin/servers/{server_id} — Update per-server VPN settings."""
+    await require_admin(request)
+
+    server_id_raw = request.match_info.get("server_id")
+    try:
+        server_id = int(server_id_raw)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "Invalid server id"}, status=400)
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    if not isinstance(body, dict):
+        return web.json_response({"error": "Body must be an object"}, status=400)
+
+    updates: dict[str, object] = {}
+    try:
+        if "host" in body:
+            host = _normalize_optional_string(body.get("host"), max_length=255)
+            if host is None or not is_valid_host(host):
+                return web.json_response({"error": "Invalid panel host"}, status=400)
+            updates["host"] = host
+
+        if "location" in body:
+            updates["location"] = _normalize_optional_string(body.get("location"), max_length=32)
+
+        if "max_clients" in body:
+            max_clients = body.get("max_clients")
+            max_clients_str = str(max_clients)
+            if not is_valid_client_count(max_clients_str):
+                return web.json_response({"error": "Invalid max_clients"}, status=400)
+            updates["max_clients"] = int(max_clients)
+
+        if "subscription_host" in body:
+            subscription_host = _normalize_optional_string(body.get("subscription_host"), max_length=255)
+            if subscription_host is not None and not is_valid_host(subscription_host):
+                return web.json_response({"error": "Invalid subscription host"}, status=400)
+            updates["subscription_host"] = subscription_host
+
+        if "subscription_port" in body:
+            subscription_port = body.get("subscription_port")
+            if subscription_port in ("", None):
+                updates["subscription_port"] = None
+            elif not isinstance(subscription_port, int) or not (1 <= subscription_port <= 65535):
+                return web.json_response({"error": "Invalid subscription port"}, status=400)
+            else:
+                updates["subscription_port"] = subscription_port
+
+        if "subscription_path" in body:
+            subscription_path = _normalize_optional_string(body.get("subscription_path"), max_length=255)
+            if subscription_path is not None and not is_valid_path(subscription_path):
+                return web.json_response({"error": "Invalid subscription path"}, status=400)
+            updates["subscription_path"] = subscription_path
+
+        if "inbound_remark" in body:
+            updates["inbound_remark"] = _normalize_optional_string(
+                body.get("inbound_remark"),
+                max_length=255,
+            )
+
+        if "client_flow" in body:
+            updates["client_flow"] = _normalize_optional_string(
+                body.get("client_flow"),
+                max_length=128,
+            )
+    except ValueError as exception:
+        return web.json_response({"error": str(exception)}, status=400)
+
+    if not updates:
+        return web.json_response({"error": "No valid fields to update"}, status=400)
+
+    session_factory = request.app["session"]
+    services = _services(request)
+
+    async with session_factory() as session:
+        server = await Server.get_by_id(session=session, id=server_id)
+        if not server:
+            return web.json_response({"error": "Server not found"}, status=404)
+
+        previous_host = server.host
+        await Server.update(session=session, name=server.name, **updates)
+        updated_server = await Server.get_by_id(session=session, id=server_id)
+
+    if previous_host != updated_server.host:
+        await services.server_pool.refresh_server(updated_server)
+
+    return web.json_response({"server": serialize_admin_server(updated_server)})
+
+
 def register_routes(app: Application) -> None:
     """Register all API v1 routes."""
     app.router.add_get("/api/v1/me", handle_me)
@@ -959,3 +1065,4 @@ def register_routes(app: Application) -> None:
     app.router.add_get("/api/v1/admin/users", handle_admin_users)
     app.router.add_get("/api/v1/admin/users/{tg_id}", handle_admin_user_detail)
     app.router.add_get("/api/v1/admin/servers", handle_admin_servers)
+    app.router.add_patch("/api/v1/admin/servers/{server_id}", handle_admin_server_update)

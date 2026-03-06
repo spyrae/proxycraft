@@ -260,4 +260,9 @@ def serialize_admin_server(server: Server) -> dict:
         "online": server.online,
         "max_clients": server.max_clients,
         "current_clients": server.current_clients,
+        "subscription_host": server.subscription_host,
+        "subscription_port": server.subscription_port,
+        "subscription_path": server.subscription_path,
+        "inbound_remark": server.inbound_remark,
+        "client_flow": server.client_flow,
     }

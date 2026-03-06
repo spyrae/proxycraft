@@ -13,6 +13,10 @@ def is_valid_host(data: str) -> bool:
     return bool(IP_PATTERN.match(data))
 
 
+def is_valid_path(data: str) -> bool:
+    return data.startswith("/") and len(data) <= 255
+
+
 def is_valid_client_count(data: str) -> bool:
     return data.isdigit() and 1 <= int(data) <= 10000
 

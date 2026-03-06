@@ -51,7 +51,7 @@ def _is_allowed_origin(origin: str) -> bool:
 
 def _cors_headers(origin: str | None) -> dict[str, str]:
     headers = {
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
         "Access-Control-Allow-Headers": "Authorization, Content-Type",
         "Access-Control-Max-Age": "86400",
     }
