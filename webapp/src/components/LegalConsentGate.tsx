@@ -56,31 +56,31 @@ export function LegalConsentGate() {
   };
 
   return (
-    <div className="min-h-[100dvh] px-4 py-6 flex items-center justify-center">
+    <div className="min-h-[100dvh] px-4 py-4 flex items-center justify-center">
       <StatusOverlay mode={acceptConsents.isPending ? 'loading' : 'hidden'} loadingKey="saving_consents" />
       <div
-        className="w-full max-w-md rounded-[28px] p-5 md:p-6"
+        className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[24px] p-4 md:p-5"
         style={{
           background: 'linear-gradient(180deg, rgba(17, 24, 39, 0.98), rgba(10, 14, 23, 0.98))',
           border: '1px solid rgba(52, 211, 153, 0.16)',
           boxShadow: '0 24px 80px rgba(0, 0, 0, 0.45)',
         }}
       >
-        <div className="flex items-start justify-between gap-3 mb-5">
-          <div>
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="min-w-0">
             <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
+              className="w-10 h-10 rounded-2xl flex items-center justify-center mb-2"
               style={{
                 background: 'radial-gradient(circle at 30% 30%, rgba(52, 211, 153, 0.22), rgba(17, 24, 39, 0.88))',
                 border: '1px solid rgba(52, 211, 153, 0.22)',
               }}
             >
-              <img src="/favicon.svg?v=2" alt="" className="w-7 h-7" />
+              <img src="/favicon.svg?v=2" alt="" className="w-6 h-6" />
             </div>
-            <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+            <h1 className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
               {t('consent_title')}
             </h1>
-            <p className="text-sm leading-6" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-sm leading-5" style={{ color: 'var(--text-muted)' }}>
               {t('consent_subtitle')}
             </p>
           </div>
@@ -99,7 +99,7 @@ export function LegalConsentGate() {
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <ConsentRow
             checked={consents.privacy}
             required
@@ -138,17 +138,6 @@ export function LegalConsentGate() {
           />
         </div>
 
-        <div
-          className="mt-4 rounded-2xl px-4 py-3 text-sm"
-          style={{
-            backgroundColor: 'rgba(16, 185, 129, 0.08)',
-            color: 'var(--text-muted)',
-            border: '1px solid rgba(52, 211, 153, 0.12)',
-          }}
-        >
-          {t('consent_required_hint')}
-        </div>
-
         {acceptConsents.isError && (
           <div
             className="mt-4 rounded-2xl px-4 py-3 text-sm"
@@ -162,7 +151,7 @@ export function LegalConsentGate() {
           </div>
         )}
 
-        <div className="mt-5 flex gap-3">
+        <div className="mt-4 flex gap-3">
           <button
             type="button"
             onClick={selectAll}
@@ -224,35 +213,51 @@ function ConsentRow({
 }) {
   return (
     <div
-      className="rounded-2xl p-4"
+      className="rounded-2xl px-3.5 py-3"
       style={{
         backgroundColor: checked ? 'rgba(16, 185, 129, 0.08)' : 'rgba(17, 24, 39, 0.82)',
         border: `1px solid ${checked ? 'rgba(52, 211, 153, 0.3)' : 'var(--border)'}`,
       }}
     >
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full flex items-start gap-3 text-left"
-      >
+      <div className="flex items-start gap-3">
+        <button type="button" onClick={onToggle} className="shrink-0 mt-0.5">
         <span
-          className="mt-0.5 shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
+          className="shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-[11px] font-bold"
           style={{
             backgroundColor: checked ? '#10B981' : 'rgba(10, 14, 23, 0.9)',
             border: `1px solid ${checked ? '#34D399' : 'var(--border)'}`,
             color: checked ? '#03130D' : 'transparent',
-            boxShadow: checked ? '0 0 0 4px rgba(16, 185, 129, 0.12)' : 'none',
+            boxShadow: checked ? '0 0 0 3px rgba(16, 185, 129, 0.10)' : 'none',
           }}
         >
           ✓
         </span>
+        </button>
 
-        <span className="flex-1">
-          <span className="block text-sm font-semibold leading-6" style={{ color: 'var(--text-primary)' }}>
-            {label}
-          </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <button
+              type="button"
+              onClick={onToggle}
+              className="min-w-0 flex-1 text-left"
+            >
+              <span className="block text-sm font-semibold leading-5" style={{ color: 'var(--text-primary)' }}>
+                {label}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onOpen}
+              className="shrink-0 text-xs font-semibold underline underline-offset-4"
+              style={{ color: 'var(--text-link)' }}
+            >
+              {openLabel}
+            </button>
+          </div>
+
           <span
-            className="inline-flex mt-2 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+            className="inline-flex mt-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold"
             style={{
               backgroundColor: required ? 'rgba(245, 158, 11, 0.14)' : 'rgba(52, 211, 153, 0.12)',
               color: required ? '#FBBF24' : '#6EE7B7',
@@ -260,21 +265,8 @@ function ConsentRow({
           >
             {tagLabel}
           </span>
-        </span>
-      </button>
-
-      <button
-        type="button"
-        onClick={onOpen}
-        className="mt-3 min-h-11 px-4 rounded-2xl text-sm font-semibold"
-        style={{
-          backgroundColor: 'rgba(31, 41, 55, 0.92)',
-          color: 'var(--text-link)',
-          border: '1px solid rgba(52, 211, 153, 0.16)',
-        }}
-      >
-        {openLabel}
-      </button>
+        </div>
+      </div>
     </div>
   );
 }
