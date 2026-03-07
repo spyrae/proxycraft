@@ -333,6 +333,7 @@ function VpnProfileSelector({
             <button
               key={profile.slug}
               type="button"
+              aria-pressed={isActive}
               disabled={!isSwitchable || changeProfile.isPending}
               onClick={() => {
                 if (!isSwitchable || isActive) return;
@@ -592,7 +593,7 @@ function StatItem({
 
 function SkeletonCard() {
   return (
-    <div className="animate-shimmer rounded-2xl h-32 mb-3" />
+    <div data-testid="subscription-skeleton" className="animate-shimmer rounded-2xl h-32 mb-3" />
   );
 }
 

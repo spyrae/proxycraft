@@ -27,6 +27,14 @@ jobs:
         working-directory: webapp
         run: npm ci --legacy-peer-deps
 
+      - name: Install Playwright Chromium
+        working-directory: webapp
+        run: npx playwright install --with-deps chromium
+
+      - name: Run synthetic E2E
+        working-directory: webapp
+        run: npm run test:e2e
+
       - name: Build
         working-directory: webapp
         env:
