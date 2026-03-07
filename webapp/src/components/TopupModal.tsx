@@ -45,9 +45,13 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
   const topupMutation = useTopup();
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'redirected' | 'error'>('idle');
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const isEn = lang === 'en';
 
   const starsAmount = Math.max(1, Math.round(selectedAmount / STARS_RATE));
+  const availablePaymentMethods = isEn
+    ? PAYMENT_METHOD_KEYS.filter((m) => m.key === 'stars')
+    : PAYMENT_METHOD_KEYS;
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -153,50 +157,57 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="grid grid-cols-4 gap-2 mb-4">
-            {TOPUP_AMOUNTS.map((amount) => (
-              <button
-                key={amount}
-                onClick={() => setSelectedAmount(amount)}
-                className="py-2.5 rounded-xl text-sm font-semibold transition-all"
-                style={{
-                  backgroundColor:
-                    selectedAmount === amount ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-card)',
-                  color: selectedAmount === amount ? '#10B981' : 'var(--text-muted)',
-                  border: `1px solid ${
-                    selectedAmount === amount ? 'rgba(16, 185, 129, 0.3)' : 'var(--border)'
-                  }`,
-                }}
-              >
-                {amount}₽
-              </button>
-            ))}
-          </div>
-
-          <div
-            className="flex rounded-xl p-1 mb-4"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-          >
-            {PAYMENT_METHOD_KEYS.map(({ key, Icon }) => {
-              const active = currency === key;
-              const label = key === 'stars' ? t('pay_stars') : key === 'rub' ? t('pay_card') : 'СБП';
+            {TOPUP_AMOUNTS.map((amount) => {
+              const displayLabel = isEn
+                ? `⭐ ${Math.max(1, Math.round(amount / STARS_RATE))}`
+                : `${amount}₽`;
               return (
                 <button
-                  key={key}
-                  onClick={() => setCurrency(key)}
-                  className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg transition-all"
+                  key={amount}
+                  onClick={() => setSelectedAmount(amount)}
+                  className="py-2.5 rounded-xl text-sm font-semibold transition-all"
                   style={{
-                    backgroundColor: active ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-                    color: active ? '#10B981' : 'var(--text-dim)',
+                    backgroundColor:
+                      selectedAmount === amount ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-card)',
+                    color: selectedAmount === amount ? '#10B981' : 'var(--text-muted)',
+                    border: `1px solid ${
+                      selectedAmount === amount ? 'rgba(16, 185, 129, 0.3)' : 'var(--border)'
+                    }`,
                   }}
                 >
-                  <Icon />
-                  <span className="text-[10px] font-semibold">{label}</span>
+                  {displayLabel}
                 </button>
               );
             })}
           </div>
 
-          {currency === 'stars' && (
+          {availablePaymentMethods.length > 1 && (
+            <div
+              className="flex rounded-xl p-1 mb-4"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+            >
+              {availablePaymentMethods.map(({ key, Icon }) => {
+                const active = currency === key;
+                const label = key === 'stars' ? t('pay_stars') : key === 'rub' ? t('pay_card') : 'СБП';
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setCurrency(key)}
+                    className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg transition-all"
+                    style={{
+                      backgroundColor: active ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                      color: active ? '#10B981' : 'var(--text-dim)',
+                    }}
+                  >
+                    <Icon />
+                    <span className="text-[10px] font-semibold">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {!isEn && currency === 'stars' && (
             <p className="text-xs text-center mb-4" style={{ color: 'var(--text-dim)' }}>
               {selectedAmount}₽ = {starsAmount} ★
             </p>
@@ -218,7 +229,9 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
                 ? t('topup_success')
                 : status === 'redirected'
                   ? t('done')
-                  : t('topup_amount_btn', { amount: selectedAmount })}
+                  : isEn
+                    ? `Top up ⭐${starsAmount}`
+                    : t('topup_amount_btn', { amount: selectedAmount })}
           </button>
 
           {status === 'redirected' && (

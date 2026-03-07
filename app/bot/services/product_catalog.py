@@ -24,6 +24,7 @@ class VpnProfile:
     locations: list[str] = field(default_factory=list)
     kind: str = "universal"
     legacy_slugs: list[str] = field(default_factory=list)
+    name_en: str = ""
 
 
 Operator = VpnProfile
@@ -110,6 +111,7 @@ class ProductCatalog:
                         locations=info.get("locations", []),
                         kind=info.get("kind", "universal"),
                         legacy_slugs=info.get("legacy_slugs", []),
+                        name_en=info.get("name_en", ""),
                     )
                     self._vpn_profiles[profile.slug] = profile
             except (json.JSONDecodeError, KeyError) as e:
@@ -132,6 +134,7 @@ class ProductCatalog:
                         locations=["Amsterdam"],
                         kind="operator",
                         legacy_slugs=[info["slug"]],
+                        name_en=info.get("name_en", ""),
                     )
                     self._vpn_profiles[profile.slug] = profile
             except (json.JSONDecodeError, KeyError) as e:

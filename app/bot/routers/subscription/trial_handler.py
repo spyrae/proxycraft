@@ -85,7 +85,7 @@ async def callback_get_trial(
     if not user.operator and operators:
         await callback.message.edit_text(
             text=_("subscription:message:operator"),
-            reply_markup=trial_operator_keyboard(operators),
+            reply_markup=trial_operator_keyboard(operators, lang=user.language_code),
         )
         return
 

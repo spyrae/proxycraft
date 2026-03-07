@@ -87,9 +87,14 @@ function ProtectedBadge({ active }: { active: boolean }) {
   );
 }
 
+const STARS_RATE = 1.8;
+
 function BalanceCard({ balance }: { balance: number }) {
   const [showTopup, setShowTopup] = useState(false);
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const displayBalance = lang === 'en'
+    ? `⭐ ${Math.round(balance / STARS_RATE)}`
+    : `${balance.toFixed(0)} ₽`;
 
   return (
     <>
@@ -100,7 +105,7 @@ function BalanceCard({ balance }: { balance: number }) {
               {t('balance_label')}
             </span>
             <span className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-              {balance.toFixed(0)} ₽
+              {displayBalance}
             </span>
           </div>
           <button

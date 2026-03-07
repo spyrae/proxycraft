@@ -3,6 +3,7 @@
     {
       "slug": "ams-universal",
       "name": "Другой / Wi-Fi",
+      "name_en": "Other / Wi-Fi",
       "emoji": "🌐",
       "inbound_remark": "universal",
       "client_flow": "",
@@ -14,6 +15,7 @@
     {
       "slug": "ams-t2",
       "name": "Т2 / Yota / Тинькофф",
+      "name_en": "T2 / Yota / Tinkoff",
       "emoji": "💛",
       "inbound_remark": "t2-yota",
       "client_flow": "xtls-rprx-vision",
@@ -25,6 +27,7 @@
     {
       "slug": "ams-mts",
       "name": "МТС",
+      "name_en": "MTS",
       "emoji": "❤️",
       "inbound_remark": "mts",
       "client_flow": "xtls-rprx-vision",
@@ -36,6 +39,7 @@
     {
       "slug": "ams-megafon",
       "name": "Мегафон",
+      "name_en": "Megafon",
       "emoji": "💚",
       "inbound_remark": "megafon",
       "client_flow": "xtls-rprx-vision",
@@ -47,6 +51,7 @@
     {
       "slug": "ams-beeline",
       "name": "Билайн",
+      "name_en": "Beeline",
       "emoji": "🖤",
       "inbound_remark": "beeline",
       "client_flow": "xtls-rprx-vision",
@@ -58,6 +63,7 @@
     {
       "slug": "spb-standard",
       "name": "Стандартный",
+      "name_en": "Standard",
       "emoji": "🇷🇺",
       "inbound_remark": "universal",
       "client_flow": "xtls-rprx-vision",

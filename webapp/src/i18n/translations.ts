@@ -34,7 +34,7 @@ const translations = {
     // HomePage — QuickSetup
     get_started: 'Get Started',
     step1_title: 'Top up balance',
-    step1_desc: 'Add funds via Stars or card',
+    step1_desc: 'Add funds via Telegram Stars',
     step2_title: 'Choose a Plan',
     step2_desc: 'Select the plan that fits your needs',
     step3_title: 'Connect',
@@ -60,7 +60,7 @@ const translations = {
     faq3_q: 'How to change mobile carrier',
     faq3_a: "Some carriers block proxy traffic. Try switching to Wi-Fi or contact support — we'll help configure the proxy for your carrier.",
     faq4_q: "My balance didn't top up",
-    faq4_a: 'Payments via Stars are confirmed instantly. For card/SBP payments, it can take up to 5 minutes. If nothing changes — contact support.',
+    faq4_a: 'Payments via Stars are confirmed instantly. If your balance hasn\'t updated — contact support.',
     faq5_q: 'How to connect on multiple devices',
     faq5_a: 'Choose a plan with 2+ devices. Each device needs to be configured separately using the same credentials from your subscription.',
 
@@ -75,8 +75,8 @@ const translations = {
     n_devices: '{n} device',
     n_devices_plural: '{n} devices',
     n_days: '{d} days',
-    from_price: 'from {price} ₽',
-    buy_for: 'Buy for {price} ₽',
+    from_price: 'from ⭐{price}',
+    buy_for: 'Buy for ⭐{price}',
     processing: 'Processing',
     activating: 'Activating',
     switching_profile: 'Applying settings',

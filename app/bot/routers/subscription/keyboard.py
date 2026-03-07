@@ -197,12 +197,17 @@ def trial_success_keyboard() -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def operator_keyboard(operators: list[Operator]) -> InlineKeyboardMarkup:
+def _op_label(op: Operator, lang: str) -> str:
+    name = op.name_en if lang == "en" and op.name_en else op.name
+    return f"{op.emoji} {name}"
+
+
+def operator_keyboard(operators: list[Operator], lang: str = "ru") -> InlineKeyboardMarkup:
     """Keyboard for selecting mobile operator during subscription purchase."""
     builder = InlineKeyboardBuilder()
     for op in operators:
         builder.button(
-            text=f"{op.emoji} {op.name}",
+            text=_op_label(op, lang),
             callback_data=f"set_operator:{op.slug}",
         )
     builder.adjust(1)
@@ -211,12 +216,12 @@ def operator_keyboard(operators: list[Operator]) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def trial_operator_keyboard(operators: list[Operator]) -> InlineKeyboardMarkup:
+def trial_operator_keyboard(operators: list[Operator], lang: str = "ru") -> InlineKeyboardMarkup:
     """Keyboard for selecting mobile operator during trial activation."""
     builder = InlineKeyboardBuilder()
     for op in operators:
         builder.button(
-            text=f"{op.emoji} {op.name}",
+            text=_op_label(op, lang),
             callback_data=f"trial_operator:{op.slug}",
         )
     builder.adjust(1)
@@ -224,12 +229,12 @@ def trial_operator_keyboard(operators: list[Operator]) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def change_operator_keyboard(operators: list[Operator]) -> InlineKeyboardMarkup:
+def change_operator_keyboard(operators: list[Operator], lang: str = "ru") -> InlineKeyboardMarkup:
     """Keyboard for changing operator for existing subscribers."""
     builder = InlineKeyboardBuilder()
     for op in operators:
         builder.button(
-            text=f"{op.emoji} {op.name}",
+            text=_op_label(op, lang),
             callback_data=f"change_op:{op.slug}",
         )
     builder.adjust(1)

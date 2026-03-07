@@ -135,9 +135,14 @@ export function PlansPage() {
   );
 }
 
+const STARS_RATE = 1.8;
+
 function BalanceBanner({ balance }: { balance: number }) {
   const [showTopup, setShowTopup] = useState(false);
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const displayBalance = lang === 'en'
+    ? `⭐ ${Math.round(balance / STARS_RATE)}`
+    : `${balance.toFixed(0)} ₽`;
 
   return (
     <>
@@ -153,7 +158,7 @@ function BalanceBanner({ balance }: { balance: number }) {
             {t('balance_plans')}
           </span>
           <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-            {balance.toFixed(0)} ₽
+            {displayBalance}
           </span>
         </div>
         <button
@@ -251,13 +256,16 @@ function VpnPlans({ location }: { location: string | null }) {
     }
   };
 
-  // Get price for selected plan in RUB
+  const priceKey = lang === 'en' ? 'XTR' : 'RUB';
+  const currencySymbol = lang === 'en' ? '⭐' : '₽';
+
+  // Get price for selected plan
   const getSelectedPrice = () => {
     if (!selectedDevices || !selectedDuration) return null;
     const plan = plans.find((p) => p.devices === selectedDevices);
     if (!plan) return null;
-    const rubPrices = plan.prices['RUB'] || {};
-    return rubPrices[selectedDuration] || null;
+    const prices = plan.prices[priceKey] || {};
+    return prices[selectedDuration] || null;
   };
 
   const selectedPrice = getSelectedPrice();
@@ -287,9 +295,9 @@ function VpnPlans({ location }: { location: string | null }) {
         {t('select_devices')}
       </p>
       {plans.map((plan, idx) => {
-        const rubPrices = plan.prices['RUB'] || {};
+        const prices = plan.prices[priceKey] || {};
         const firstDuration = plan.durations[0];
-        const displayPrice = rubPrices[firstDuration] || 0;
+        const displayPrice = prices[firstDuration] || 0;
 
         return (
           <PlanCard
@@ -297,7 +305,7 @@ function VpnPlans({ location }: { location: string | null }) {
             title={deviceLabel(plan.devices, lang)}
             description={t('from_price', { price: displayPrice })}
             price={displayPrice}
-            currency="₽"
+            currency={currencySymbol}
             popular={idx === 1}
             selected={selectedDevices === plan.devices}
             onSelect={() => {
@@ -318,16 +326,16 @@ function VpnPlans({ location }: { location: string | null }) {
           {(() => {
             const plan = plans.find((p) => p.devices === selectedDevices);
             if (!plan) return null;
-            const rubPrices = plan.prices['RUB'] || {};
+            const prices = plan.prices[priceKey] || {};
             return plan.durations.map((d) => {
-              const displayPrice = rubPrices[d] || 0;
+              const displayPrice = prices[d] || 0;
               return (
                 <PlanCard
                   key={d}
                   title={t('n_days', { d })}
                   description=""
                   price={displayPrice}
-                  currency="₽"
+                  currency={currencySymbol}
                   selected={selectedDuration === d}
                   onSelect={() => setSelectedDuration(d)}
                 />
@@ -452,7 +460,8 @@ function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
   const buyPlan = useBuyPlan();
   const trialMtproto = useTrialMtproto();
   const trialWhatsapp = useTrialWhatsapp();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const currencySymbol = lang === 'en' ? '⭐' : '₽';
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [overlayMode, setOverlayMode] = useState<OverlayMode>('hidden');
   const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
@@ -527,21 +536,25 @@ function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
       <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
         {t('select_duration')}
       </p>
-      {plans.map((plan) => (
-        <PlanCard
-          key={plan.duration}
-          title={t('n_days', { d: plan.duration })}
-          description=""
-          price={plan.price_rub}
-          currency="₽"
-          selected={selectedDuration === plan.duration}
-          onSelect={() => setSelectedDuration(plan.duration)}
-        />
-      ))}
+      {plans.map((plan) => {
+        const displayPrice = lang === 'en' ? plan.price_stars : plan.price_rub;
+        return (
+          <PlanCard
+            key={plan.duration}
+            title={t('n_days', { d: plan.duration })}
+            description=""
+            price={displayPrice}
+            currency={currencySymbol}
+            selected={selectedDuration === plan.duration}
+            onSelect={() => setSelectedDuration(plan.duration)}
+          />
+        );
+      })}
 
       {selectedDuration && (() => {
         const selectedPlan = plans.find((p) => p.duration === selectedDuration);
         if (!selectedPlan) return null;
+        const displayPrice = lang === 'en' ? selectedPlan.price_stars : selectedPlan.price_rub;
         return (
           <button
             onClick={handleBuy}
@@ -553,7 +566,7 @@ function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
               boxShadow: buyPlan.isPending ? 'none' : '0 4px 15px rgba(16, 185, 129, 0.3)',
             }}
           >
-            {buyPlan.isPending ? t('processing') : t('buy_for', { price: selectedPlan.price_rub })}
+            {buyPlan.isPending ? t('processing') : t('buy_for', { price: displayPrice })}
           </button>
         );
       })()}

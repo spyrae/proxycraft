@@ -166,7 +166,7 @@ async def callback_subscription_process(
     if operators:
         await callback.message.edit_text(
             text=_("subscription:message:operator"),
-            reply_markup=operator_keyboard(operators),
+            reply_markup=operator_keyboard(operators, lang=user.language_code),
         )
     else:
         # No operators configured — skip to devices
@@ -252,7 +252,7 @@ async def callback_change_operator(
     logger.info(f"User {user.tg_id} wants to change operator.")
     await callback.message.edit_text(
         text=_("subscription:message:operator"),
-        reply_markup=change_operator_keyboard(services.product_catalog.get_operators()),
+        reply_markup=change_operator_keyboard(services.product_catalog.get_operators(), lang=user.language_code),
     )
 
 
