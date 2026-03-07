@@ -134,8 +134,6 @@ export function LegalConsentGate() {
             label={t('consent_marketing_label')}
             tagLabel={t('consent_optional')}
             onToggle={() => toggle('marketing')}
-            onOpen={() => openDocument(documentUrls.privacy)}
-            openLabel={t('consent_open_document')}
           />
         </div>
 
@@ -152,11 +150,11 @@ export function LegalConsentGate() {
           </div>
         )}
 
-        <div className="mt-4 flex gap-3">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <button
             type="button"
             onClick={selectAll}
-            className="min-h-11 px-4 rounded-2xl text-sm font-semibold"
+            className="w-full min-h-11 px-5 py-3 rounded-2xl text-sm font-semibold leading-none sm:w-auto"
             style={{
               backgroundColor: 'rgba(17, 24, 39, 0.96)',
               color: 'var(--text-primary)',
@@ -178,7 +176,7 @@ export function LegalConsentGate() {
               });
             }}
             disabled={!requiredAccepted || acceptConsents.isPending}
-            className="min-h-11 flex-1 rounded-2xl px-5 text-sm font-bold whitespace-nowrap transition-all"
+            className="w-full min-h-11 flex-1 rounded-2xl px-5 py-3 text-sm font-bold leading-none whitespace-nowrap transition-all"
             style={{
               background: requiredAccepted
                 ? 'linear-gradient(90deg, #10B981, #34D399)'
@@ -208,9 +206,9 @@ function ConsentRow({
   required: boolean;
   label: string;
   tagLabel: string;
-  openLabel: string;
+  openLabel?: string;
   onToggle: () => void;
-  onOpen: () => void;
+  onOpen?: () => void;
 }) {
   return (
     <div
@@ -247,14 +245,16 @@ function ConsentRow({
               </span>
             </button>
 
-            <button
-              type="button"
-              onClick={onOpen}
-              className="shrink-0 text-xs font-semibold underline underline-offset-4"
-              style={{ color: 'var(--text-link)' }}
-            >
-              {openLabel}
-            </button>
+            {onOpen && openLabel ? (
+              <button
+                type="button"
+                onClick={onOpen}
+                className="shrink-0 text-xs font-semibold underline underline-offset-4"
+                style={{ color: 'var(--text-link)' }}
+              >
+                {openLabel}
+              </button>
+            ) : null}
           </div>
 
           <span
