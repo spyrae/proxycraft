@@ -46,6 +46,10 @@ DEFAULT_SHOP_MTPROTO_HOST = "proxy.proxycraft.tech"
 DEFAULT_SHOP_MTPROTO_LOCATION = "Amsterdam"
 DEFAULT_SHOP_MTPROTO_PORT = 8444
 DEFAULT_SHOP_MTPROTO_CONFIG_PATH = "/app/mtproto-runtime/config.py"
+LEGACY_SHOP_MTPROTO_CONFIG_PATHS = {
+    "/app/mtproto/config.py",
+    "./mtproto/config.py",
+}
 DEFAULT_SHOP_MTPROTO_TLS_DOMAIN = "www.cloudflare.com"
 DEFAULT_SHOP_MTPROTO_MASK_HOST = "www.cloudflare.com"
 DEFAULT_SHOP_MTPROTO_MASK_PORT = 443
@@ -365,6 +369,17 @@ def load_config() -> Config:
         )
         referrer_reward_enabled = False
 
+    mtproto_config_path = env.str(
+        "SHOP_MTPROTO_CONFIG_PATH", default=DEFAULT_SHOP_MTPROTO_CONFIG_PATH
+    )
+    if mtproto_config_path in LEGACY_SHOP_MTPROTO_CONFIG_PATHS:
+        logger.warning(
+            "Ignoring legacy SHOP_MTPROTO_CONFIG_PATH=%s and using shared runtime path %s.",
+            mtproto_config_path,
+            DEFAULT_SHOP_MTPROTO_CONFIG_PATH,
+        )
+        mtproto_config_path = DEFAULT_SHOP_MTPROTO_CONFIG_PATH
+
     return Config(
         bot=BotConfig(
             TOKEN=env.str("BOT_TOKEN"),
@@ -446,9 +461,7 @@ def load_config() -> Config:
             MTPROTO_PORT=env.int(
                 "SHOP_MTPROTO_PORT", default=DEFAULT_SHOP_MTPROTO_PORT
             ),
-            MTPROTO_CONFIG_PATH=env.str(
-                "SHOP_MTPROTO_CONFIG_PATH", default=DEFAULT_SHOP_MTPROTO_CONFIG_PATH
-            ),
+            MTPROTO_CONFIG_PATH=mtproto_config_path,
             MTPROTO_TLS_DOMAIN=env.str(
                 "SHOP_MTPROTO_TLS_DOMAIN", default=DEFAULT_SHOP_MTPROTO_TLS_DOMAIN
             ),
