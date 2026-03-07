@@ -24,6 +24,11 @@ from scripts.smoke_fixture_catalog import SmokeFixtureSpec, get_fixture_specs
 
 logger = logging.getLogger("proxycraft_smoke_provision")
 
+VPN_VALIDATION_ATTEMPTS = 4
+VPN_VALIDATION_BACKOFF_SECONDS = 2
+VPN_REPLACEMENT_ATTEMPTS = 3
+VPN_REPLACEMENT_BACKOFF_SECONDS = 3
+
 
 @dataclass
 class FixtureProvisionResult:
@@ -168,9 +173,8 @@ async def update_registry_subscription(
         return updated
 
 
-async def mark_vpn_fixture_stale(
+async def cancel_vpn_fixture_subscription(
     db: Database,
-    spec: SmokeFixtureSpec,
     subscription: VPNSubscription | None,
 ) -> None:
     if subscription and subscription.cancelled_at is None:
@@ -179,8 +183,6 @@ async def mark_vpn_fixture_stale(
                 session=session,
                 subscription_id=subscription.id,
             )
-
-    await update_registry_subscription(db, spec, None)
 
 
 async def create_vpn_fixture_subscription(
@@ -208,6 +210,123 @@ async def create_vpn_fixture_subscription(
         duration=spec.duration_days,
         location=spec.location,
     )
+
+
+async def validate_vpn_fixture_subscription(
+    spec: SmokeFixtureSpec,
+    vpn_service: VPNService,
+    subscription: VPNSubscription,
+) -> tuple[VPNSubscription | None, Any | None]:
+    current_subscription = subscription
+
+    for attempt in range(1, VPN_VALIDATION_ATTEMPTS + 1):
+        reloaded = await vpn_service.get_subscription(subscription.id)
+        if reloaded:
+            current_subscription = reloaded
+        else:
+            logger.warning(
+                "VPN smoke fixture %s validation attempt %s/%s: subscription %s not found.",
+                spec.key,
+                attempt,
+                VPN_VALIDATION_ATTEMPTS,
+                subscription.id,
+            )
+            return None, None
+
+        if current_subscription.cancelled_at is not None:
+            logger.warning(
+                "VPN smoke fixture %s validation attempt %s/%s: subscription %s is cancelled.",
+                spec.key,
+                attempt,
+                VPN_VALIDATION_ATTEMPTS,
+                subscription.id,
+            )
+            return current_subscription, None
+
+        if not current_subscription.server or current_subscription.server.location != spec.location:
+            logger.warning(
+                "VPN smoke fixture %s validation attempt %s/%s: subscription %s resolved to wrong location.",
+                spec.key,
+                attempt,
+                VPN_VALIDATION_ATTEMPTS,
+                subscription.id,
+            )
+            return current_subscription, None
+
+        client_data = await vpn_service.get_client_data_for_subscription(current_subscription)
+        if client_data and not client_data.has_subscription_expired:
+            return current_subscription, client_data
+
+        if attempt < VPN_VALIDATION_ATTEMPTS:
+            logger.warning(
+                "VPN smoke fixture %s validation attempt %s/%s did not find an active client for subscription %s. Retrying in %ss.",
+                spec.key,
+                attempt,
+                VPN_VALIDATION_ATTEMPTS,
+                subscription.id,
+                VPN_VALIDATION_BACKOFF_SECONDS,
+            )
+            await asyncio.sleep(VPN_VALIDATION_BACKOFF_SECONDS)
+
+    logger.error(
+        "VPN smoke fixture %s failed validation after %s attempts for subscription %s.",
+        spec.key,
+        VPN_VALIDATION_ATTEMPTS,
+        subscription.id,
+    )
+    return current_subscription, None
+
+
+async def replace_vpn_fixture_subscription(
+    db: Database,
+    spec: SmokeFixtureSpec,
+    user: User,
+    vpn_service: VPNService,
+    old_subscription: VPNSubscription | None = None,
+) -> tuple[VPNSubscription | None, Any | None]:
+    replacement: VPNSubscription | None = None
+    replacement_client_data = None
+
+    for attempt in range(1, VPN_REPLACEMENT_ATTEMPTS + 1):
+        replacement = await create_vpn_fixture_subscription(db, spec, user, vpn_service)
+        if not replacement:
+            logger.warning(
+                "VPN smoke fixture %s replacement attempt %s/%s failed during creation.",
+                spec.key,
+                attempt,
+                VPN_REPLACEMENT_ATTEMPTS,
+            )
+        else:
+            replacement, replacement_client_data = await validate_vpn_fixture_subscription(
+                spec=spec,
+                vpn_service=vpn_service,
+                subscription=replacement,
+            )
+            if replacement and replacement_client_data:
+                if old_subscription and old_subscription.id != replacement.id:
+                    await cancel_vpn_fixture_subscription(db, old_subscription)
+                await update_registry_subscription(db, spec, replacement.id)
+                return replacement, replacement_client_data
+
+            if replacement:
+                logger.warning(
+                    "VPN smoke fixture %s replacement attempt %s/%s created subscription %s but validation failed. Cancelling replacement.",
+                    spec.key,
+                    attempt,
+                    VPN_REPLACEMENT_ATTEMPTS,
+                    replacement.id,
+                )
+                await cancel_vpn_fixture_subscription(db, replacement)
+
+        if attempt < VPN_REPLACEMENT_ATTEMPTS:
+            await asyncio.sleep(VPN_REPLACEMENT_BACKOFF_SECONDS)
+
+    logger.error(
+        "VPN smoke fixture %s replacement failed after %s attempts.",
+        spec.key,
+        VPN_REPLACEMENT_ATTEMPTS,
+    )
+    return None, None
 
 
 async def ensure_mtproto_fixture(
@@ -349,16 +468,20 @@ async def ensure_vpn_fixture(
         not subscription.server
         or subscription.server.location != spec.location
     ):
-        await mark_vpn_fixture_stale(db, spec, subscription)
         subscription = None
 
     if not subscription:
         subscription = await find_vpn_subscription_for_location(db, user.tg_id, spec.location)
 
     if not subscription:
-        subscription = await create_vpn_fixture_subscription(db, spec, user, vpn_service)
+        subscription, client_data = await replace_vpn_fixture_subscription(
+            db=db,
+            spec=spec,
+            user=user,
+            vpn_service=vpn_service,
+        )
     else:
-        recreated_subscription = False
+        client_data = None
 
         if subscription.cancelled_at is not None:
             async with db.session() as session:
@@ -381,13 +504,17 @@ async def ensure_vpn_fixture(
                     spec.key,
                     spec.vpn_profile_slug,
                 )
-                await mark_vpn_fixture_stale(db, spec, subscription)
-                subscription = await create_vpn_fixture_subscription(db, spec, user, vpn_service)
-                recreated_subscription = subscription is not None
+                subscription, client_data = await replace_vpn_fixture_subscription(
+                    db=db,
+                    spec=spec,
+                    user=user,
+                    vpn_service=vpn_service,
+                    old_subscription=subscription,
+                )
             else:
                 subscription = await vpn_service.get_subscription(subscription.id)
 
-        if subscription and not recreated_subscription:
+        if subscription and not client_data:
             changed = await vpn_service.change_subscription(
                 user=user,
                 devices=spec.devices,
@@ -399,17 +526,38 @@ async def ensure_vpn_fixture(
                     "Failed to refresh VPN smoke fixture %s in place, recreating subscription.",
                     spec.key,
                 )
-                await mark_vpn_fixture_stale(db, spec, subscription)
-                subscription = await create_vpn_fixture_subscription(db, spec, user, vpn_service)
+                subscription, client_data = await replace_vpn_fixture_subscription(
+                    db=db,
+                    spec=spec,
+                    user=user,
+                    vpn_service=vpn_service,
+                    old_subscription=subscription,
+                )
             else:
                 subscription = await vpn_service.get_subscription(subscription.id)
 
-    if not subscription:
-        raise RuntimeError(f"VPN smoke fixture {spec.key} could not be provisioned.")
+        if subscription and not client_data:
+            subscription, client_data = await validate_vpn_fixture_subscription(
+                spec=spec,
+                vpn_service=vpn_service,
+                subscription=subscription,
+            )
 
-    client_data = await vpn_service.get_client_data_for_subscription(subscription)
-    if client_data is None or client_data.has_subscription_expired:
-        raise RuntimeError(f"VPN smoke fixture {spec.key} has no active client after provisioning.")
+            if not client_data:
+                logger.warning(
+                    "VPN smoke fixture %s failed post-update validation, recreating subscription.",
+                    spec.key,
+                )
+                subscription, client_data = await replace_vpn_fixture_subscription(
+                    db=db,
+                    spec=spec,
+                    user=user,
+                    vpn_service=vpn_service,
+                    old_subscription=subscription,
+                )
+
+    if not subscription or not client_data:
+        raise RuntimeError(f"VPN smoke fixture {spec.key} could not be provisioned.")
 
     await update_registry_subscription(db, spec, subscription.id)
     return FixtureProvisionResult(
