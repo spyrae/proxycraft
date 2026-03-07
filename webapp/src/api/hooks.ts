@@ -18,6 +18,7 @@ import type {
   AutoRenewResponse,
   CancelSubscriptionResponse,
   ChangeVpnProfileResponse,
+  AcceptLegalConsentsResponse,
 } from './types';
 
 // ---------- Queries ----------
@@ -235,6 +236,32 @@ export function useAutoRenew() {
         body: JSON.stringify({ enabled }),
       }),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['me'] });
+    },
+  });
+}
+
+export function useAcceptLegalConsents() {
+  const qc = useQueryClient();
+  return useMutation<
+    AcceptLegalConsentsResponse,
+    Error,
+    {
+      privacy_policy: boolean;
+      terms_of_use: boolean;
+      personal_data: boolean;
+      marketing: boolean;
+    }
+  >({
+    mutationFn: (payload) =>
+      api('/api/v1/legal-consents', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: ({ legal_consents }) => {
+      qc.setQueryData<UserProfile | undefined>(['me'], (previous) => (
+        previous ? { ...previous, legal_consents } : previous
+      ));
       qc.invalidateQueries({ queryKey: ['me'] });
     },
   });

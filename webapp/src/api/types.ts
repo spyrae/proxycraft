@@ -3,6 +3,21 @@ export interface SubscriptionStatus {
   trial_available: boolean;
 }
 
+export interface LegalConsents {
+  version: string;
+  privacy_policy_accepted: boolean;
+  terms_of_use_accepted: boolean;
+  personal_data_consent_accepted: boolean;
+  marketing_consent_granted: boolean;
+  required_consents_accepted: boolean;
+  accepted_at: {
+    privacy_policy: string | null;
+    terms_of_use: string | null;
+    personal_data: string | null;
+    marketing: string | null;
+  };
+}
+
 export interface UserProfile {
   tg_id: number;
   first_name: string;
@@ -12,6 +27,7 @@ export interface UserProfile {
   balance: number;
   auto_renew: boolean;
   vpn_profile_slug?: string | null;
+  legal_consents: LegalConsents;
   subscriptions: {
     vpn: SubscriptionStatus;
     mtproto: SubscriptionStatus;
@@ -39,6 +55,7 @@ export interface ServicePlan {
 export interface VpnProfileOption {
   slug: string;
   name: string;
+  name_en?: string;
   emoji: string;
   kind: 'operator' | 'universal' | string;
   order: number;
@@ -138,6 +155,10 @@ export type ChangeVpnProfileResponse = VpnSubscription;
 
 export interface AutoRenewResponse {
   auto_renew: boolean;
+}
+
+export interface AcceptLegalConsentsResponse {
+  legal_consents: LegalConsents;
 }
 
 export interface ApiError {

@@ -298,7 +298,7 @@ function VpnProfileSelector({
   profiles?: VpnProfileOption[];
   subscriptionId?: number | null;
 }) {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const changeProfile = useChangeVpnProfile();
   const [error, setError] = useState<string | null>(null);
   const [overlayMode, setOverlayMode] = useState<OverlayMode>('hidden');
@@ -363,7 +363,7 @@ function VpnProfileSelector({
             >
               <span className="flex items-center gap-2">
                 <span>{profile.emoji}</span>
-                <span>{profile.name}</span>
+                <span>{lang === 'en' ? (profile.name_en || profile.name) : profile.name}</span>
               </span>
             </button>
           );

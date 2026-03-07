@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import uuid
+from datetime import datetime, timezone
 
 from aiohttp import web
 from aiohttp.web import Application, Request, Response
@@ -20,6 +21,7 @@ from app.bot.api.serializers import (
     serialize_admin_user,
     serialize_admin_user_detail,
     serialize_bundle_plans,
+    serialize_legal_consents,
     serialize_mtproto_plans,
     serialize_mtproto_subscription,
     serialize_operators,
@@ -33,6 +35,7 @@ from app.bot.api.serializers import (
     serialize_whatsapp_subscription_item,
 )
 from app.bot.filters.is_admin import IsAdmin
+from app.bot.utils.legal_consents import LEGAL_CONSENTS_VERSION
 from app.bot.utils.validation import is_valid_client_count, is_valid_host, is_valid_path
 from app.bot.models import ServicesContainer, SubscriptionData
 from app.bot.utils.constants import Currency, TransactionStatus
@@ -296,6 +299,57 @@ async def handle_subscription_vpn_profile(request: Request) -> Response:
             subscription_id=refreshed_subscription.id,
         )
     )
+
+
+async def handle_legal_consents_accept(request: Request) -> Response:
+    """POST /api/v1/legal-consents — Persist required legal consents and optional marketing opt-in."""
+    user = request["user"]
+    session_factory = request.app["session"]
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    privacy_policy = body.get("privacy_policy")
+    terms_of_use = body.get("terms_of_use")
+    personal_data = body.get("personal_data")
+    marketing = body.get("marketing")
+
+    if not all(isinstance(value, bool) for value in (privacy_policy, terms_of_use, personal_data, marketing)):
+        return web.json_response(
+            {
+                "error": "privacy_policy, terms_of_use, personal_data and marketing must be boolean",
+            },
+            status=400,
+        )
+
+    if not privacy_policy or not terms_of_use or not personal_data:
+        return web.json_response(
+            {
+                "error": "Required consents must be accepted",
+            },
+            status=400,
+        )
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    update_payload = {
+        "legal_consents_version": LEGAL_CONSENTS_VERSION,
+        "privacy_policy_accepted_at": user.privacy_policy_accepted_at or now,
+        "terms_of_use_accepted_at": user.terms_of_use_accepted_at or now,
+        "personal_data_consent_accepted_at": user.personal_data_consent_accepted_at or now,
+        "marketing_consent_granted": marketing,
+        "marketing_consent_updated_at": now,
+    }
+
+    async with session_factory() as session:
+        await User.update(session=session, tg_id=user.tg_id, **update_payload)
+        refreshed_user = await User.get(session=session, tg_id=user.tg_id)
+
+    if not refreshed_user:
+        return web.json_response({"error": "User not found"}, status=404)
+
+    return web.json_response({"legal_consents": serialize_legal_consents(refreshed_user)})
 
 
 async def handle_subscription_mtproto(request: Request) -> Response:
@@ -1362,6 +1416,7 @@ def register_routes(app: Application) -> None:
     app.router.add_get("/api/v1/subscriptions/mtproto", handle_mtproto_subscriptions)
     app.router.add_get("/api/v1/subscriptions/whatsapp", handle_whatsapp_subscriptions)
     app.router.add_post("/api/v1/subscription/vpn-profile", handle_subscription_vpn_profile)
+    app.router.add_post("/api/v1/legal-consents", handle_legal_consents_accept)
     app.router.add_get("/api/v1/subscription/mtproto", handle_subscription_mtproto)
     app.router.add_get("/api/v1/subscription/whatsapp", handle_subscription_whatsapp)
     app.router.add_post("/api/v1/payment/invoice", handle_payment_invoice)

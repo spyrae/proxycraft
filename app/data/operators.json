@@ -11,8 +11,8 @@
     },
     {
       "slug": "t2",
-      "name": "Т2 / Yota / Тинькофф",
-      "name_en": "T2 / Yota / Tinkoff",
+      "name": "Т2 / Yota / Т-Мобайл",
+      "name_en": "T2 / Yota / T-Mobile",
       "emoji": "💛",
       "inbound_remark": "t2-yota",
       "client_flow": "xtls-rprx-vision",

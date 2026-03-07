@@ -6,7 +6,7 @@ export type OverlayMode = 'hidden' | 'loading' | 'success';
 
 interface StatusOverlayProps {
   mode: OverlayMode;
-  loadingKey?: 'processing' | 'activating' | 'cancelling' | 'switching_profile';
+  loadingKey?: 'processing' | 'activating' | 'cancelling' | 'switching_profile' | 'saving_consents';
   onDismiss?: () => void;
 }
 

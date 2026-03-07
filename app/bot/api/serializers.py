@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from app.bot.utils.legal_consents import LEGAL_CONSENTS_VERSION, has_required_legal_consents
+
 if TYPE_CHECKING:
     from app.bot.models import ClientData
     from app.bot.services.product_catalog import Operator, Product, VpnProfile
@@ -26,6 +28,7 @@ def serialize_user(
         "username": user.username,
         "operator": user.operator,
         "vpn_profile_slug": user.vpn_profile_slug,
+        "legal_consents": serialize_legal_consents(user),
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "balance": user.balance / 100,  # kopecks → rubles
         "auto_renew": user.auto_renew,
@@ -42,6 +45,31 @@ def serialize_user(
                 "active": whatsapp_active,
                 "trial_available": whatsapp_trial_available,
             },
+        },
+    }
+
+
+def serialize_legal_consents(user: User) -> dict:
+    return {
+        "version": LEGAL_CONSENTS_VERSION,
+        "privacy_policy_accepted": user.privacy_policy_accepted_at is not None,
+        "terms_of_use_accepted": user.terms_of_use_accepted_at is not None,
+        "personal_data_consent_accepted": user.personal_data_consent_accepted_at is not None,
+        "marketing_consent_granted": user.marketing_consent_granted,
+        "required_consents_accepted": has_required_legal_consents(user),
+        "accepted_at": {
+            "privacy_policy": user.privacy_policy_accepted_at.isoformat()
+            if user.privacy_policy_accepted_at
+            else None,
+            "terms_of_use": user.terms_of_use_accepted_at.isoformat()
+            if user.terms_of_use_accepted_at
+            else None,
+            "personal_data": user.personal_data_consent_accepted_at.isoformat()
+            if user.personal_data_consent_accepted_at
+            else None,
+            "marketing": user.marketing_consent_updated_at.isoformat()
+            if user.marketing_consent_updated_at
+            else None,
         },
     }
 
@@ -265,6 +293,7 @@ def serialize_operator(operator: Operator) -> dict:
     return {
         "slug": operator.slug,
         "name": operator.name,
+        "name_en": operator.name_en or operator.name,
         "emoji": operator.emoji,
         "order": operator.order,
     }
@@ -278,6 +307,7 @@ def serialize_vpn_profile(profile: VpnProfile) -> dict:
     return {
         "slug": profile.slug,
         "name": profile.name,
+        "name_en": profile.name_en or profile.name,
         "emoji": profile.emoji,
         "kind": profile.kind,
         "order": profile.order,
