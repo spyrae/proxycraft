@@ -69,6 +69,37 @@ The post-deploy verification runner:
 - sends Telegram alerts to `BOT_ADMINS` for critical failures and optional warnings
 - is the single verification entrypoint used by the production deploy workflow
 
+## External Geo Probes
+
+Manual run:
+
+```bash
+docker exec -e PYTHONPATH=/app proxycraft-bot poetry run python -m scripts.run_geo_probes --json --trigger manual
+docker exec -e PYTHONPATH=/app proxycraft-bot poetry run python -m scripts.run_geo_probes --json --product vpn --notify --notify-warnings
+```
+
+The geo-probe runner:
+- provisions smoke fixtures before probing public endpoints
+- resolves real public targets for `MTProto`, `WhatsApp`, `VPN Amsterdam`, and `VPN Saint Petersburg`
+- runs external checks through Check-Host from three regions: `SEA`, `EU`, and `RU-friendly`
+- persists run metadata in `proxycraft_geo_probe_runs`
+- persists per-region observations in `proxycraft_geo_probe_results`
+- sends Telegram alerts to `BOT_ADMINS` when failures or warning-only degradation are detected
+
+The scheduled workflow:
+- lives in `.github/workflows/geo-probes.yml`
+- runs every 6 hours and is also available through `workflow_dispatch`
+- executes inside the production `proxycraft-bot` container via SSH, so it uses the same code and fixture registry as the live stack
+
+Optional env overrides:
+- `GEO_PROBE_PREFERRED_NODES_SEA`
+- `GEO_PROBE_PREFERRED_NODES_EU`
+- `GEO_PROBE_PREFERRED_NODES_RU_FRIENDLY`
+- `GEO_PROBE_HTTP_TIMEOUT`
+- `GEO_PROBE_POLL_ATTEMPTS`
+- `GEO_PROBE_POLL_INTERVAL`
+- `GEO_PROBE_FIXTURE_TIMEOUT`
+
 ## License
 
 MIT (inherited from 3xui-shop)
