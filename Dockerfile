@@ -6,4 +6,5 @@ COPY pyproject.toml /
 RUN pip install poetry && poetry install
 
 COPY ./app /app
+COPY ./scripts /app/scripts
 RUN poetry run pybabel compile -d /app/locales -D bot

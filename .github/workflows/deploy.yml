@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'app/**'
+      - 'scripts/**'
       - 'mtproto/**'
       - 'whatsapp/**'
       - '.github/workflows/deploy.yml'
@@ -48,3 +49,5 @@ jobs:
             sudo docker logs proxycraft-mtproto --tail 10 2>&1
             echo "--- WhatsApp logs (last 10 lines) ---"
             sudo docker logs proxycraft-whatsapp --tail 10 2>&1
+            echo "--- Production smoke checks ---"
+            sudo docker compose exec -T bot poetry run python /app/scripts/run_smoke_checks.py --json
