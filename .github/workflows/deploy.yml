@@ -53,15 +53,22 @@ jobs:
             set -a
             . ./.env
             set +a
-            sudo docker exec \
-              -e SMOKE_MTPROTO_SUBSCRIPTION_ID="${SMOKE_MTPROTO_SUBSCRIPTION_ID:-}" \
-              -e SMOKE_WHATSAPP_SUBSCRIPTION_ID="${SMOKE_WHATSAPP_SUBSCRIPTION_ID:-}" \
-              -e SMOKE_VPN_SUBSCRIPTION_ID="${SMOKE_VPN_SUBSCRIPTION_ID:-}" \
-              -e SMOKE_MTPROTO_PROBE_HOST="${SMOKE_MTPROTO_PROBE_HOST:-}" \
-              -e SMOKE_WHATSAPP_PROBE_HOST="${SMOKE_WHATSAPP_PROBE_HOST:-}" \
-              -e SMOKE_VPN_PROBE_URL="${SMOKE_VPN_PROBE_URL:-}" \
-              -e SMOKE_TCP_TIMEOUT="${SMOKE_TCP_TIMEOUT:-}" \
-              -e SMOKE_HTTP_TIMEOUT="${SMOKE_HTTP_TIMEOUT:-}" \
-              -e SMOKE_RETRY_COUNT="${SMOKE_RETRY_COUNT:-}" \
-              proxycraft-bot \
-              poetry run python /app/scripts/run_smoke_checks.py --json
+            run_smoke() {
+              local product="$1"
+              echo "Running smoke check for ${product}"
+              sudo docker exec \
+                -e SMOKE_MTPROTO_SUBSCRIPTION_ID="${SMOKE_MTPROTO_SUBSCRIPTION_ID:-}" \
+                -e SMOKE_WHATSAPP_SUBSCRIPTION_ID="${SMOKE_WHATSAPP_SUBSCRIPTION_ID:-}" \
+                -e SMOKE_VPN_SUBSCRIPTION_ID="${SMOKE_VPN_SUBSCRIPTION_ID:-}" \
+                -e SMOKE_MTPROTO_PROBE_HOST="${SMOKE_MTPROTO_PROBE_HOST:-}" \
+                -e SMOKE_WHATSAPP_PROBE_HOST="${SMOKE_WHATSAPP_PROBE_HOST:-}" \
+                -e SMOKE_VPN_PROBE_URL="${SMOKE_VPN_PROBE_URL:-}" \
+                -e SMOKE_TCP_TIMEOUT="${SMOKE_TCP_TIMEOUT:-}" \
+                -e SMOKE_HTTP_TIMEOUT="${SMOKE_HTTP_TIMEOUT:-}" \
+                -e SMOKE_RETRY_COUNT="${SMOKE_RETRY_COUNT:-}" \
+                proxycraft-bot \
+                poetry run python /app/scripts/run_smoke_checks.py --json --product "${product}"
+            }
+            run_smoke mtproto
+            run_smoke whatsapp
+            run_smoke vpn

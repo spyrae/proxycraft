@@ -41,11 +41,13 @@ Manual run:
 
 ```bash
 docker exec proxycraft-bot poetry run python /app/scripts/run_smoke_checks.py --json
+docker exec proxycraft-bot poetry run python /app/scripts/run_smoke_checks.py --json --product vpn
 ```
 
 If a product uses an internal-only probe host in production, pass the same `SMOKE_*` env overrides to `docker exec` that the deploy workflow uses.
 
 The smoke-runner:
+- can execute a single product check via `--product mtproto|whatsapp|vpn` or all checks sequentially
 - uses real service methods for MTProto / WhatsApp / VPN link generation
 - auto-discovers a viable subscription fixture from the production database
 - supports pinned fixtures via optional `SMOKE_*_SUBSCRIPTION_ID` env vars

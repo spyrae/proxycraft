@@ -56,6 +56,12 @@ def parse_args() -> argparse.Namespace:
         description="Run production smoke checks for ProxyCraft products through real service code paths.",
     )
     parser.add_argument(
+        "--product",
+        choices=["all", "mtproto", "whatsapp", "vpn"],
+        default="all",
+        help="Run a single product check or all checks sequentially.",
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         help="Print machine-readable JSON summary in addition to human-readable lines.",
@@ -445,7 +451,7 @@ def should_check(enabled: bool, product: str) -> SmokeCheckResult | None:
     )
 
 
-async def run() -> tuple[list[SmokeCheckResult], bool]:
+async def run(product: str = "all") -> tuple[list[SmokeCheckResult], bool]:
     config = load_config()
     db = Database(config.database)
     await db.initialize()
@@ -469,16 +475,69 @@ async def run() -> tuple[list[SmokeCheckResult], bool]:
     has_failures = False
 
     try:
-        mtproto_skip = should_check(config.shop.MTPROTO_ENABLED, "mtproto")
-        if mtproto_skip:
-            results.append(mtproto_skip)
-        else:
+        if product in {"all", "mtproto"}:
+            logger.info("Starting MTProto smoke check.")
+            mtproto_skip = should_check(config.shop.MTPROTO_ENABLED, "mtproto")
+            if mtproto_skip:
+                results.append(mtproto_skip)
+            else:
+                try:
+                    results.append(
+                        await check_mtproto(
+                            mtproto_service=mtproto_service,
+                            db=db,
+                            tcp_timeout=tcp_timeout,
+                            attempts=attempts,
+                        )
+                    )
+                except SmokeCheckFailure as failure:
+                    has_failures = True
+                    results.append(
+                        SmokeCheckResult(
+                            product=failure.product,
+                            status="failed",
+                            summary=failure.summary,
+                            endpoint=failure.endpoint,
+                            details=failure.details,
+                        )
+                    )
+
+        if product in {"all", "whatsapp"}:
+            logger.info("Starting WhatsApp smoke check.")
+            whatsapp_skip = should_check(config.shop.WHATSAPP_ENABLED, "whatsapp")
+            if whatsapp_skip:
+                results.append(whatsapp_skip)
+            else:
+                try:
+                    results.append(
+                        await check_whatsapp(
+                            whatsapp_service=whatsapp_service,
+                            db=db,
+                            tcp_timeout=tcp_timeout,
+                            attempts=attempts,
+                        )
+                    )
+                except SmokeCheckFailure as failure:
+                    has_failures = True
+                    results.append(
+                        SmokeCheckResult(
+                            product=failure.product,
+                            status="failed",
+                            summary=failure.summary,
+                            endpoint=failure.endpoint,
+                            details=failure.details,
+                        )
+                    )
+
+        if product in {"all", "vpn"}:
+            logger.info("Starting VPN smoke check.")
             try:
                 results.append(
-                    await check_mtproto(
-                        mtproto_service=mtproto_service,
+                    await check_vpn(
+                        vpn_service=vpn_service,
+                        server_pool=server_pool,
                         db=db,
-                        tcp_timeout=tcp_timeout,
+                        http_timeout=http_timeout,
                         attempts=attempts,
                     )
                 )
@@ -493,53 +552,6 @@ async def run() -> tuple[list[SmokeCheckResult], bool]:
                         details=failure.details,
                     )
                 )
-
-        whatsapp_skip = should_check(config.shop.WHATSAPP_ENABLED, "whatsapp")
-        if whatsapp_skip:
-            results.append(whatsapp_skip)
-        else:
-            try:
-                results.append(
-                    await check_whatsapp(
-                        whatsapp_service=whatsapp_service,
-                        db=db,
-                        tcp_timeout=tcp_timeout,
-                        attempts=attempts,
-                    )
-                )
-            except SmokeCheckFailure as failure:
-                has_failures = True
-                results.append(
-                    SmokeCheckResult(
-                        product=failure.product,
-                        status="failed",
-                        summary=failure.summary,
-                        endpoint=failure.endpoint,
-                        details=failure.details,
-                    )
-                )
-
-        try:
-            results.append(
-                await check_vpn(
-                    vpn_service=vpn_service,
-                    server_pool=server_pool,
-                    db=db,
-                    http_timeout=http_timeout,
-                    attempts=attempts,
-                )
-            )
-        except SmokeCheckFailure as failure:
-            has_failures = True
-            results.append(
-                SmokeCheckResult(
-                    product=failure.product,
-                    status="failed",
-                    summary=failure.summary,
-                    endpoint=failure.endpoint,
-                    details=failure.details,
-                )
-            )
     finally:
         await db.close()
 
@@ -565,7 +577,7 @@ def main() -> None:
 
 
 async def run_and_print(args: argparse.Namespace) -> int:
-    results, has_failures = await run()
+    results, has_failures = await run(product=args.product)
     print_human_summary(results)
 
     if args.json:
