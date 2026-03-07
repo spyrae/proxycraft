@@ -649,26 +649,6 @@ class VPNService:
             )
             return False
 
-        client_data = await self.get_client_data_for_subscription(subscription)
-        if not client_data:
-            return False
-
-        old_inbound_id = await self.server_pool_service.get_inbound_id(
-            connection,
-            remark=current_profile.inbound_remark if current_profile else None,
-            allow_fallback=current_profile is None,
-        )
-        if old_inbound_id is None:
-            return False
-
-        new_inbound_id = await self.server_pool_service.get_inbound_id(
-            connection,
-            remark=target_profile.inbound_remark,
-            allow_fallback=False,
-        )
-        if new_inbound_id is None:
-            return False
-
         is_primary = subscription.vpn_id == user.vpn_id
         new_flow = (
             target_profile.client_flow
@@ -677,22 +657,71 @@ class VPNService:
         )
 
         try:
-            found = await self._find_client_for_subscription(subscription)
-            if not found:
+            inbounds = await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.inbound.get_list(),
+            )
+            if not inbounds:
+                logger.error("No inbounds available on server %s.", connection.server.name)
+                return False
+
+            def resolve_inbound_id(remark: str | None, *, allow_fallback: bool) -> int | None:
+                target_remark = remark or connection.server.inbound_remark or self.config.xui.INBOUND_REMARK
+                if target_remark:
+                    for inbound in inbounds:
+                        if inbound.remark == target_remark:
+                            return inbound.id
+                    if not allow_fallback:
+                        logger.error(
+                            "Inbound with remark '%s' not found on %s and fallback is disabled.",
+                            target_remark,
+                            connection.server.name,
+                        )
+                        return None
+                return inbounds[0].id
+
+            old_inbound_id = resolve_inbound_id(
+                current_profile.inbound_remark if current_profile else None,
+                allow_fallback=current_profile is None,
+            )
+            new_inbound_id = resolve_inbound_id(target_profile.inbound_remark, allow_fallback=False)
+            if old_inbound_id is None or new_inbound_id is None:
+                return False
+
+            old_inbound = next((inbound for inbound in inbounds if inbound.id == old_inbound_id), None)
+            new_inbound = next((inbound for inbound in inbounds if inbound.id == new_inbound_id), None)
+            if old_inbound is None or new_inbound is None:
+                logger.error(
+                    "Failed to load inbounds for profile migration of user %s (%s -> %s).",
+                    user.tg_id,
+                    old_inbound_id,
+                    new_inbound_id,
+                )
+                return False
+
+            moved_client = next(
+                (
+                    existing
+                    for existing in old_inbound.settings.clients
+                    if existing.id == subscription.vpn_id or existing.email == subscription.client_email
+                ),
+                None,
+            )
+            if moved_client is None:
                 logger.error(
                     "Client for vpn subscription %s not found while changing profile.",
                     subscription.id,
                 )
                 return False
-            client, _ = found
 
-            limit_ip = client_data._max_devices if client_data._max_devices != -1 else 0
+            moved_client = moved_client.model_copy(deep=True)
+            limit_ip = moved_client.limit_ip
 
             if old_inbound_id == new_inbound_id:
-                client.flow = new_flow
+                moved_client.flow = new_flow
                 await self.server_pool_service.execute_api_call(
                     connection,
-                    lambda: connection.api.client.update(client_uuid=client.id, client=client),
+                    lambda: connection.api.client.update(client_uuid=moved_client.id, client=moved_client),
                 )
                 await self._persist_subscription_profile(subscription, target_profile)
                 if is_primary:
@@ -705,46 +734,19 @@ class VPNService:
                 )
                 return True
 
-            inbounds = await self.server_pool_service.execute_api_call(
-                connection,
-                lambda: connection.api.inbound.get_list(),
-            )
-            old_inbound = next((inbound for inbound in inbounds if inbound.id == old_inbound_id), None)
-            new_inbound = next((inbound for inbound in inbounds if inbound.id == new_inbound_id), None)
-
-            if old_inbound is None or new_inbound is None:
-                logger.error(
-                    "Failed to load inbounds for profile migration of user %s (%s -> %s).",
-                    user.tg_id,
-                    old_inbound_id,
-                    new_inbound_id,
-                )
-                return False
-
             old_inbound = old_inbound.model_copy(deep=True)
             new_inbound = new_inbound.model_copy(deep=True)
 
-            moved_client = None
             old_clients = []
             for existing in old_inbound.settings.clients:
                 if (
                     existing.id == subscription.vpn_id
                     or existing.email == subscription.client_email
                 ):
-                    moved_client = existing.model_copy(deep=True)
                     continue
                 old_clients.append(existing)
 
-            if moved_client is None:
-                logger.error(
-                    "Client for vpn subscription %s was not found in old inbound %s during profile migration.",
-                    subscription.id,
-                    old_inbound_id,
-                )
-                return False
-
             moved_client.enable = True
-            moved_client.expiry_time = client_data._expiry_time
             moved_client.flow = new_flow
             moved_client.limit_ip = limit_ip
             moved_client.email = subscription.client_email

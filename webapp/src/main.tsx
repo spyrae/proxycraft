@@ -36,26 +36,45 @@ const queryClient = new QueryClient({
   },
 });
 
-// Prefetch critical data immediately (before React renders)
+// Prefetch only the shell-critical profile immediately. Heavier tab data is warmed up
+// after the first paint to keep Mini App startup responsive.
 queryClient.prefetchQuery({
   queryKey: ['me'],
   queryFn: () => api('/api/v1/me'),
-  staleTime: 60_000,
-});
-queryClient.prefetchQuery({
-  queryKey: ['plans'],
-  queryFn: () => api('/api/v1/plans'),
   staleTime: 5 * 60_000,
 });
-queryClient.prefetchQuery({
-  queryKey: ['locations'],
-  queryFn: () => api('/api/v1/locations'),
-  staleTime: 5 * 60_000,
-});
-queryClient.prefetchQuery({
-  queryKey: ['subscription', 'vpn'],
-  queryFn: () => api('/api/v1/subscription'),
-  staleTime: 60_000,
+
+const scheduleIdleWarmup = (
+  callback: () => void,
+) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(() => callback());
+    return;
+  }
+
+  globalThis.setTimeout(callback, 250);
+};
+
+scheduleIdleWarmup(() => {
+  queryClient.prefetchQuery({
+    queryKey: ['plans'],
+    queryFn: () => api('/api/v1/plans'),
+    staleTime: 5 * 60_000,
+  });
+  queryClient.prefetchQuery({
+    queryKey: ['locations'],
+    queryFn: () => api('/api/v1/locations'),
+    staleTime: 5 * 60_000,
+  });
+  queryClient.prefetchQuery({
+    queryKey: ['subscriptions'],
+    queryFn: () => api('/api/v1/subscriptions'),
+    staleTime: 60_000,
+  });
 });
 
 // Hide splash when React mounts (data prefetch already started)

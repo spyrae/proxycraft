@@ -21,13 +21,32 @@ import type {
   AcceptLegalConsentsResponse,
 } from './types';
 
+function upsertSubscriptionItem<T extends { subscription_id?: number | null }>(
+  items: T[],
+  item: T,
+): T[] {
+  const subscriptionId = item.subscription_id ?? null;
+  if (subscriptionId == null) {
+    return [item, ...items];
+  }
+
+  const index = items.findIndex((existing) => (existing.subscription_id ?? null) === subscriptionId);
+  if (index === -1) {
+    return [item, ...items];
+  }
+
+  const next = items.slice();
+  next[index] = item;
+  return next;
+}
+
 // ---------- Queries ----------
 
 export function useMe() {
   return useQuery<UserProfile>({
     queryKey: ['me'],
     queryFn: () => api('/api/v1/me'),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -228,7 +247,60 @@ export function useBuyPlan() {
         method: 'POST',
         body: JSON.stringify(params),
       }),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      const previousMe = qc.getQueryData<UserProfile>(['me']);
+      if (previousMe) {
+        qc.setQueryData<UserProfile>(['me'], {
+          ...previousMe,
+          subscriptions: {
+            ...previousMe.subscriptions,
+            [variables.product]: {
+              ...previousMe.subscriptions[variables.product],
+              active: true,
+            },
+          },
+        });
+      }
+
+      qc.setQueryData<SubscriptionsResponse>(['subscriptions'], (previous) => ({
+        vpn: data.vpn_subscription
+          ? upsertSubscriptionItem(previous?.vpn ?? [], data.vpn_subscription)
+          : (previous?.vpn ?? []),
+        mtproto: data.mtproto_subscription
+          ? upsertSubscriptionItem(previous?.mtproto ?? [], data.mtproto_subscription)
+          : (previous?.mtproto ?? []),
+        whatsapp: data.whatsapp_subscription
+          ? upsertSubscriptionItem(previous?.whatsapp ?? [], data.whatsapp_subscription)
+          : (previous?.whatsapp ?? []),
+      }));
+
+      if (data.vpn_subscription) {
+        qc.setQueryData<{ subscriptions: VpnSubscription[] }>(['subscriptions', 'vpn'], {
+          subscriptions: upsertSubscriptionItem(
+            qc.getQueryData<{ subscriptions: VpnSubscription[] }>(['subscriptions', 'vpn'])?.subscriptions ?? [],
+            data.vpn_subscription,
+          ),
+        });
+      }
+
+      if (data.mtproto_subscription) {
+        qc.setQueryData<{ subscriptions: MtprotoSubscription[] }>(['subscriptions', 'mtproto'], {
+          subscriptions: upsertSubscriptionItem(
+            qc.getQueryData<{ subscriptions: MtprotoSubscription[] }>(['subscriptions', 'mtproto'])?.subscriptions ?? [],
+            data.mtproto_subscription,
+          ),
+        });
+      }
+
+      if (data.whatsapp_subscription) {
+        qc.setQueryData<{ subscriptions: WhatsappSubscription[] }>(['subscriptions', 'whatsapp'], {
+          subscriptions: upsertSubscriptionItem(
+            qc.getQueryData<{ subscriptions: WhatsappSubscription[] }>(['subscriptions', 'whatsapp'])?.subscriptions ?? [],
+            data.whatsapp_subscription,
+          ),
+        });
+      }
+
       qc.invalidateQueries({ queryKey: ['me'], refetchType: 'all' });
       qc.invalidateQueries({ queryKey: ['subscription'], refetchType: 'all' });
       qc.invalidateQueries({ queryKey: ['subscriptions'], refetchType: 'all' });

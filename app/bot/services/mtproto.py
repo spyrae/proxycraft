@@ -1,8 +1,10 @@
 import errno
+import http.client
+import json
 import logging
 import os
 import secrets
-import subprocess
+import socket
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -12,6 +14,8 @@ from app.config import Config
 from app.db.models import MTProtoSubscription
 
 logger = logging.getLogger(__name__)
+DOCKER_SOCKET_PATH = "/var/run/docker.sock"
+MTPROTO_CONTAINER_NAME = "proxycraft-mtproto"
 
 
 class MTProtoService:
@@ -27,8 +31,13 @@ class MTProtoService:
         self.fast_mode = config.shop.MTPROTO_FAST_MODE
         logger.info("MTProto Service initialized.")
 
-    async def activate(self, user_tg_id: int, duration_days: int, is_trial: bool = False) -> str | None:
-        """Generate a secret, save to DB, update config, reload proxy."""
+    async def activate(
+        self,
+        user_tg_id: int,
+        duration_days: int,
+        is_trial: bool = False,
+    ) -> MTProtoSubscription | None:
+        """Create a subscription, sync runtime config and return the created record."""
         secret = secrets.token_hex(16)
         expires_at = datetime.utcnow() + timedelta(days=duration_days)
 
@@ -46,7 +55,7 @@ class MTProtoService:
 
         await self.sync_runtime_config()
         logger.info(f"MTProto activated for user {user_tg_id}, expires {expires_at}")
-        return secret
+        return await self.get_subscription_by_id(sub.id)
 
     async def extend(
         self,
@@ -271,17 +280,37 @@ class MTProtoService:
         return True
 
     def _reload_proxy(self) -> None:
-        """Send SIGUSR2 to mtprotoproxy container for hot reload."""
+        """Send SIGUSR2 to mtprotoproxy container for hot reload via Docker socket API."""
         try:
-            result = subprocess.run(
-                ["docker", "kill", "-s", "SIGUSR2", "proxycraft-mtproto"],
-                capture_output=True,
-                text=True,
-                timeout=10,
+            status, body = self._docker_request(
+                "POST",
+                f"/containers/{MTPROTO_CONTAINER_NAME}/kill?signal=SIGUSR2",
             )
-            if result.returncode == 0:
-                logger.info("MTProto proxy reloaded (SIGUSR2)")
-            else:
-                logger.error(f"Failed to reload MTProto proxy: {result.stderr}")
+            if status == 204:
+                logger.info("MTProto proxy reloaded (SIGUSR2 via Docker socket)")
+                return
+
+            logger.error(
+                "Failed to reload MTProto proxy: HTTP %s — %s",
+                status,
+                body.decode(errors="replace"),
+            )
+        except FileNotFoundError:
+            logger.error("Docker socket not found at %s. Mount it in docker-compose.yml", DOCKER_SOCKET_PATH)
         except Exception as e:
             logger.error(f"Error sending SIGUSR2 to mtproto container: {e}")
+
+    def _docker_request(self, method: str, path: str, body: dict | None = None) -> tuple[int, bytes]:
+        payload = None if body is None else json.dumps(body).encode()
+        headers = {"Content-Type": "application/json"} if body is not None else {}
+        conn = http.client.HTTPConnection("localhost")
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
+        try:
+            sock.connect(DOCKER_SOCKET_PATH)
+            conn.sock = sock
+            conn.request(method, path, body=payload, headers=headers)
+            response = conn.getresponse()
+            return response.status, response.read()
+        finally:
+            conn.close()

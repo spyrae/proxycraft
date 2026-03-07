@@ -143,6 +143,9 @@ export interface BuyPlanResponse {
   success: boolean;
   product: string;
   duration: number;
+  vpn_subscription?: VpnSubscription;
+  mtproto_subscription?: MtprotoSubscription;
+  whatsapp_subscription?: WhatsappSubscription;
 }
 
 export interface SubscriptionsResponse {

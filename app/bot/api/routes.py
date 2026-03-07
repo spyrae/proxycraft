@@ -997,33 +997,90 @@ async def handle_balance_buy(request: Request) -> Response:
             description=description,
         )
 
-    # Activate a new subscription instance.
+    async def refund_failed_purchase(reason: str) -> None:
+        async with session_factory() as refund_session:
+            db_user = await User.get(session=refund_session, tg_id=tg_id)
+            if not db_user:
+                logger.error("Cannot refund failed purchase for user %s: user not found", tg_id)
+                return
+
+            await User.update(
+                session=refund_session,
+                tg_id=tg_id,
+                balance=db_user.balance + price_kopecks,
+            )
+            await BalanceLog.create(
+                session=refund_session,
+                tg_id=tg_id,
+                amount=price_kopecks,
+                type="refund",
+                description=f"Refund for failed purchase: {description} ({reason})",
+            )
+
+    response_payload: dict[str, object] = {
+        "success": True,
+        "product": product,
+        "duration": duration,
+    }
+
+    # Activate a new subscription instance and return the created item so the webapp
+    # can update its cache immediately without waiting for a round-trip refetch.
     if product == "vpn":
-        created = await services.vpn.create_subscription(
+        created_subscription = await services.vpn.create_subscription_instance(
             user=user,
             devices=devices,
             duration=duration,
             location=location,
         )
-        if not created:
+        if not created_subscription:
+            await refund_failed_purchase("vpn activation failed")
             return web.json_response({"error": "Failed to create VPN subscription"}, status=500)
 
+        client_data, key = await asyncio.gather(
+            services.vpn.get_client_data_for_subscription(created_subscription),
+            services.vpn.get_key_for_subscription(created_subscription),
+        )
+        created_location = created_subscription.server.location if created_subscription.server else None
+        response_payload["vpn_subscription"] = serialize_vpn_subscription(
+            client_data=client_data,
+            key=key,
+            location=created_location,
+            cancelled_at=created_subscription.cancelled_at,
+            current_profile=services.vpn.get_profile_for_subscription(created_subscription),
+            available_profiles=services.vpn.get_available_profiles(created_location),
+            subscription_id=created_subscription.id,
+        )
+
     elif product == "mtproto":
-        secret = await services.mtproto.activate(tg_id, duration)
-        if not secret:
+        created_subscription = await services.mtproto.activate(tg_id, duration)
+        if not created_subscription:
+            await refund_failed_purchase("mtproto activation failed")
             return web.json_response({"error": "Failed to create MTProto subscription"}, status=500)
+        response_payload["mtproto_subscription"] = serialize_mtproto_subscription(
+            created_subscription,
+            await services.mtproto.get_link_for_subscription(created_subscription),
+            config.shop.MTPROTO_LOCATION,
+            subscription_id=created_subscription.id,
+        )
 
     elif product == "whatsapp":
-        port = await services.whatsapp.activate(tg_id, duration)
-        if not port:
+        created_subscription = await services.whatsapp.activate(tg_id, duration)
+        if not created_subscription:
+            await refund_failed_purchase("whatsapp activation failed")
             return web.json_response({"error": "Failed to create WhatsApp subscription"}, status=500)
+        response_payload["whatsapp_subscription"] = serialize_whatsapp_subscription(
+            created_subscription,
+            config.shop.WHATSAPP_HOST,
+            config.shop.WHATSAPP_LOCATION,
+            subscription_id=created_subscription.id,
+        )
 
     logger.info(
         f"Balance purchase: user={tg_id}, product={product}, "
         f"duration={duration}d, price={price_kopecks/100}₽"
     )
 
-    return web.json_response({"success": True, "product": product, "duration": duration})
+    return web.json_response(response_payload)
 
 
 async def handle_balance_auto_renew(request: Request) -> Response:
