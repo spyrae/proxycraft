@@ -43,6 +43,7 @@ Manual run:
 docker exec -e PYTHONPATH=/app proxycraft-bot poetry run python -m scripts.provision_smoke_fixtures --json
 docker exec -e PYTHONPATH=/app proxycraft-bot poetry run python -m scripts.run_smoke_checks --json
 docker exec -e PYTHONPATH=/app proxycraft-bot poetry run python -m scripts.run_smoke_checks --json --product vpn
+docker exec -e PYTHONPATH=/app proxycraft-bot poetry run python -m scripts.run_post_deploy_verification --json --notify --notify-warnings
 ```
 
 If a product uses an internal-only probe host in production, pass the same `SMOKE_*` env overrides to `docker exec` that the deploy workflow uses.
@@ -60,6 +61,13 @@ The smoke-runner:
 - supports explicit fixture overrides via optional `SMOKE_*_SUBSCRIPTION_ID` env vars
 - supports optional internal probe overrides (`SMOKE_*_PROBE_HOST`, `SMOKE_VPN_*_PROBE_URL`) for same-host Docker deployments
 - fails deploy if a critical product path is broken
+
+The post-deploy verification runner:
+- checks `GET /api/v1/health` before deeper verification starts
+- validates VPN server-pool availability per sold location with `deploy-blocking` vs `warning-only` severity
+- provisions smoke fixtures and runs the full smoke suite in one command
+- sends Telegram alerts to `BOT_ADMINS` for critical failures and optional warnings
+- is the single verification entrypoint used by the production deploy workflow
 
 ## License
 

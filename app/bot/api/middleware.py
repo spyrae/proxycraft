@@ -33,6 +33,7 @@ TELEGRAM_LOGIN_MAX_AGE = 86400  # 24 hours
 # Paths that don't require TMA auth
 AUTH_EXEMPT_PATHS = {
     "/api/v1/admin/auth",
+    "/api/v1/health",
 }
 
 

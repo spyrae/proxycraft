@@ -172,6 +172,49 @@ async def handle_me(request: Request) -> Response:
     return web.json_response(data)
 
 
+async def handle_health(request: Request) -> Response:
+    """GET /api/v1/health — lightweight production health endpoint."""
+    session_factory = request.app["session"]
+    config = _config(request)
+
+    try:
+        async with session_factory() as session:
+            await session.execute(select(1))
+    except Exception as exception:  # noqa: BLE001
+        logger.exception("Health check database probe failed: %s", exception)
+        return web.json_response(
+            {
+                "status": "degraded",
+                "checks": {
+                    "database": {
+                        "status": "failed",
+                        "reason": str(exception),
+                    }
+                },
+                "features": {
+                    "mtproto_enabled": config.shop.MTPROTO_ENABLED,
+                    "whatsapp_enabled": config.shop.WHATSAPP_ENABLED,
+                },
+            },
+            status=503,
+        )
+
+    return web.json_response(
+        {
+            "status": "ok",
+            "checks": {
+                "database": {
+                    "status": "passed",
+                }
+            },
+            "features": {
+                "mtproto_enabled": config.shop.MTPROTO_ENABLED,
+                "whatsapp_enabled": config.shop.WHATSAPP_ENABLED,
+            },
+        }
+    )
+
+
 async def handle_operators(request: Request) -> Response:
     """GET /api/v1/operators — Available mobile operators."""
     services = _services(request)
@@ -1405,6 +1448,7 @@ async def handle_admin_server_update(request: Request) -> Response:
 
 def register_routes(app: Application) -> None:
     """Register all API v1 routes."""
+    app.router.add_get("/api/v1/health", handle_health)
     app.router.add_get("/api/v1/me", handle_me)
     app.router.add_get("/api/v1/operators", handle_operators)
     app.router.add_get("/api/v1/plans", handle_plans)
