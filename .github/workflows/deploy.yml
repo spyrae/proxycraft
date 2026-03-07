@@ -94,9 +94,9 @@ jobs:
                 -e SMOKE_FIXTURE_TG_ID_VPN_SAINT_PETERSBURG="${SMOKE_FIXTURE_TG_ID_VPN_SAINT_PETERSBURG:-}" \
                 -e SMOKE_FIXTURE_TG_ID_MTPROTO="${SMOKE_FIXTURE_TG_ID_MTPROTO:-}" \
                 -e SMOKE_FIXTURE_TG_ID_WHATSAPP="${SMOKE_FIXTURE_TG_ID_WHATSAPP:-}" \
-                -e PYTHONPATH=/app \
+                -e PYTHONPATH=/:/app \
                 proxycraft-bot \
-                poetry run python -m scripts.provision_smoke_fixtures --json
+                poetry run python /app/scripts/provision_smoke_fixtures.py --json
             }
             run_smoke() {
               local product="$1"
@@ -115,9 +115,9 @@ jobs:
                 -e SMOKE_TCP_TIMEOUT="${SMOKE_TCP_TIMEOUT:-}" \
                 -e SMOKE_HTTP_TIMEOUT="${SMOKE_HTTP_TIMEOUT:-}" \
                 -e SMOKE_RETRY_COUNT="${SMOKE_RETRY_COUNT:-}" \
-                -e PYTHONPATH=/app \
+                -e PYTHONPATH=/:/app \
                 proxycraft-bot \
-                poetry run python -m scripts.run_smoke_checks --json --product "${product}"
+                poetry run python /app/scripts/run_smoke_checks.py --json --product "${product}"
             }
             run_provision
             echo "--- Production smoke checks ---"

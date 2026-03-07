@@ -6,7 +6,7 @@
       "name_en": "Other / Wi-Fi",
       "emoji": "🌐",
       "inbound_remark": "universal",
-      "client_flow": "",
+      "client_flow": "xtls-rprx-vision",
       "order": 0
     },
     {
