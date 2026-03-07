@@ -14,7 +14,6 @@ from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-from app.bot.services.notification import NotificationService
 from app.bot.services.product_catalog import ProductCatalog
 from app.bot.services.server_pool import ServerPoolService
 from app.bot.services.whatsapp import WhatsAppService
@@ -25,6 +24,7 @@ from scripts.provision_smoke_fixtures import (
     FixtureProvisionResult,
     run as provision_smoke_fixtures,
 )
+from scripts.smoke_fixture_catalog import get_fixture_specs
 from scripts.run_smoke_checks import (
     DEFAULT_HTTP_TIMEOUT,
     DEFAULT_RETRY_COUNT,
@@ -45,7 +45,8 @@ Severity = Literal["deploy-blocking", "warning-only"]
 Status = Literal["passed", "warning", "failed", "skipped"]
 NOTIFICATION_TIMEOUT_SECONDS = 15.0
 VPN_POOL_REFRESH_TIMEOUT_SECONDS = 45.0
-FIXTURE_PROVISION_TIMEOUT_SECONDS = 120.0
+FIXTURE_PROVISION_BASE_TIMEOUT_SECONDS = 30.0
+FIXTURE_PROVISION_PER_FIXTURE_TIMEOUT_SECONDS = 45.0
 SMOKE_SUITE_TIMEOUT_SECONDS = 180.0
 
 
@@ -81,6 +82,13 @@ def configure_logging() -> None:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    )
+
+
+def fixture_provision_timeout_seconds() -> float:
+    return (
+        FIXTURE_PROVISION_BASE_TIMEOUT_SECONDS
+        + FIXTURE_PROVISION_PER_FIXTURE_TIMEOUT_SECONDS * len(get_fixture_specs())
     )
 
 
@@ -510,21 +518,25 @@ async def maybe_notify_admins(
         default=DefaultBotProperties(parse_mode=ParseMode.HTML, link_preview_is_disabled=True),
     )
     try:
-        notification_service = NotificationService(config=config, bot=bot)
-        try:
-            await asyncio.wait_for(
-                notification_service.notify_admins(
-                    text=build_notification_text(results, github_context()),
-                ),
-                timeout=NOTIFICATION_TIMEOUT_SECONDS,
-            )
-        except TimeoutError:
-            logger.warning(
-                "Post-deploy alert delivery exceeded %.1fs and was skipped.",
-                NOTIFICATION_TIMEOUT_SECONDS,
-            )
-        except Exception as exception:  # noqa: BLE001
-            logger.warning("Post-deploy alert delivery failed: %s", exception)
+        message = build_notification_text(results, github_context())
+        for chat_id in config.bot.ADMINS:
+            try:
+                await asyncio.wait_for(
+                    bot.send_message(chat_id=chat_id, text=message),
+                    timeout=NOTIFICATION_TIMEOUT_SECONDS,
+                )
+            except TimeoutError:
+                logger.warning(
+                    "Post-deploy alert delivery to %s exceeded %.1fs and was skipped.",
+                    chat_id,
+                    NOTIFICATION_TIMEOUT_SECONDS,
+                )
+            except Exception as exception:  # noqa: BLE001
+                logger.warning(
+                    "Post-deploy alert delivery to %s failed: %s",
+                    chat_id,
+                    exception,
+                )
     finally:
         await bot.session.close()
 
@@ -541,6 +553,7 @@ async def run_verification(*, notify: bool, notify_warnings: bool) -> tuple[list
 
     server_pool = ServerPoolService(config=config, session=db.session)
     product_catalog = ProductCatalog()
+    fixture_timeout = fixture_provision_timeout_seconds()
 
     try:
         results.append(await check_bot_api_health(config.bot.PORT, http_timeout))
@@ -549,7 +562,7 @@ async def run_verification(*, notify: bool, notify_warnings: bool) -> tuple[list
         try:
             fixture_results = await asyncio.wait_for(
                 provision_smoke_fixtures(),
-                timeout=FIXTURE_PROVISION_TIMEOUT_SECONDS,
+                timeout=fixture_timeout,
             )
         except TimeoutError:
             fixture_results = [
@@ -559,10 +572,10 @@ async def run_verification(*, notify: bool, notify_warnings: bool) -> tuple[list
                     status="failed",
                     summary=(
                         "Smoke fixture provisioning exceeded "
-                        f"{FIXTURE_PROVISION_TIMEOUT_SECONDS:.0f}s and was aborted."
+                        f"{fixture_timeout:.0f}s and was aborted."
                     ),
                     user_tg_id=0,
-                    details={"timeout_seconds": FIXTURE_PROVISION_TIMEOUT_SECONDS},
+                    details={"timeout_seconds": fixture_timeout},
                 )
             ]
         results.extend(map_fixture_results(fixture_results))
