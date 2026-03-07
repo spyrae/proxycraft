@@ -25,6 +25,10 @@ services:
       start_period: 10s
     environment:
       MTPROTO_PORT: "${SHOP_MTPROTO_PORT:-8444}"
+      MTPROTO_TLS_DOMAIN: "${SHOP_MTPROTO_TLS_DOMAIN:-www.cloudflare.com}"
+      MTPROTO_MASK_HOST: "${SHOP_MTPROTO_MASK_HOST:-www.cloudflare.com}"
+      MTPROTO_MASK_PORT: "${SHOP_MTPROTO_MASK_PORT:-443}"
+      MTPROTO_FAST_MODE: "${SHOP_MTPROTO_FAST_MODE:-true}"
 
   whatsapp:
     build:
