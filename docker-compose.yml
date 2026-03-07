@@ -54,7 +54,7 @@ services:
       - ./app/data:/app/data
       - ./app/locales:/app/locales
       - ./app/logs:/app/logs
-      - ./mtproto/config.py:/app/mtproto/config.py
+      - ./mtproto:/app/mtproto
       - ./whatsapp/haproxy.cfg:/app/whatsapp/haproxy.cfg
       - /var/run/docker.sock:/var/run/docker.sock
     env_file:

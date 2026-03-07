@@ -1,4 +1,6 @@
+import errno
 import logging
+import os
 import secrets
 import subprocess
 from datetime import datetime, timedelta
@@ -248,7 +250,21 @@ class MTProtoService:
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = self.config_path.with_suffix(".tmp")
         tmp_path.write_text(content, encoding="utf-8")
-        tmp_path.replace(self.config_path)
+        try:
+            tmp_path.replace(self.config_path)
+        except OSError as exc:
+            if exc.errno not in {errno.EBUSY, errno.EXDEV, errno.EPERM}:
+                raise
+            logger.warning(
+                "Atomic replace for MTProto config failed at %s (%s), falling back to durable in-place write.",
+                self.config_path,
+                exc,
+            )
+            with self.config_path.open("w", encoding="utf-8") as config_file:
+                config_file.write(content)
+                config_file.flush()
+                os.fsync(config_file.fileno())
+            tmp_path.unlink(missing_ok=True)
         return True
 
     def _reload_proxy(self) -> None:

@@ -40,8 +40,8 @@ Bot → production smoke checks (real subscription generation + endpoint probes)
 Manual run:
 
 ```bash
-docker exec proxycraft-bot poetry run python /app/scripts/run_smoke_checks.py --json
-docker exec proxycraft-bot poetry run python /app/scripts/run_smoke_checks.py --json --product vpn
+docker exec -e PYTHONPATH=/app proxycraft-bot poetry run python -m scripts.run_smoke_checks --json
+docker exec -e PYTHONPATH=/app proxycraft-bot poetry run python -m scripts.run_smoke_checks --json --product vpn
 ```
 
 If a product uses an internal-only probe host in production, pass the same `SMOKE_*` env overrides to `docker exec` that the deploy workflow uses.

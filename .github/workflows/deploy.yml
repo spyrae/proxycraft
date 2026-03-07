@@ -42,6 +42,41 @@ jobs:
               fi
             done
             sudo docker compose up -d bot mtproto whatsapp
+            wait_for_service() {
+              local service="$1"
+              local require_health="${2:-false}"
+              local container="proxycraft-${service}"
+              local attempts=30
+              local sleep_seconds=2
+
+              for _ in $(seq 1 "$attempts"); do
+                local status
+                status="$(sudo docker inspect --format '{{.State.Status}}' "$container" 2>/dev/null || true)"
+                if [ "$status" != "running" ]; then
+                  sleep "$sleep_seconds"
+                  continue
+                fi
+
+                if [ "$require_health" = "true" ]; then
+                  local health
+                  health="$(sudo docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container" 2>/dev/null || true)"
+                  if [ "$health" = "healthy" ]; then
+                    return 0
+                  fi
+                else
+                  return 0
+                fi
+
+                sleep "$sleep_seconds"
+              done
+
+              echo "Service ${service} did not become ready in time"
+              sudo docker inspect "$container" || true
+              return 1
+            }
+            wait_for_service bot false
+            wait_for_service mtproto true
+            wait_for_service whatsapp true
             echo "--- Bot logs (last 10 lines) ---"
             sleep 3
             sudo docker logs proxycraft-bot --tail 10 2>&1
@@ -66,8 +101,9 @@ jobs:
                 -e SMOKE_TCP_TIMEOUT="${SMOKE_TCP_TIMEOUT:-}" \
                 -e SMOKE_HTTP_TIMEOUT="${SMOKE_HTTP_TIMEOUT:-}" \
                 -e SMOKE_RETRY_COUNT="${SMOKE_RETRY_COUNT:-}" \
+                -e PYTHONPATH=/app \
                 proxycraft-bot \
-                poetry run python /app/scripts/run_smoke_checks.py --json --product "${product}"
+                poetry run python -m scripts.run_smoke_checks --json --product "${product}"
             }
             run_smoke mtproto
             run_smoke whatsapp
