@@ -474,7 +474,12 @@ class VPNService:
         if not subscription:
             return None
 
-        if not await self._create_client_for_subscription(user, subscription, devices=devices, duration=duration):
+        loaded_subscription = await self.get_subscription(subscription.id)
+        if not loaded_subscription:
+            logger.error(
+                "Failed to reload vpn subscription %s after creation.",
+                subscription.id,
+            )
             async with self.session() as session:
                 doomed = await VPNSubscription.get_by_id(session=session, subscription_id=subscription.id)
                 if doomed:
@@ -482,7 +487,20 @@ class VPNService:
                     await session.commit()
             return None
 
-        return subscription
+        if not await self._create_client_for_subscription(
+            user,
+            loaded_subscription,
+            devices=devices,
+            duration=duration,
+        ):
+            async with self.session() as session:
+                doomed = await VPNSubscription.get_by_id(session=session, subscription_id=subscription.id)
+                if doomed:
+                    await session.delete(doomed)
+                    await session.commit()
+            return None
+
+        return loaded_subscription
 
     async def create_subscription(self, user: User, devices: int, duration: int, location: str | None = None) -> bool:
         subscription = await self.create_subscription_instance(
