@@ -415,6 +415,14 @@ def map_fixture_results(results: Sequence[FixtureProvisionResult]) -> list[Verif
     mapped: list[VerificationResult] = []
     for result in results:
         status: Status = "passed" if result.status == "passed" else "failed"
+        if result.status in {"ready", "passed"}:
+            status = "passed"
+        elif result.status == "skipped":
+            status = "skipped"
+        elif result.status == "warning":
+            status = "warning"
+        else:
+            status = "failed"
         mapped.append(
             VerificationResult(
                 key=f"fixture_{result.key}",
