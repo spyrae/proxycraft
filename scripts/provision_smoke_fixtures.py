@@ -147,7 +147,7 @@ async def load_registry_subscription(db: Database, fixture: SmokeFixture, spec: 
 async def update_registry_subscription(
     db: Database,
     spec: SmokeFixtureSpec,
-    subscription_id: int,
+    subscription_id: int | None,
 ) -> SmokeFixture:
     updates = {
         "vpn_subscription_id": None,
@@ -166,6 +166,48 @@ async def update_registry_subscription(
         if not updated:
             raise RuntimeError(f"Failed to persist subscription id for smoke fixture {spec.key}")
         return updated
+
+
+async def mark_vpn_fixture_stale(
+    db: Database,
+    spec: SmokeFixtureSpec,
+    subscription: VPNSubscription | None,
+) -> None:
+    if subscription and subscription.cancelled_at is None:
+        async with db.session() as session:
+            await VPNSubscription.cancel(
+                session=session,
+                subscription_id=subscription.id,
+            )
+
+    await update_registry_subscription(db, spec, None)
+
+
+async def create_vpn_fixture_subscription(
+    db: Database,
+    spec: SmokeFixtureSpec,
+    user: User,
+    vpn_service: VPNService,
+) -> VPNSubscription | None:
+    async with db.session() as session:
+        await User.update(
+            session=session,
+            tg_id=user.tg_id,
+            vpn_profile_slug=spec.vpn_profile_slug,
+            operator=None,
+            auto_renew=False,
+            vpn_cancelled_at=None,
+        )
+
+    user.vpn_profile_slug = spec.vpn_profile_slug
+    user.operator = None
+
+    return await vpn_service.create_subscription_instance(
+        user=user,
+        devices=spec.devices,
+        duration=spec.duration_days,
+        location=spec.location,
+    )
 
 
 async def ensure_mtproto_fixture(
@@ -307,30 +349,17 @@ async def ensure_vpn_fixture(
         not subscription.server
         or subscription.server.location != spec.location
     ):
+        await mark_vpn_fixture_stale(db, spec, subscription)
         subscription = None
 
     if not subscription:
         subscription = await find_vpn_subscription_for_location(db, user.tg_id, spec.location)
 
     if not subscription:
-        async with db.session() as session:
-            await User.update(
-                session=session,
-                tg_id=user.tg_id,
-                vpn_profile_slug=spec.vpn_profile_slug,
-                operator=None,
-                auto_renew=False,
-                vpn_cancelled_at=None,
-            )
-        user.vpn_profile_slug = spec.vpn_profile_slug
-        user.operator = None
-        subscription = await vpn_service.create_subscription_instance(
-            user=user,
-            devices=spec.devices,
-            duration=spec.duration_days,
-            location=spec.location,
-        )
+        subscription = await create_vpn_fixture_subscription(db, spec, user, vpn_service)
     else:
+        recreated_subscription = False
+
         if subscription.cancelled_at is not None:
             async with db.session() as session:
                 await VPNSubscription.update(
@@ -347,18 +376,33 @@ async def ensure_vpn_fixture(
                 subscription_id=subscription.id,
             )
             if not changed:
-                raise RuntimeError(
-                    f"Failed to switch VPN smoke fixture {spec.key} to profile {spec.vpn_profile_slug}."
+                logger.warning(
+                    "Failed to switch VPN smoke fixture %s to profile %s, recreating subscription.",
+                    spec.key,
+                    spec.vpn_profile_slug,
                 )
-        changed = await vpn_service.change_subscription(
-            user=user,
-            devices=spec.devices,
-            duration=spec.duration_days,
-            subscription_id=subscription.id,
-        )
-        if not changed:
-            raise RuntimeError(f"Failed to refresh VPN smoke fixture {spec.key}.")
-        subscription = await vpn_service.get_subscription(subscription.id)
+                await mark_vpn_fixture_stale(db, spec, subscription)
+                subscription = await create_vpn_fixture_subscription(db, spec, user, vpn_service)
+                recreated_subscription = subscription is not None
+            else:
+                subscription = await vpn_service.get_subscription(subscription.id)
+
+        if subscription and not recreated_subscription:
+            changed = await vpn_service.change_subscription(
+                user=user,
+                devices=spec.devices,
+                duration=spec.duration_days,
+                subscription_id=subscription.id,
+            )
+            if not changed:
+                logger.warning(
+                    "Failed to refresh VPN smoke fixture %s in place, recreating subscription.",
+                    spec.key,
+                )
+                await mark_vpn_fixture_stale(db, spec, subscription)
+                subscription = await create_vpn_fixture_subscription(db, spec, user, vpn_service)
+            else:
+                subscription = await vpn_service.get_subscription(subscription.id)
 
     if not subscription:
         raise RuntimeError(f"VPN smoke fixture {spec.key} could not be provisioned.")
