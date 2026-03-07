@@ -106,7 +106,7 @@ function createDefaultWhatsappSubscriptions(): WhatsappSubscription[] {
       subscription_id: 301,
       active: true,
       expires_at: '2026-12-31T00:00:00Z',
-      host: 'proxy.vpncraft.tech',
+      host: 'proxy.proxycraft.tech',
       port: 10378,
       location: 'Amsterdam',
       cancelled_at: null,

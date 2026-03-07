@@ -59,11 +59,8 @@ async def _serialize_vpn_subscription_items(user: User, services: ServicesContai
     if not subscriptions:
         return []
 
-    client_data_list, keys = await asyncio.gather(
-        asyncio.gather(*[
-            services.vpn.get_client_data_for_subscription(subscription)
-            for subscription in subscriptions
-        ]),
+    client_data_map, keys = await asyncio.gather(
+        services.vpn.get_client_data_for_subscriptions(subscriptions),
         asyncio.gather(*[
             services.vpn.get_key_for_subscription(subscription)
             for subscription in subscriptions
@@ -71,7 +68,8 @@ async def _serialize_vpn_subscription_items(user: User, services: ServicesContai
     )
 
     items: list[dict] = []
-    for subscription, client_data, key in zip(subscriptions, client_data_list, keys, strict=False):
+    for subscription, key in zip(subscriptions, keys, strict=False):
+        client_data = client_data_map.get(subscription.id)
         current_profile = services.vpn.get_profile_for_subscription(subscription)
         available_profiles = services.vpn.get_available_profiles(
             subscription.server.location if subscription.server else None,
@@ -142,13 +140,10 @@ async def handle_me(request: Request) -> Response:
 
     vpn_subscriptions = results["vpn_subscriptions"]
     if vpn_subscriptions:
-        vpn_client_data = await asyncio.gather(*[
-            services.vpn.get_client_data_for_subscription(subscription)
-            for subscription in vpn_subscriptions
-        ])
+        vpn_client_data = await services.vpn.get_client_data_for_subscriptions(vpn_subscriptions)
         vpn_active = any(
             client_data is not None and not client_data.has_subscription_expired
-            for client_data in vpn_client_data
+            for client_data in vpn_client_data.values()
         )
     else:
         vpn_active = False

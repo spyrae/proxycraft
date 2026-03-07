@@ -76,6 +76,7 @@ export function useSubscriptions() {
     queryKey: ['subscriptions'],
     queryFn: () => api('/api/v1/subscriptions'),
     staleTime: 60_000,
+    refetchOnMount: 'always',
   });
 }
 
@@ -146,6 +147,8 @@ export function useTrialVpn() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['me'], refetchType: 'all' });
       qc.invalidateQueries({ queryKey: ['subscription', 'vpn'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscriptions'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscriptions', 'vpn'], refetchType: 'all' });
     },
   });
 }
@@ -157,6 +160,8 @@ export function useTrialMtproto() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['me'], refetchType: 'all' });
       qc.invalidateQueries({ queryKey: ['subscription', 'mtproto'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscriptions'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscriptions', 'mtproto'], refetchType: 'all' });
     },
   });
 }
@@ -168,6 +173,8 @@ export function useTrialWhatsapp() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['me'], refetchType: 'all' });
       qc.invalidateQueries({ queryKey: ['subscription', 'whatsapp'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscriptions'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscriptions', 'whatsapp'], refetchType: 'all' });
     },
   });
 }
@@ -183,6 +190,8 @@ export function useActivatePromocode() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['me'] });
       qc.invalidateQueries({ queryKey: ['subscription', 'vpn'] });
+      qc.invalidateQueries({ queryKey: ['subscriptions'] });
+      qc.invalidateQueries({ queryKey: ['subscriptions', 'vpn'] });
     },
   });
 }
@@ -223,6 +232,9 @@ export function useBuyPlan() {
       qc.invalidateQueries({ queryKey: ['me'], refetchType: 'all' });
       qc.invalidateQueries({ queryKey: ['subscription'], refetchType: 'all' });
       qc.invalidateQueries({ queryKey: ['subscriptions'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscriptions', 'vpn'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscriptions', 'mtproto'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['subscriptions', 'whatsapp'], refetchType: 'all' });
     },
   });
 }

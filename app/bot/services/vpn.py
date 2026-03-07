@@ -252,6 +252,31 @@ class VPNService:
             return None
         return await self.get_client_data_for_subscription(subscription)
 
+    async def get_client_data_for_subscriptions(
+        self,
+        subscriptions: list[VPNSubscription],
+    ) -> dict[int, ClientData | None]:
+        if not subscriptions:
+            return {}
+
+        try:
+            all_clients = await self.get_all_clients_data()
+        except Exception as exception:
+            logger.error(
+                "Error retrieving batch client data for vpn subscriptions: %s",
+                exception,
+            )
+            return {subscription.id: None for subscription in subscriptions}
+
+        result: dict[int, ClientData | None] = {}
+        for subscription in subscriptions:
+            result[subscription.id] = (
+                all_clients.get(subscription.vpn_id)
+                or all_clients.get(subscription.client_email)
+            )
+
+        return result
+
     async def get_key_for_subscription(self, subscription: VPNSubscription) -> str | None:
         subscription_id = subscription.id
 

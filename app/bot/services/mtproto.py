@@ -100,13 +100,16 @@ class MTProtoService:
         return result
 
     async def get_link_for_subscription(self, subscription: MTProtoSubscription) -> str | None:
-        """Return tg://proxy link for the user."""
+        """Return the preferred MTProto proxy link for the user.
+
+        We expose the secure mode link by default because it is generally more
+        interoperable across clients and networks than FakeTLS-only links.
+        Runtime still keeps TLS mode enabled for backwards compatibility.
+        """
         if not subscription or not subscription.is_active:
             return None
 
-        # FakeTLS secret = "ee" + hex_secret + hex_encoded_domain
-        tls_domain_hex = self.tls_domain.encode().hex()
-        secret = f"ee{subscription.secret}{tls_domain_hex}"
+        secret = f"dd{subscription.secret}"
         return f"https://t.me/proxy?server={self.host}&port={self.port}&secret={secret}"
 
     async def get_link(self, user_tg_id: int, subscription_id: int | None = None) -> str | None:
@@ -223,7 +226,7 @@ class MTProtoService:
             "MASK_HOST = {mask_host!r}\n"
             "MASK_PORT = {mask_port}\n"
             "FAST_MODE = {fast_mode}\n"
-            'MODES = {{"classic": False, "secure": False, "tls": True}}\n'
+            'MODES = {{"classic": False, "secure": True, "tls": True}}\n'
         ).format(
             port=self.port,
             users_block=users_block,

@@ -40,6 +40,10 @@ export function usePayment() {
           setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ['me'] });
             queryClient.invalidateQueries({ queryKey: ['subscription'] });
+            queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+            queryClient.invalidateQueries({ queryKey: ['subscriptions', 'vpn'] });
+            queryClient.invalidateQueries({ queryKey: ['subscriptions', 'mtproto'] });
+            queryClient.invalidateQueries({ queryKey: ['subscriptions', 'whatsapp'] });
           }, 5000);
           return 'pending';
         }
@@ -52,6 +56,10 @@ export function usePayment() {
             setStatus('paid');
             queryClient.invalidateQueries({ queryKey: ['me'] });
             queryClient.invalidateQueries({ queryKey: ['subscription'] });
+            queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+            queryClient.invalidateQueries({ queryKey: ['subscriptions', 'vpn'] });
+            queryClient.invalidateQueries({ queryKey: ['subscriptions', 'mtproto'] });
+            queryClient.invalidateQueries({ queryKey: ['subscriptions', 'whatsapp'] });
           } else if (result === 'cancelled') {
             setStatus('cancelled');
           } else {

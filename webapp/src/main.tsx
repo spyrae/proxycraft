@@ -57,21 +57,6 @@ queryClient.prefetchQuery({
   queryFn: () => api('/api/v1/subscription'),
   staleTime: 60_000,
 });
-queryClient.prefetchQuery({
-  queryKey: ['subscriptions', 'vpn'],
-  queryFn: () => api('/api/v1/subscriptions/vpn'),
-  staleTime: 60_000,
-});
-queryClient.prefetchQuery({
-  queryKey: ['subscriptions', 'mtproto'],
-  queryFn: () => api('/api/v1/subscriptions/mtproto'),
-  staleTime: 60_000,
-});
-queryClient.prefetchQuery({
-  queryKey: ['subscriptions', 'whatsapp'],
-  queryFn: () => api('/api/v1/subscriptions/whatsapp'),
-  staleTime: 60_000,
-});
 
 // Hide splash when React mounts (data prefetch already started)
 function hideSplash() {

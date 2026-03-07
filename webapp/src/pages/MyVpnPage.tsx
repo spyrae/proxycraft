@@ -4,9 +4,7 @@ import { StatusOverlay } from '../components/StatusOverlay';
 import type { OverlayMode } from '../components/StatusOverlay';
 import {
   useMe,
-  useVpnSubscriptions,
-  useMtprotoSubscriptions,
-  useWhatsappSubscriptions,
+  useSubscriptions,
   useCancelSubscription,
   useChangeVpnProfile,
 } from '../api/hooks';
@@ -42,16 +40,18 @@ export function MyVpnPage() {
   } = useMe();
   const { t } = useLanguage();
 
-  const { data: vpnData, isLoading: vpnLoading, isFetching: vpnFetching } = useVpnSubscriptions();
-  const { data: mtprotoData, isLoading: mtprotoLoading, isFetching: mtprotoFetching } = useMtprotoSubscriptions();
-  const { data: whatsappData, isLoading: whatsappLoading, isFetching: whatsappFetching } = useWhatsappSubscriptions();
+  const {
+    data: subscriptionsData,
+    isLoading: subscriptionsLoading,
+    isFetching: subscriptionsFetching,
+  } = useSubscriptions();
 
   const mtprotoEnabled = me?.features.mtproto_enabled ?? false;
   const whatsappEnabled = me?.features.whatsapp_enabled ?? false;
 
-  const vpnSubscriptions = vpnData?.subscriptions ?? [];
-  const mtprotoSubscriptions = mtprotoData?.subscriptions ?? [];
-  const whatsappSubscriptions = whatsappData?.subscriptions ?? [];
+  const vpnSubscriptions = subscriptionsData?.vpn ?? [];
+  const mtprotoSubscriptions = subscriptionsData?.mtproto ?? [];
+  const whatsappSubscriptions = subscriptionsData?.whatsapp ?? [];
 
   const showVpn = vpnSubscriptions.length > 0;
   const showMtproto = mtprotoEnabled && mtprotoSubscriptions.length > 0;
@@ -60,13 +60,13 @@ export function MyVpnPage() {
   const reserveMtprotoSlot = me ? mtprotoEnabled : true;
   const reserveWhatsappSlot = me ? whatsappEnabled : true;
 
-  const showVpnSkeleton = !showVpn && (vpnLoading || vpnFetching || meLoading || meFetching);
+  const showVpnSkeleton = !showVpn && (subscriptionsLoading || subscriptionsFetching || meLoading || meFetching);
   const showMtprotoSkeleton = reserveMtprotoSlot
     && !showMtproto
-    && (mtprotoLoading || mtprotoFetching || meLoading || meFetching);
+    && (subscriptionsLoading || subscriptionsFetching || meLoading || meFetching);
   const showWhatsappSkeleton = reserveWhatsappSlot
     && !showWhatsapp
-    && (whatsappLoading || whatsappFetching || meLoading || meFetching);
+    && (subscriptionsLoading || subscriptionsFetching || meLoading || meFetching);
 
   const hasPendingSections = showVpnSkeleton || showMtprotoSkeleton || showWhatsappSkeleton;
 

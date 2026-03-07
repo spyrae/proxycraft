@@ -6,7 +6,7 @@ PIDFILE="${HAPROXY_PIDFILE:-/var/run/haproxy.pid}"
 CERT_DIR="${HAPROXY_CERT_DIR:-/etc/haproxy/ssl}"
 CERT_FILE="${HAPROXY_SSL_CERT_PATH:-${CERT_DIR}/proxy.pem}"
 CERT_DAYS="${SHOP_WHATSAPP_TLS_CERT_DAYS:-3650}"
-TLS_CN="${SHOP_WHATSAPP_TLS_CN:-${SHOP_WHATSAPP_HOST:-proxy.vpncraft.tech}}"
+TLS_CN="${SHOP_WHATSAPP_TLS_CN:-${SHOP_WHATSAPP_HOST:-proxy.proxycraft.tech}}"
 OPENSSL_CONFIG="/tmp/whatsapp-openssl.cnf"
 DEFAULT_CONFIG_PATH="${HAPROXY_DEFAULT_CONFIG_PATH:-/opt/proxycraft-defaults/haproxy.cfg}"
 
