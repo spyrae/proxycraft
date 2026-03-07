@@ -9,6 +9,7 @@ import type {
 
 type DelayMap = Partial<Record<
   'me'
+  | 'subscriptions'
   | 'vpnSubscriptions'
   | 'mtprotoSubscriptions'
   | 'whatsappSubscriptions'
@@ -205,7 +206,7 @@ export async function mockApi(page: Page, options: MockApiOptions = {}) {
           vpn: state.vpnSubscriptions,
           mtproto: state.mtprotoSubscriptions,
           whatsapp: state.whatsappSubscriptions,
-        });
+        }, delays.subscriptions);
       case '/api/v1/subscriptions/vpn':
         return fulfillJson(route, { subscriptions: state.vpnSubscriptions }, delays.vpnSubscriptions);
       case '/api/v1/subscriptions/mtproto':

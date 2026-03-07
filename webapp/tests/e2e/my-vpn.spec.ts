@@ -10,17 +10,16 @@ test.beforeEach(async ({ page }) => {
 test('shows loaded subscriptions while keeping skeletons for slower sections', async ({ page }) => {
   await mockApi(page, {
     delays: {
-      mtprotoSubscriptions: 1200,
-      whatsappSubscriptions: 1200,
+      subscriptions: 1200,
     },
   });
 
   await page.goto('/my-vpn');
 
   await expect(page.getByRole('heading', { name: 'My VPN' })).toBeVisible();
-  await expect(page.getByText(/^VPN$/).first()).toBeVisible();
-  await expect(page.getByTestId('subscription-skeleton')).toHaveCount(2);
+  await expect(page.getByTestId('subscription-skeleton')).toHaveCount(3);
 
+  await expect(page.getByText(/^VPN$/).first()).toBeVisible({ timeout: 3000 });
   await expect(page.getByText(/^Telegram Proxy$/).first()).toBeVisible({ timeout: 3000 });
   await expect(page.getByText(/^WhatsApp Proxy$/).first()).toBeVisible({ timeout: 3000 });
   await expect(page.getByTestId('subscription-skeleton')).toHaveCount(0);

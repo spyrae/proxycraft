@@ -20,7 +20,7 @@ jobs:
   deploy:
     name: Deploy Bot
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Deploy via SSH
@@ -29,11 +29,15 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          command_timeout: 15m
           script: |
             set -e
             cd /opt/proxycraft
-            git pull origin main
-            sudo docker compose build bot mtproto whatsapp
+
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
+
             for service in bot mtproto whatsapp; do
               stale_ids="$(sudo docker ps -a --format '{{.ID}} {{.Names}}' | awk -v svc="$service" '$2 ~ ("_proxycraft-" svc "$") { print $1 }')"
               if [ -n "$stale_ids" ]; then
@@ -41,42 +45,9 @@ jobs:
                 echo "$stale_ids" | xargs -r sudo docker rm -f
               fi
             done
-            sudo docker compose up -d bot mtproto whatsapp
-            wait_for_service() {
-              local service="$1"
-              local require_health="${2:-false}"
-              local container="proxycraft-${service}"
-              local attempts=30
-              local sleep_seconds=2
 
-              for _ in $(seq 1 "$attempts"); do
-                local status
-                status="$(sudo docker inspect --format '{{.State.Status}}' "$container" 2>/dev/null || true)"
-                if [ "$status" != "running" ]; then
-                  sleep "$sleep_seconds"
-                  continue
-                fi
-
-                if [ "$require_health" = "true" ]; then
-                  local health
-                  health="$(sudo docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container" 2>/dev/null || true)"
-                  if [ "$health" = "healthy" ]; then
-                    return 0
-                  fi
-                else
-                  return 0
-                fi
-
-                sleep "$sleep_seconds"
-              done
-
-              echo "Service ${service} did not become ready in time"
-              sudo docker inspect "$container" || true
-              return 1
-            }
-            wait_for_service bot false
-            wait_for_service mtproto true
-            wait_for_service whatsapp true
+            sudo docker compose up -d --build --force-recreate --remove-orphans --wait --wait-timeout 180 bot mtproto whatsapp
+            sudo docker compose ps
             echo "--- Bot logs (last 10 lines) ---"
             sleep 3
             sudo docker logs proxycraft-bot --tail 10 2>&1
