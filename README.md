@@ -40,8 +40,10 @@ Bot → production smoke checks (real subscription generation + endpoint probes)
 Manual run:
 
 ```bash
-docker compose exec -T bot poetry run python /app/scripts/run_smoke_checks.py --json
+docker exec proxycraft-bot poetry run python /app/scripts/run_smoke_checks.py --json
 ```
+
+If a product uses an internal-only probe host in production, pass the same `SMOKE_*` env overrides to `docker exec` that the deploy workflow uses.
 
 The smoke-runner:
 - uses real service methods for MTProto / WhatsApp / VPN link generation

@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 import logging
 
 from py3xui import Client, Inbound
+from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.bot.models import ClientData
@@ -252,20 +253,32 @@ class VPNService:
         return await self.get_client_data_for_subscription(subscription)
 
     async def get_key_for_subscription(self, subscription: VPNSubscription) -> str | None:
-        if not subscription.server:
+        subscription_id = subscription.id
+
+        try:
+            server = subscription.server
+        except DetachedInstanceError:
+            server = None
+
+        if not server:
             async with self.session() as session:
-                subscription = await VPNSubscription.get_by_id(session=session, subscription_id=subscription.id)
-            if not subscription or not subscription.server:
-                logger.debug("Server is not attached to vpn subscription %s.", subscription.id if subscription else "n/a")
+                subscription = await VPNSubscription.get_by_id(session=session, subscription_id=subscription_id)
+            if not subscription:
+                logger.debug("VPN subscription %s no longer exists while generating key.", subscription_id)
+                return None
+
+            server = subscription.server
+            if not server:
+                logger.debug("Server is not attached to vpn subscription %s.", subscription_id)
                 return None
 
         base = extract_base_url(
-            url=subscription.server.subscription_host or subscription.server.host,
-            port=subscription.server.subscription_port or self.config.xui.SUBSCRIPTION_PORT,
-            path=subscription.server.subscription_path or self.config.xui.SUBSCRIPTION_PATH,
+            url=server.subscription_host or server.host,
+            port=server.subscription_port or self.config.xui.SUBSCRIPTION_PORT,
+            path=server.subscription_path or self.config.xui.SUBSCRIPTION_PATH,
         )
         key = f"{base}{subscription.vpn_id}"
-        logger.debug("Fetched key for vpn subscription %s: %s.", subscription.id, key)
+        logger.debug("Fetched key for vpn subscription %s: %s.", subscription_id, key)
         return key
 
     async def get_key(self, user: User) -> str | None:

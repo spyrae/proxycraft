@@ -207,10 +207,24 @@ async def resolve_vpn_fixture(
     for subscription in subscriptions:
         if not subscription:
             continue
+
+        async with db.session() as session:
+            loaded_subscription = await VPNSubscription.get_by_id(
+                session=session,
+                subscription_id=subscription.id,
+            )
+
+        if not loaded_subscription:
+            continue
+
         try:
-            client_data = await vpn_service.get_client_data_for_subscription(subscription)
+            client_data = await vpn_service.get_client_data_for_subscription(loaded_subscription)
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Failed to inspect VPN subscription %s during fixture discovery: %s", subscription.id, exc)
+            logger.warning(
+                "Failed to inspect VPN subscription %s during fixture discovery: %s",
+                loaded_subscription.id,
+                exc,
+            )
             continue
 
         if client_data is None:
@@ -219,7 +233,7 @@ async def resolve_vpn_fixture(
         if client_data.has_subscription_expired:
             continue
 
-        return subscription, client_data
+        return loaded_subscription, client_data
 
     return None
 
