@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import type { VpnSubscription } from '../../src/api/types';
+import type { UserProfile, VpnSubscription } from '../../src/api/types';
 import { mockApi } from './support/mockApi';
 import { installTelegramMock } from './support/mockTelegram';
 
@@ -27,6 +27,41 @@ test('shows loaded subscriptions while keeping skeletons for slower sections', a
 });
 
 test('switches VPN profile and shows fullscreen overlay during the request', async ({ page }) => {
+  const me: UserProfile = {
+    tg_id: 9990001,
+    first_name: 'Playwright',
+    username: 'playwright_user',
+    created_at: '2026-03-07T00:00:00Z',
+    is_admin: false,
+    balance: 1200,
+    auto_renew: false,
+    vpn_profile_slug: 'universal',
+    legal_consents: {
+      version: '2026-03-01',
+      privacy_policy_accepted: true,
+      terms_of_use_accepted: true,
+      personal_data_consent_accepted: true,
+      marketing_consent_granted: false,
+      required_consents_accepted: true,
+      accepted_at: {
+        privacy_policy: '2026-03-07T00:00:00Z',
+        terms_of_use: '2026-03-07T00:00:00Z',
+        personal_data: '2026-03-07T00:00:00Z',
+        marketing: null,
+      },
+    },
+    subscriptions: {
+      vpn: { active: true, trial_available: false },
+      mtproto: { active: false, trial_available: false },
+      whatsapp: { active: false, trial_available: false },
+    },
+    features: {
+      mtproto_enabled: false,
+      whatsapp_enabled: false,
+      stars_enabled: true,
+    },
+  };
+
   const vpnSubscriptions: VpnSubscription[] = [
     {
       subscription_id: 101,
@@ -69,7 +104,10 @@ test('switches VPN profile and shows fullscreen overlay during the request', asy
   ];
 
   await mockApi(page, {
+    me,
     vpnSubscriptions,
+    mtprotoSubscriptions: [],
+    whatsappSubscriptions: [],
     delays: {
       changeVpnProfile: 900,
     },
