@@ -42,7 +42,7 @@ CHECK_HOST_NODE_CATALOG_TIMEOUT_SECONDS = 10.0
 CHECK_HOST_RESULT_POLL_ATTEMPTS = 12
 CHECK_HOST_RESULT_POLL_INTERVAL_SECONDS = 3.0
 NOTIFICATION_TIMEOUT_SECONDS = 15.0
-FIXTURE_PROVISION_TIMEOUT_SECONDS = 180.0
+FIXTURE_PROVISION_TIMEOUT_SECONDS = 300.0
 
 Region = Literal["sea", "eu", "ru_friendly"]
 TargetType = Literal["http", "tcp"]
@@ -190,6 +190,14 @@ def _parse_node_metadata(node_id: str, raw: Any) -> CheckHostNode:
         country_code = raw.get("country_code") or raw.get("countryCode")
         country_name = raw.get("country") or raw.get("country_name")
         city = raw.get("city")
+        location = raw.get("location")
+        if isinstance(location, list):
+            if not country_code and len(location) > 0 and location[0]:
+                country_code = str(location[0])
+            if not country_name and len(location) > 1 and location[1]:
+                country_name = str(location[1])
+            if not city and len(location) > 2 and location[2]:
+                city = str(location[2])
         asn = raw.get("asn") or raw.get("provider")
         return CheckHostNode(
             node_id=node_id,
