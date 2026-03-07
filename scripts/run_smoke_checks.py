@@ -8,13 +8,10 @@ import logging
 import os
 import ssl
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
 from time import perf_counter
-from typing import Any, Sequence
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
-
-from sqlalchemy import desc, select
 
 from app.bot.services.mtproto import MTProtoService
 from app.bot.services.product_catalog import ProductCatalog
@@ -23,7 +20,8 @@ from app.bot.services.vpn import VPNService
 from app.bot.services.whatsapp import WhatsAppService
 from app.config import load_config
 from app.db.database import Database
-from app.db.models import MTProtoSubscription, VPNSubscription, WhatsAppSubscription
+from app.db.models import MTProtoSubscription, SmokeFixture, VPNSubscription, WhatsAppSubscription
+from scripts.smoke_fixture_catalog import SmokeFixtureSpec, get_fixture_specs
 
 
 logger = logging.getLogger("proxycraft_smoke")
@@ -31,6 +29,16 @@ logger = logging.getLogger("proxycraft_smoke")
 DEFAULT_TCP_TIMEOUT = 5.0
 DEFAULT_HTTP_TIMEOUT = 10.0
 DEFAULT_RETRY_COUNT = 2
+FIXTURE_SUBSCRIPTION_OVERRIDE_ENVS = {
+    "mtproto": ("SMOKE_MTPROTO_SUBSCRIPTION_ID",),
+    "whatsapp": ("SMOKE_WHATSAPP_SUBSCRIPTION_ID",),
+    "vpn_amsterdam": ("SMOKE_VPN_AMSTERDAM_SUBSCRIPTION_ID", "SMOKE_VPN_SUBSCRIPTION_ID"),
+    "vpn_saint_petersburg": ("SMOKE_VPN_SAINT_PETERSBURG_SUBSCRIPTION_ID",),
+}
+VPN_PROBE_OVERRIDE_ENVS = {
+    "vpn_amsterdam": ("SMOKE_VPN_AMSTERDAM_PROBE_URL", "SMOKE_VPN_PROBE_URL"),
+    "vpn_saint_petersburg": ("SMOKE_VPN_SAINT_PETERSBURG_PROBE_URL", "SMOKE_VPN_PROBE_URL"),
+}
 
 
 @dataclass
@@ -160,98 +168,121 @@ async def with_retries(coro_factory, *, attempts: int, product: str, endpoint: s
     raise last_error if last_error is not None else RuntimeError(f"{product} probe failed for {endpoint}")
 
 
-async def resolve_mtproto_fixture(db: Database, subscription_id: int | None) -> MTProtoSubscription | None:
+def fixture_override_subscription_id(fixture_key: str) -> int | None:
+    for env_name in FIXTURE_SUBSCRIPTION_OVERRIDE_ENVS.get(fixture_key, ()):
+        value = env_int(env_name)
+        if value is not None:
+            return value
+    return None
+
+
+def fixture_override_probe_url(fixture_key: str) -> str | None:
+    for env_name in VPN_PROBE_OVERRIDE_ENVS.get(fixture_key, ()):
+        value = env_str(env_name)
+        if value is not None:
+            return value
+    return None
+
+
+async def resolve_registry_fixture(db: Database, fixture_key: str) -> SmokeFixture | None:
+    async with db.session() as session:
+        return await SmokeFixture.get_by_key(session=session, key=fixture_key)
+
+
+async def resolve_mtproto_fixture(db: Database, fixture_key: str = "mtproto") -> MTProtoSubscription | None:
+    subscription_id = fixture_override_subscription_id(fixture_key)
+    registry = await resolve_registry_fixture(db, fixture_key)
+
     async with db.session() as session:
         if subscription_id is not None:
             return await MTProtoSubscription.get_by_id(session=session, subscription_id=subscription_id)
-
-        query = await session.execute(
-            select(MTProtoSubscription).order_by(
-                desc(MTProtoSubscription.activated_at),
-                desc(MTProtoSubscription.id),
+        if registry and registry.mtproto_subscription_id:
+            return await MTProtoSubscription.get_by_id(
+                session=session,
+                subscription_id=registry.mtproto_subscription_id,
             )
-        )
-        subscriptions = list(query.scalars().all())
 
-    now = datetime.utcnow()
-    active = [
-        subscription for subscription in subscriptions
-        if subscription.is_active and subscription.expires_at > now
-    ]
-    return active[0] if active else None
+    return None
 
 
-async def resolve_whatsapp_fixture(db: Database, subscription_id: int | None) -> WhatsAppSubscription | None:
+async def resolve_whatsapp_fixture(db: Database, fixture_key: str = "whatsapp") -> WhatsAppSubscription | None:
+    subscription_id = fixture_override_subscription_id(fixture_key)
+    registry = await resolve_registry_fixture(db, fixture_key)
+
     async with db.session() as session:
         if subscription_id is not None:
             return await WhatsAppSubscription.get_by_id(session=session, subscription_id=subscription_id)
-
-        query = await session.execute(
-            select(WhatsAppSubscription).order_by(
-                desc(WhatsAppSubscription.activated_at),
-                desc(WhatsAppSubscription.id),
+        if registry and registry.whatsapp_subscription_id:
+            return await WhatsAppSubscription.get_by_id(
+                session=session,
+                subscription_id=registry.whatsapp_subscription_id,
             )
-        )
-        subscriptions = list(query.scalars().all())
 
-    now = datetime.utcnow()
-    active = [
-        subscription for subscription in subscriptions
-        if subscription.is_active and subscription.expires_at > now
-    ]
-    return active[0] if active else None
+    return None
 
 
 async def resolve_vpn_fixture(
     db: Database,
     vpn_service: VPNService,
-    subscription_id: int | None,
+    spec: SmokeFixtureSpec,
 ) -> tuple[VPNSubscription, Any] | None:
+    subscription_id = fixture_override_subscription_id(spec.key)
+    registry = await resolve_registry_fixture(db, spec.key)
+
     async with db.session() as session:
         if subscription_id is not None:
-            subscription = await VPNSubscription.get_by_id(session=session, subscription_id=subscription_id)
-            subscriptions: Sequence[VPNSubscription] = [subscription] if subscription else []
-        else:
-            query = await session.execute(
-                select(VPNSubscription).order_by(
-                    desc(VPNSubscription.created_at),
-                    desc(VPNSubscription.id),
-                )
-            )
-            subscriptions = list(query.scalars().all())
-
-    for subscription in subscriptions:
-        if not subscription:
-            continue
-
-        async with db.session() as session:
-            loaded_subscription = await VPNSubscription.get_by_id(
+            subscription = await VPNSubscription.get_by_id(
                 session=session,
-                subscription_id=subscription.id,
+                subscription_id=subscription_id,
             )
-
-        if not loaded_subscription:
-            continue
-
-        try:
-            client_data = await vpn_service.get_client_data_for_subscription(loaded_subscription)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning(
-                "Failed to inspect VPN subscription %s during fixture discovery: %s",
-                loaded_subscription.id,
-                exc,
+        elif registry and registry.vpn_subscription_id:
+            subscription = await VPNSubscription.get_by_id(
+                session=session,
+                subscription_id=registry.vpn_subscription_id,
             )
-            continue
+        else:
+            subscription = None
 
-        if client_data is None:
-            continue
+    if not subscription:
+        return None
 
-        if client_data.has_subscription_expired:
-            continue
+    if not subscription.server or subscription.server.location != spec.location:
+        logger.warning(
+            "Smoke VPN fixture %s points to wrong location: expected %s, got %s.",
+            spec.key,
+            spec.location,
+            subscription.server.location if subscription.server else None,
+        )
+        return None
 
-        return loaded_subscription, client_data
+    if subscription.cancelled_at is not None:
+        logger.warning("Smoke VPN fixture %s is cancelled.", spec.key)
+        return None
 
-    return None
+    if subscription.vpn_profile_slug != spec.vpn_profile_slug:
+        logger.warning(
+            "Smoke VPN fixture %s points to wrong profile: expected %s, got %s.",
+            spec.key,
+            spec.vpn_profile_slug,
+            subscription.vpn_profile_slug,
+        )
+        return None
+
+    try:
+        client_data = await vpn_service.get_client_data_for_subscription(subscription)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "Failed to inspect VPN smoke fixture %s (subscription %s): %s",
+            spec.key,
+            subscription.id,
+            exc,
+        )
+        return None
+
+    if client_data is None or client_data.has_subscription_expired:
+        return None
+
+    return subscription, client_data
 
 
 def parse_mtproto_endpoint(link: str) -> tuple[str, int, str]:
@@ -273,12 +304,11 @@ async def check_mtproto(
     tcp_timeout: float,
     attempts: int,
 ) -> SmokeCheckResult:
-    fixture_id = env_int("SMOKE_MTPROTO_SUBSCRIPTION_ID")
-    subscription = await resolve_mtproto_fixture(db=db, subscription_id=fixture_id)
+    subscription = await resolve_mtproto_fixture(db=db)
     if not subscription:
         raise SmokeCheckFailure(
             "mtproto",
-            "No active MTProto subscription fixture found.",
+            "MTProto smoke fixture is not provisioned or no longer valid.",
         )
 
     link = await mtproto_service.get_link_for_subscription(subscription)
@@ -328,12 +358,11 @@ async def check_whatsapp(
     tcp_timeout: float,
     attempts: int,
 ) -> SmokeCheckResult:
-    fixture_id = env_int("SMOKE_WHATSAPP_SUBSCRIPTION_ID")
-    subscription = await resolve_whatsapp_fixture(db=db, subscription_id=fixture_id)
+    subscription = await resolve_whatsapp_fixture(db=db)
     if not subscription:
         raise SmokeCheckFailure(
             "whatsapp",
-            "No active WhatsApp subscription fixture found.",
+            "WhatsApp smoke fixture is not provisioned or no longer valid.",
         )
 
     connection_info = await whatsapp_service.get_connection_info_for_subscription(subscription)
@@ -374,37 +403,37 @@ async def check_vpn(
     db: Database,
     http_timeout: float,
     attempts: int,
+    spec: SmokeFixtureSpec,
 ) -> SmokeCheckResult:
-    fixture_id = env_int("SMOKE_VPN_SUBSCRIPTION_ID")
     await server_pool.sync_servers()
 
-    resolved = await resolve_vpn_fixture(db=db, vpn_service=vpn_service, subscription_id=fixture_id)
+    resolved = await resolve_vpn_fixture(db=db, vpn_service=vpn_service, spec=spec)
     if not resolved:
         raise SmokeCheckFailure(
-            "vpn",
-            "No viable VPN subscription fixture found (missing active client or subscription already expired).",
+            spec.key,
+            f"VPN smoke fixture {spec.key} is not provisioned, expired, or points to the wrong location/profile.",
         )
 
     subscription, client_data = resolved
     key = await vpn_service.get_key_for_subscription(subscription)
     if not key:
         raise SmokeCheckFailure(
-            "vpn",
+            spec.key,
             f"Failed to generate VPN subscription URL for subscription {subscription.id}.",
             details={"subscription_id": subscription.id},
         )
 
-    probe_url = env_str("SMOKE_VPN_PROBE_URL") or key
+    probe_url = fixture_override_probe_url(spec.key) or key
     probe = await with_retries(
         lambda: probe_http(probe_url, timeout=http_timeout),
         attempts=attempts,
-        product="vpn",
+        product=spec.key,
         endpoint=probe_url,
     )
 
     if probe["status"] != 200 or probe["body_length"] <= 0:
         raise SmokeCheckFailure(
-            "vpn",
+            spec.key,
             f"VPN subscription endpoint returned unexpected response ({probe['status']}).",
             endpoint=probe_url,
             details={
@@ -416,7 +445,7 @@ async def check_vpn(
 
     if client_data.has_subscription_expired:
         raise SmokeCheckFailure(
-            "vpn",
+            spec.key,
             "VPN client exists but its expiry has already passed.",
             endpoint=key,
             details={
@@ -426,13 +455,18 @@ async def check_vpn(
         )
 
     return SmokeCheckResult(
-        product="vpn",
+        product=spec.key,
         status="passed",
-        summary=f"VPN subscription URL responded with data and client exists on 3X-UI for server {subscription.server_id}.",
+        summary=(
+            f"VPN smoke fixture for {spec.location} responded with data and "
+            f"client exists on 3X-UI for server {subscription.server_id}."
+        ),
         endpoint=key,
         details={
             "subscription_id": subscription.id,
             "server_id": subscription.server_id,
+            "location": spec.location,
+            "vpn_profile_slug": subscription.vpn_profile_slug,
             "expires_at_ms": client_data._expiry_time,
             "latency_ms": probe["latency_ms"],
             "http_status": probe["status"],
@@ -531,27 +565,29 @@ async def run(product: str = "all") -> tuple[list[SmokeCheckResult], bool]:
 
         if product in {"all", "vpn"}:
             logger.info("Starting VPN smoke check.")
-            try:
-                results.append(
-                    await check_vpn(
-                        vpn_service=vpn_service,
-                        server_pool=server_pool,
-                        db=db,
-                        http_timeout=http_timeout,
-                        attempts=attempts,
+            for spec in get_fixture_specs("vpn"):
+                try:
+                    results.append(
+                        await check_vpn(
+                            vpn_service=vpn_service,
+                            server_pool=server_pool,
+                            db=db,
+                            http_timeout=http_timeout,
+                            attempts=attempts,
+                            spec=spec,
+                        )
                     )
-                )
-            except SmokeCheckFailure as failure:
-                has_failures = True
-                results.append(
-                    SmokeCheckResult(
-                        product=failure.product,
-                        status="failed",
-                        summary=failure.summary,
-                        endpoint=failure.endpoint,
-                        details=failure.details,
+                except SmokeCheckFailure as failure:
+                    has_failures = True
+                    results.append(
+                        SmokeCheckResult(
+                            product=failure.product,
+                            status="failed",
+                            summary=failure.summary,
+                            endpoint=failure.endpoint,
+                            details=failure.details,
+                        )
                     )
-                )
     finally:
         await db.close()
 

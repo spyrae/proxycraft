@@ -40,18 +40,25 @@ Bot → production smoke checks (real subscription generation + endpoint probes)
 Manual run:
 
 ```bash
+docker exec -e PYTHONPATH=/app proxycraft-bot poetry run python -m scripts.provision_smoke_fixtures --json
 docker exec -e PYTHONPATH=/app proxycraft-bot poetry run python -m scripts.run_smoke_checks --json
 docker exec -e PYTHONPATH=/app proxycraft-bot poetry run python -m scripts.run_smoke_checks --json --product vpn
 ```
 
 If a product uses an internal-only probe host in production, pass the same `SMOKE_*` env overrides to `docker exec` that the deploy workflow uses.
 
+The fixture provisioner:
+- creates dedicated smoke users with deterministic Telegram IDs
+- maintains one stable smoke subscription per product fixture (`vpn_amsterdam`, `vpn_saint_petersburg`, `mtproto`, `whatsapp`)
+- stores fixture metadata in `proxycraft_smoke_fixtures`
+- can safely be rerun after a failed deploy or a clean environment rebuild
+
 The smoke-runner:
 - can execute a single product check via `--product mtproto|whatsapp|vpn` or all checks sequentially
 - uses real service methods for MTProto / WhatsApp / VPN link generation
-- auto-discovers a viable subscription fixture from the production database
-- supports pinned fixtures via optional `SMOKE_*_SUBSCRIPTION_ID` env vars
-- supports optional internal probe overrides (`SMOKE_*_PROBE_HOST`, `SMOKE_VPN_PROBE_URL`) for same-host Docker deployments
+- resolves stable fixtures from the `proxycraft_smoke_fixtures` registry instead of random live rows
+- supports explicit fixture overrides via optional `SMOKE_*_SUBSCRIPTION_ID` env vars
+- supports optional internal probe overrides (`SMOKE_*_PROBE_HOST`, `SMOKE_VPN_*_PROBE_URL`) for same-host Docker deployments
 - fails deploy if a critical product path is broken
 
 ## License

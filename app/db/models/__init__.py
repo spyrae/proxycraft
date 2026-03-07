@@ -7,6 +7,7 @@ from .promocode import Promocode
 from .referral import Referral
 from .referrer_reward import ReferrerReward
 from .server import Server
+from .smoke_fixture import SmokeFixture
 from .subscription_event import SubscriptionEvent
 from .transaction import Transaction
 from .user import User

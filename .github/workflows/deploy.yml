@@ -84,10 +84,20 @@ jobs:
             sudo docker logs proxycraft-mtproto --tail 10 2>&1
             echo "--- WhatsApp logs (last 10 lines) ---"
             sudo docker logs proxycraft-whatsapp --tail 10 2>&1
-            echo "--- Production smoke checks ---"
+            echo "--- Provisioning smoke fixtures ---"
             set -a
             . ./.env
             set +a
+            run_provision() {
+              sudo docker exec \
+                -e SMOKE_FIXTURE_TG_ID_VPN_AMSTERDAM="${SMOKE_FIXTURE_TG_ID_VPN_AMSTERDAM:-}" \
+                -e SMOKE_FIXTURE_TG_ID_VPN_SAINT_PETERSBURG="${SMOKE_FIXTURE_TG_ID_VPN_SAINT_PETERSBURG:-}" \
+                -e SMOKE_FIXTURE_TG_ID_MTPROTO="${SMOKE_FIXTURE_TG_ID_MTPROTO:-}" \
+                -e SMOKE_FIXTURE_TG_ID_WHATSAPP="${SMOKE_FIXTURE_TG_ID_WHATSAPP:-}" \
+                -e PYTHONPATH=/app \
+                proxycraft-bot \
+                poetry run python -m scripts.provision_smoke_fixtures --json
+            }
             run_smoke() {
               local product="$1"
               echo "Running smoke check for ${product}"
@@ -95,9 +105,13 @@ jobs:
                 -e SMOKE_MTPROTO_SUBSCRIPTION_ID="${SMOKE_MTPROTO_SUBSCRIPTION_ID:-}" \
                 -e SMOKE_WHATSAPP_SUBSCRIPTION_ID="${SMOKE_WHATSAPP_SUBSCRIPTION_ID:-}" \
                 -e SMOKE_VPN_SUBSCRIPTION_ID="${SMOKE_VPN_SUBSCRIPTION_ID:-}" \
+                -e SMOKE_VPN_AMSTERDAM_SUBSCRIPTION_ID="${SMOKE_VPN_AMSTERDAM_SUBSCRIPTION_ID:-}" \
+                -e SMOKE_VPN_SAINT_PETERSBURG_SUBSCRIPTION_ID="${SMOKE_VPN_SAINT_PETERSBURG_SUBSCRIPTION_ID:-}" \
                 -e SMOKE_MTPROTO_PROBE_HOST="${SMOKE_MTPROTO_PROBE_HOST:-}" \
                 -e SMOKE_WHATSAPP_PROBE_HOST="${SMOKE_WHATSAPP_PROBE_HOST:-}" \
                 -e SMOKE_VPN_PROBE_URL="${SMOKE_VPN_PROBE_URL:-}" \
+                -e SMOKE_VPN_AMSTERDAM_PROBE_URL="${SMOKE_VPN_AMSTERDAM_PROBE_URL:-}" \
+                -e SMOKE_VPN_SAINT_PETERSBURG_PROBE_URL="${SMOKE_VPN_SAINT_PETERSBURG_PROBE_URL:-}" \
                 -e SMOKE_TCP_TIMEOUT="${SMOKE_TCP_TIMEOUT:-}" \
                 -e SMOKE_HTTP_TIMEOUT="${SMOKE_HTTP_TIMEOUT:-}" \
                 -e SMOKE_RETRY_COUNT="${SMOKE_RETRY_COUNT:-}" \
@@ -105,6 +119,8 @@ jobs:
                 proxycraft-bot \
                 poetry run python -m scripts.run_smoke_checks --json --product "${product}"
             }
+            run_provision
+            echo "--- Production smoke checks ---"
             run_smoke mtproto
             run_smoke whatsapp
             run_smoke vpn
