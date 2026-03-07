@@ -72,7 +72,7 @@ const visuals = [
       </div>
       <div class="flex-1">
         <div class="text-sm font-semibold text-white">YouTube</div>
-        <div class="text-xs text-white/50">4K без буферов</div>
+        <div class="text-xs text-white/50">${lang === 'ru' ? '4K без буферов' : '4K Streaming'}</div>
       </div>
       <div class="flex items-end gap-0.5 h-5">
         <div class="w-1 rounded-full bg-green-400 h-2"></div>
@@ -88,7 +88,7 @@ const visuals = [
       </div>
       <div class="flex-1">
         <div class="text-sm font-semibold text-white">Netflix</div>
-        <div class="text-xs text-white/50">Стриминг HD / 4K</div>
+        <div class="text-xs text-white/50">${lang === 'ru' ? 'Стриминг HD / 4K' : 'HD/4K Streaming'}</div>
       </div>
       <div class="flex items-end gap-0.5 h-5">
         <div class="w-1 rounded-full bg-green-400 h-3"></div>
@@ -104,7 +104,7 @@ const visuals = [
       </div>
       <div class="flex-1">
         <div class="text-sm font-semibold text-white">Spotify</div>
-        <div class="text-xs text-white/50">Музыка без ограничений</div>
+        <div class="text-xs text-white/50">${lang === 'ru' ? 'Музыка без ограничений' : 'Unlimited Music'}</div>
       </div>
       <div class="flex items-end gap-0.5 h-5">
         <div class="w-1 rounded-full bg-green-400 h-4"></div>
@@ -120,18 +120,18 @@ const visuals = [
   `<div class="w-full max-w-[280px] mx-auto space-y-3 py-2">
     <div class="flex items-center gap-2 px-1 mb-4">
       <img src="https://cdn.simpleicons.org/telegram/ffffff" class="w-4 h-4 opacity-70" alt="Telegram" />
-      <span class="text-[11px] text-white/40 font-medium tracking-wide">Telegram — Чат с другом</span>
+      <span class="text-[11px] text-white/40 font-medium tracking-wide">Telegram — ${lang === 'ru' ? 'Чат с другом' : 'Chat'}</span>
     </div>
     <div class="flex gap-2 items-end" style="max-width: 85%;">
       <div class="w-7 h-7 rounded-full bg-[#26A5E4]/60 flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-white">А</div>
       <div class="bg-white/10 backdrop-blur-sm rounded-2xl rounded-bl-none px-4 py-2.5 border border-white/10 shadow-md">
-        <p class="text-[12px] text-white/90 leading-snug">VPN нормально работает? 🤔</p>
+        <p class="text-[12px] text-white/90 leading-snug">${lang === 'ru' ? 'VPN нормально работает? 🤔' : 'VPN working alright? 🤔'}</p>
         <span class="text-[10px] text-white/30 mt-1 block">14:22</span>
       </div>
     </div>
     <div class="flex gap-2 items-end justify-end">
       <div class="bg-[#2b5278] backdrop-blur-sm rounded-2xl rounded-br-none px-4 py-2.5 border border-[#26A5E4]/20 shadow-md" style="max-width: 85%;">
-        <p class="text-[12px] text-white/90 leading-snug text-right">Да, всё летает без лагов 🚀</p>
+        <p class="text-[12px] text-white/90 leading-snug text-right">${lang === 'ru' ? 'Да, всё летает без лагов 🚀' : 'Yeah, super smooth! 🚀'}</p>
         <span class="text-[10px] text-white/30 mt-1 block text-right">14:23 ✓✓</span>
       </div>
       <div class="w-7 h-7 rounded-full bg-[#26A5E4]/50 flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-white">Я</div>
@@ -139,7 +139,7 @@ const visuals = [
     <div class="flex gap-2 items-end" style="max-width: 85%;">
       <div class="w-7 h-7 rounded-full bg-[#26A5E4]/60 flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-white">А</div>
       <div class="bg-white/10 backdrop-blur-sm rounded-2xl rounded-bl-none px-4 py-2.5 border border-white/10 shadow-md">
-        <p class="text-[12px] text-white/90 leading-snug">Огонь 🔥 Какой тариф взял?</p>
+        <p class="text-[12px] text-white/90 leading-snug">${lang === 'ru' ? 'Огонь 🔥 Какой тариф взял?' : 'Nice 🔥 Which plan did you get?'}</p>
         <span class="text-[10px] text-white/30 mt-1 block">14:24</span>
       </div>
     </div>
@@ -181,7 +181,7 @@ const visuals = [
       </div>
       <div class="flex-1 min-w-0">
         <div class="text-xs font-semibold text-white">Airport Free Wi-Fi</div>
-        <div class="text-[11px] text-green-400 font-medium">🔒 Защищено ProxyCraft</div>
+        <div class="text-[11px] text-green-400 font-medium">🔒 ${lang === 'ru' ? 'Защищено ProxyCraft' : 'Protected by ProxyCraft'}</div>
       </div>
       <div class="flex flex-col justify-end gap-0.5 h-5">
         <div class="w-4 h-1 rounded-sm bg-green-400 opacity-30"></div>
@@ -192,19 +192,19 @@ const visuals = [
     <div class="grid grid-cols-2 gap-2">
       <div class="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/10">
         <span class="text-base leading-none">✈️</span>
-        <span class="text-[11px] text-white/70 font-medium">Аэропорты</span>
+        <span class="text-[11px] text-white/70 font-medium">${lang === 'ru' ? 'Аэропорты' : 'Airports'}</span>
       </div>
       <div class="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/10">
         <span class="text-base leading-none">☕</span>
-        <span class="text-[11px] text-white/70 font-medium">Кафе</span>
+        <span class="text-[11px] text-white/70 font-medium">${lang === 'ru' ? 'Кафе' : 'Cafes'}</span>
       </div>
       <div class="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/10">
         <span class="text-base leading-none">🏨</span>
-        <span class="text-[11px] text-white/70 font-medium">Отели</span>
+        <span class="text-[11px] text-white/70 font-medium">${lang === 'ru' ? 'Отели' : 'Hotels'}</span>
       </div>
       <div class="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/10">
         <span class="text-base leading-none">💼</span>
-        <span class="text-[11px] text-white/70 font-medium">Коворкинги</span>
+        <span class="text-[11px] text-white/70 font-medium">${lang === 'ru' ? 'Коворкинги' : 'Coworking'}</span>
       </div>
     </div>
   </div>`
@@ -212,17 +212,17 @@ const visuals = [
 
 const content = lang === 'ru' ? {
   title: 'Для кого подходит ProxyCraft',
-  subtitle: 'Обеспечиваем свободный доступ каждый день',
+  subtitle: 'Безграничный интернет — каждый день, в любой стране',
   cards: [
     {
       title: 'Работа с зарубежными сервисами',
-      description: 'Обеспечиваем беспрепятственный доступ к нейросетям, профессиональным инструментам и биржам. Работайте в Canva, создавайте тексты в ChatGPT и организуйте задачи в Notion так, как вам удобно.',
+      description: 'Открывает полный доступ к нейросетям, профессиональным инструментам и биржам. Работайте в Canva, создавайте тексты в ChatGPT и организуйте задачи в Notion так, как вам удобно.',
       apps: ['ChatGPT', 'Notion', 'Figma', 'Canva', 'Miro', 'Claude'],
       color: 'from-emerald-500/20 to-teal-500/20'
     },
     {
       title: 'В соцсети без границ',
-      description: 'Обеспечиваем свободный доступ к социальным сетям. Листайте Instagram, читайте X (Twitter) и общайтесь в Facebook с высокой скоростью загрузки ленты.',
+      description: 'Листайте Instagram, читайте X (Twitter) и общайтесь в Facebook с высокой скоростью загрузки ленты — без блокировок и ограничений.',
       apps: ['Instagram', 'Facebook', 'X (Twitter)', 'LinkedIn', 'TikTok'],
       color: 'from-pink-500/20 to-orange-500/20'
     },
@@ -234,13 +234,13 @@ const content = lang === 'ru' ? {
     },
     {
       title: 'Мессенджеры без ограничений',
-      description: 'Общайтесь с родными, друзьями и коллегами. Обеспечиваем стабильный доступ к Telegram, WhatsApp, Discord, Signal и другим привычным средствам связи.',
+      description: 'Общайтесь с родными, друзьями и коллегами без сбоев. Telegram, WhatsApp, Discord, Signal и другие привычные мессенджеры работают стабильно.',
       apps: ['Telegram', 'WhatsApp', 'Discord', 'Signal'],
       color: 'from-blue-500/20 to-indigo-500/20'
     },
     {
       title: 'Российские сервисы без блокировки',
-      description: 'Пользуйтесь домашними сервисами и порталами из любой точки мира. Обеспечиваем свободный доступ к налогам, госуслугам и оплате счетов.',
+      description: 'Пользуйтесь домашними сервисами и порталами из любой точки мира. Налоги, Госуслуги и оплата счетов — доступны из любой страны.',
       apps: ['Nalog.ru', 'Mos.ru', 'Госуслуги', 'Мосэнергосбыт'],
       color: 'from-purple-500/20 to-fuchsia-500/20'
     },
@@ -253,17 +253,17 @@ const content = lang === 'ru' ? {
   ]
 } : {
   title: 'Who is ProxyCraft for?',
-  subtitle: 'Providing free access every single day',
+  subtitle: 'Borderless internet — every day, in any country',
   cards: [
     {
       title: 'Work with global platforms',
-      description: 'Ensure unrestricted access to AI tools, professional software, and exchanges. Design in Canva, write with ChatGPT, and organize in Notion effortlessly.',
+      description: 'Full access to AI tools, professional software, and exchanges — no restrictions. Design in Canva, write with ChatGPT, and organize in Notion effortlessly.',
       apps: ['ChatGPT', 'Notion', 'Figma', 'Canva', 'Miro', 'Claude'],
       color: 'from-emerald-500/20 to-teal-500/20'
     },
     {
       title: 'Social media without borders',
-      description: 'Providing free access to social networks. Scroll Instagram, read X (Twitter), and chat on Facebook with fast feed loading times.',
+      description: 'Scroll Instagram, read X (Twitter), and chat on Facebook with fast feed loading times — no blocks, no throttling.',
       apps: ['Instagram', 'Facebook', 'X (Twitter)', 'LinkedIn', 'TikTok'],
       color: 'from-pink-500/20 to-orange-500/20'
     },
@@ -275,13 +275,13 @@ const content = lang === 'ru' ? {
     },
     {
       title: 'Messengers without limits',
-      description: 'Chat with family, friends, and colleagues. We provide stable access to Telegram, WhatsApp, Discord, Signal, and other familiar communication tools.',
+      description: 'Chat with family, friends, and colleagues without interruptions. Telegram, WhatsApp, Discord, Signal — always stable and fast.',
       apps: ['Telegram', 'WhatsApp', 'Discord', 'Signal'],
       color: 'from-blue-500/20 to-indigo-500/20'
     },
     {
       title: 'Russian services unblocked',
-      description: 'Use your domestic services and portals from anywhere in the world. We ensure simple access to tax, government, and utility portals.',
+      description: 'Access your domestic services and portals from anywhere in the world. Tax filing, government services, and utility payments — available in any country.',
       apps: ['Nalog.ru', 'Mos.ru', 'Gosuslugi', 'Mosenergosbyt'],
       color: 'from-purple-500/20 to-fuchsia-500/20'
     },
@@ -295,7 +295,7 @@ const content = lang === 'ru' ? {
 };
 ---
 
-<section id="usecases" class="py-20 sm:py-28 overflow-hidden">
+<section id="usecases" class="py-14 sm:py-20 overflow-hidden">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
     <div class="fade-in text-center">
       <h2 class="text-3xl font-bold sm:text-4xl">{content.title}</h2>
@@ -321,7 +321,7 @@ const content = lang === 'ru' ? {
 
           <!-- Visual Block Side -->
           <div class="flex-1 w-full max-w-lg mx-auto lg:max-w-none">
-            <div class={`relative flex aspect-video sm:aspect-[4/3] lg:aspect-[5/4] w-full flex-col items-center justify-center overflow-hidden rounded-[2rem] border border-border bg-gradient-to-br ${card.color} p-6 sm:p-12 shadow-2xl group`}>
+            <div class={`relative flex aspect-[4/3] sm:aspect-[4/3] lg:aspect-[5/4] w-full flex-col items-center justify-center overflow-hidden rounded-[2rem] border border-border bg-gradient-to-br ${card.color} p-4 sm:p-12 shadow-2xl group`}>
 
                <div class="relative z-10 w-full flex items-center justify-center">
                  <Fragment set:html={visuals[i]} />

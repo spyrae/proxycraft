@@ -8,60 +8,105 @@ import Footer from '@/components/Footer.astro';
   <Header />
   <main class="pt-28 pb-20">
     <div class="mx-auto max-w-3xl px-4 sm:px-6">
+
       <h1 class="text-3xl font-bold">Реквизиты</h1>
-      <div class="prose-invert mt-8 space-y-6 text-text-muted">
-        <p>Последнее обновление: март 2026</p>
+      <p class="mt-4 text-sm leading-relaxed text-text-muted">
+        Официальные реквизиты оператора сервиса ProxyCraft.
+      </p>
 
-        <h2 class="text-xl font-semibold text-text">Оператор сервиса</h2>
-        <div class="space-y-2">
-          <div class="flex flex-col sm:flex-row sm:gap-4">
-            <span class="min-w-[180px] text-text/60">Наименование</span>
-            <span>ProxyCraft</span>
-          </div>
-          <div class="flex flex-col sm:flex-row sm:gap-4">
-            <span class="min-w-[180px] text-text/60">Сайт</span>
-            <span>proxycraft.tech</span>
-          </div>
-          <div class="flex flex-col sm:flex-row sm:gap-4">
-            <span class="min-w-[180px] text-text/60">Email</span>
-            <a href="mailto:support@proxycraft.tech" class="text-accent hover:underline">
-              support@proxycraft.tech
-            </a>
-          </div>
-          <div class="flex flex-col sm:flex-row sm:gap-4">
-            <span class="min-w-[180px] text-text/60">Telegram</span>
-            <a href="https://t.me/proxycraftapp_bot" class="text-accent hover:underline">
-              @proxycraftapp_bot
-            </a>
-          </div>
-        </div>
-
-        <h2 class="text-xl font-semibold text-text">Платёжная информация</h2>
-        <p>
-          Оплата услуг ProxyCraft производится через Telegram-бота{' '}
-          <a href="https://t.me/proxycraftapp_bot" class="text-accent hover:underline">
-            @proxycraftapp_bot
-          </a>{' '}
-          с использованием доступных методов оплаты: банковские карты (через Telegram Payments),
-          Telegram Stars.
-        </p>
-        <p>
-          Все транзакции обрабатываются через сертифицированные платёжные шлюзы. ProxyCraft
-          не сохраняет данные банковских карт пользователей.
-        </p>
-
-        <h2 class="text-xl font-semibold text-text">Контакты для юридических вопросов</h2>
-        <p>
-          По вопросам, требующим официального ответа (претензии, запросы о возврате данных,
-          юридические уведомления):
-          <a href="mailto:support@proxycraft.tech" class="text-accent hover:underline ml-1">
-            support@proxycraft.tech
-          </a>
-        </p>
-        <p>
-          Обращения обрабатываются в течение 30 рабочих дней.
-        </p>
+      <!-- Оператор -->
+      <h2 class="text-xl font-semibold mt-10">Оператор</h2>
+      <div class="mt-4 overflow-x-auto rounded-xl border border-border">
+        <table class="w-full border-collapse text-sm">
+          <tbody class="text-sm">
+            <tr class="border-b border-border/50">
+              <td class="px-4 py-3 font-medium text-text whitespace-nowrap w-48">Наименование</td>
+              <td class="px-4 py-3 text-text-muted">Индивидуальный предприниматель Белов Роман Борисович</td>
+            </tr>
+            <tr class="border-b border-border/50">
+              <td class="px-4 py-3 font-medium text-text">ИНН</td>
+              <td class="px-4 py-3 text-text-muted font-mono">770871362722</td>
+            </tr>
+            <tr class="border-b border-border/50">
+              <td class="px-4 py-3 font-medium text-text">ОГРНИП</td>
+              <td class="px-4 py-3 text-text-muted font-mono">322774600177836</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium text-text">Юридический адрес</td>
+              <td class="px-4 py-3 text-text-muted">107140, Россия, г. Москва, 2-й Красносельский пер., д. 2, кв. 130</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+
+      <!-- Банковские реквизиты -->
+      <div class="mt-10 border-t border-border pt-10">
+        <h2 class="text-xl font-semibold">Банковские реквизиты</h2>
+        <div class="mt-4 overflow-x-auto rounded-xl border border-border">
+          <table class="w-full border-collapse text-sm">
+            <tbody class="text-sm">
+              <tr class="border-b border-border/50">
+                <td class="px-4 py-3 font-medium text-text whitespace-nowrap w-48">Банк</td>
+                <td class="px-4 py-3 text-text-muted">АО «ТБанк»</td>
+              </tr>
+              <tr class="border-b border-border/50">
+                <td class="px-4 py-3 font-medium text-text">ИНН банка</td>
+                <td class="px-4 py-3 text-text-muted font-mono">7710140679</td>
+              </tr>
+              <tr class="border-b border-border/50">
+                <td class="px-4 py-3 font-medium text-text">Расчётный счёт</td>
+                <td class="px-4 py-3 text-text-muted font-mono">40802810100003184716</td>
+              </tr>
+              <tr class="border-b border-border/50">
+                <td class="px-4 py-3 font-medium text-text">БИК</td>
+                <td class="px-4 py-3 text-text-muted font-mono">044525974</td>
+              </tr>
+              <tr class="border-b border-border/50">
+                <td class="px-4 py-3 font-medium text-text">Корр. счёт</td>
+                <td class="px-4 py-3 text-text-muted font-mono">30101810145250000974</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 font-medium text-text">Адрес банка</td>
+                <td class="px-4 py-3 text-text-muted">127287, г. Москва, ул. Хуторская 2-я, д. 38А, стр. 26</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Контакты -->
+      <div class="mt-10 border-t border-border pt-10">
+        <h2 class="text-xl font-semibold">Контакты</h2>
+        <div class="mt-4 overflow-x-auto rounded-xl border border-border">
+          <table class="w-full border-collapse text-sm">
+            <tbody class="text-sm">
+              <tr class="border-b border-border/50">
+                <td class="px-4 py-3 font-medium text-text whitespace-nowrap w-48">Email</td>
+                <td class="px-4 py-3">
+                  <a href="mailto:info@proxycraft.tech" class="text-accent hover:underline">info@proxycraft.tech</a>
+                </td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 font-medium text-text">Telegram</td>
+                <td class="px-4 py-3">
+                  <a href="https://t.me/proxycraftapp_bot" class="text-accent hover:underline">@proxycraftapp_bot</a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Правовые документы -->
+      <div class="mt-10 border-t border-border pt-10">
+        <h2 class="text-xl font-semibold">Правовые документы</h2>
+        <ul class="mt-3 list-disc pl-6 space-y-2 text-sm text-text-muted">
+          <li><a href="/terms" class="text-accent hover:underline">Условия использования</a></li>
+          <li><a href="/privacy" class="text-accent hover:underline">Политика конфиденциальности</a></li>
+          <li><a href="/cookies" class="text-accent hover:underline">Политика cookie</a></li>
+        </ul>
+      </div>
+
     </div>
   </main>
   <Footer />

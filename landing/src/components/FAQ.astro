@@ -7,7 +7,7 @@ const i18n = t(lang);
 const faqItems = lang === 'ru' ? faqRu : faqEn;
 ---
 
-<section id="faq" class="py-20 sm:py-28">
+<section id="faq" class="py-14 sm:py-20">
   <div class="mx-auto max-w-3xl px-4 sm:px-6">
     <div class="fade-in text-center">
       <h2 class="text-3xl font-bold sm:text-4xl">{i18n.faq.title}</h2>
@@ -15,7 +15,7 @@ const faqItems = lang === 'ru' ? faqRu : faqEn;
 
     <div class="mt-12 space-y-3">
       {faqItems.map((item, i) => (
-        <details class="fade-in group rounded-xl border border-border bg-bg-card" style={`transition-delay: ${i * 50}ms`}>
+        <details class="fade-in group rounded-xl border border-border bg-bg-card" open={i === 0} style={`transition-delay: ${i * 50}ms`}>
           <summary class="flex items-center justify-between gap-4 px-6 py-4">
             <span class="text-sm font-medium sm:text-base">{item.question}</span>
             <svg class="chevron h-5 w-5 flex-shrink-0 text-text-dim" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

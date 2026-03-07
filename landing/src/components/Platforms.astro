@@ -11,10 +11,11 @@ const platformIcons: Record<string, string> = {
   macOS: 'M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.81-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z',
   Linux: 'M12.503 0.587c-1.258 0-2.21 1.297-2.21 2.597 0 0.65 0.197 1.25 0.545 1.741-1.275 0.793-2.197 2.042-2.597 3.519-0.6-0.233-1.256-0.37-1.951-0.37C3.585 8.074 1.25 10.409 1.25 13.114c0 2.084 1.305 3.866 3.141 4.573-0.021 0.202-0.031 0.407-0.031 0.613 0 3.097 2.51 5.607 5.607 5.607 2.31 0 4.295-1.398 5.154-3.393 0.504 0.159 1.042 0.245 1.599 0.245 2.953 0 5.346-2.393 5.346-5.346 0-1.939-1.034-3.637-2.578-4.578 0.052-0.326 0.079-0.66 0.079-1.001 0-3.462-2.806-6.268-6.268-6.268-0.712 0-1.396 0.119-2.034 0.338-0.353-1.047-1.347-1.802-2.524-1.802l-0.139-0.015z',
   Router: 'M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 011.06 0z',
+  Роутер: 'M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 011.06 0z',
 };
 ---
 
-<section class="py-20 sm:py-28">
+<section class="py-14 sm:py-20">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
     <div class="fade-in text-center">
       <h2 class="text-3xl font-bold sm:text-4xl">{i18n.platforms.title}</h2>
@@ -28,7 +29,7 @@ const platformIcons: Record<string, string> = {
             {platform.name === 'Linux' ? (
               <img src="https://cdn.simpleicons.org/linux/10B981" alt="Linux" class="h-7 w-7" />
             ) : (
-              <svg class="h-7 w-7 text-accent" viewBox="0 0 24 24" fill={platform.name === 'Router' ? 'none' : 'currentColor'} stroke={platform.name === 'Router' ? 'currentColor' : 'none'} stroke-width={platform.name === 'Router' ? '1.5' : '0'}>
+              <svg class="h-7 w-7 text-accent" viewBox="0 0 24 24" fill={['Router', 'Роутер'].includes(platform.name) ? 'none' : 'currentColor'} stroke={['Router', 'Роутер'].includes(platform.name) ? 'currentColor' : 'none'} stroke-width={['Router', 'Роутер'].includes(platform.name) ? '1.5' : '0'}>
                 <path stroke-linecap="round" stroke-linejoin="round" d={platformIcons[platform.name] || platformIcons.Router} />
               </svg>
             )}

@@ -6,7 +6,7 @@ interface FaqItem {
 export const faqRu: FaqItem[] = [
   {
     question: 'Что такое ProxyCraft?',
-    answer: 'ProxyCraft — это сервис для безопасного и свободного доступа к интернету. Мы предлагаем три продукта: VPN (защита всего трафика), Telegram Proxy (доступ к Telegram) и WhatsApp Proxy (звонки и сообщения в WhatsApp).',
+    answer: 'ProxyCraft — это сервис для безопасного и безграничного доступа к интернету. Мы предлагаем три продукта: VPN (защита всего трафика), Telegram Proxy (доступ к Telegram) и WhatsApp Proxy (звонки и сообщения в WhatsApp).',
   },
   {
     question: 'Работает ли ProxyCraft в Китае и Иране?',

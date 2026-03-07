@@ -214,10 +214,10 @@
     },
     "cta": "Choose Plan",
     "trial": "Free trial included",
-    "stars": "We also accept Telegram Stars"
+    "stars": "Prices in Telegram Stars · Pay directly in the bot"
   },
   "referral": {
-    "title": "Share and earn",
+    "title": "Share with friends",
     "subtitle": "Invite friends and get bonus subscription days",
     "level1": {
       "title": "Level 1",

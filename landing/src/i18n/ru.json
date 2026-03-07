@@ -167,7 +167,7 @@
         "description": "Ubuntu, Fedora и др."
       },
       {
-        "name": "Router",
+        "name": "Роутер",
         "description": "Защита всей сети"
       }
     ]
@@ -217,7 +217,7 @@
     "stars": "Также принимаем Telegram Stars"
   },
   "referral": {
-    "title": "Делись и зарабатывай",
+    "title": "Делись с друзьями",
     "subtitle": "Приглашайте друзей и получайте бонусы к подписке",
     "level1": {
       "title": "Уровень 1",

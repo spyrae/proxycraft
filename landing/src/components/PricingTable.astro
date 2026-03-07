@@ -37,9 +37,28 @@ function calcMonthly(baseCopecks: number, days: number): number {
   const total = calcPrice(baseCopecks, days);
   return Math.round(total / (days / 30));
 }
+
+const STARS_RATE = 1.5; // 1 Star ≈ 1.5₽
+
+function calcStars(baseCopecks: number, days: number): number {
+  return Math.round(calcPrice(baseCopecks, days) / STARS_RATE);
+}
+
+function calcStarsMonthly(baseCopecks: number, days: number): number {
+  return Math.round(calcMonthly(baseCopecks, days) / STARS_RATE);
+}
+
+function trialDays(n: number, lang: string): string {
+  if (lang !== 'ru') return `${n} days free`;
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${n} день бесплатно`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return `${n} дня бесплатно`;
+  return `${n} дней бесплатно`;
+}
 ---
 
-<section id="pricing" class="py-20 sm:py-28">
+<section id="pricing" class="py-14 sm:py-20">
   <div class="mx-auto max-w-6xl px-4 sm:px-6">
     <div class="fade-in text-center">
       <h2 class="text-3xl font-bold sm:text-4xl">{i18n.pricing.title}</h2>
@@ -75,7 +94,7 @@ function calcMonthly(baseCopecks: number, days: number): number {
                     <span class="rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium text-accent">{i18n.pricing.popular}</span>
                   )}
                 </div>
-                <div class="mt-1 text-xs text-text-dim">{product.trial} {lang === 'ru' ? 'дней бесплатно' : 'days free'}</div>
+                <div class="mt-1 text-xs text-text-dim">{trialDays(product.trial, lang)}</div>
                 {product.key === 'vpn' && (
                   <div class="mt-4 flex flex-col gap-2">
                     <span class="text-xs font-medium text-text-muted">{lang === 'ru' ? 'Количество устройств:' : 'Devices:'}</span>
@@ -89,9 +108,20 @@ function calcMonthly(baseCopecks: number, days: number): number {
               </td>
               {periods.map((p) => (
                 <td class="border-b border-border p-4 text-center">
-                  <div class="text-lg font-bold"><span class="price-val" data-base={calcPrice(product.base, p.days)} data-product={product.key}>{calcPrice(product.base, p.days)}</span> ₽</div>
-                  {p.days > 30 && (
-                    <div class="text-xs text-text-dim"><span class="price-val-monthly" data-base={calcMonthly(product.base, p.days)} data-product={product.key}>{calcMonthly(product.base, p.days)}</span> ₽{i18n.pricing.perMonth}</div>
+                  {lang === 'ru' ? (
+                    <>
+                      <div class="text-lg font-bold"><span class="price-val" data-base={calcPrice(product.base, p.days)} data-product={product.key}>{calcPrice(product.base, p.days)}</span> ₽</div>
+                      {p.days > 30 && (
+                        <div class="text-xs text-text-dim"><span class="price-val-monthly" data-base={calcMonthly(product.base, p.days)} data-product={product.key}>{calcMonthly(product.base, p.days)}</span> ₽{i18n.pricing.perMonth}</div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div class="text-lg font-bold">⭐ <span class="price-val" data-base={calcStars(product.base, p.days)} data-product={product.key}>{calcStars(product.base, p.days)}</span></div>
+                      {p.days > 30 && (
+                        <div class="text-xs text-text-dim">⭐ <span class="price-val-monthly" data-base={calcStarsMonthly(product.base, p.days)} data-product={product.key}>{calcStarsMonthly(product.base, p.days)}</span>{i18n.pricing.perMonth}</div>
+                      )}
+                    </>
                   )}
                 </td>
               ))}
@@ -115,7 +145,7 @@ function calcMonthly(baseCopecks: number, days: number): number {
                 <span class="ml-2 rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium text-accent">{i18n.pricing.popular}</span>
               )}
             </div>
-            <span class="text-xs text-accent">{product.trial} {lang === 'ru' ? 'дней free' : 'days free'}</span>
+            <span class="text-xs text-accent">{trialDays(product.trial, lang)}</span>
           </div>
           {product.key === 'vpn' && (
             <div class="mt-4 flex items-center justify-between border-t border-border pt-4">
@@ -131,7 +161,11 @@ function calcMonthly(baseCopecks: number, days: number): number {
             {periods.map((p) => (
               <div class="rounded-lg bg-bg/50 p-2 text-center">
                 <div class="text-xs text-text-dim">{i18n.pricing.periods[p.key]}</div>
-                <div class="text-sm font-bold"><span class="price-val" data-base={calcPrice(product.base, p.days)} data-product={product.key}>{calcPrice(product.base, p.days)}</span> ₽</div>
+                {lang === 'ru' ? (
+                  <div class="text-sm font-bold"><span class="price-val" data-base={calcPrice(product.base, p.days)} data-product={product.key}>{calcPrice(product.base, p.days)}</span> ₽</div>
+                ) : (
+                  <div class="text-sm font-bold">⭐ <span class="price-val" data-base={calcStars(product.base, p.days)} data-product={product.key}>{calcStars(product.base, p.days)}</span></div>
+                )}
                 {discounts[String(p.days)] > 0 && (
                   <div class="text-xs text-accent">-{Math.round(discounts[String(p.days)] * 100)}%</div>
                 )}
