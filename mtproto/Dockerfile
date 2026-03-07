@@ -18,11 +18,14 @@ RUN curl -fsSL "https://github.com/alexbers/mtprotoproxy/archive/refs/tags/${MTP
     && cp -R /tmp/mtprotoproxy-${MTPROTO_PROXY_VERSION#v}/. /app/ \
     && rm -rf /tmp/mtprotoproxy.tar.gz /tmp/mtprotoproxy-${MTPROTO_PROXY_VERSION#v} \
     && pip install --no-cache-dir "cryptography==${CRYPTOGRAPHY_VERSION}" \
+    && mkdir -p /opt/mtproto-defaults /app/runtime \
+    && cp /app/config.py /opt/mtproto-defaults/config.py \
     && useradd --create-home --home-dir /app --shell /usr/sbin/nologin mtproxy \
-    && chown -R mtproxy:mtproxy /app
+    && chown -R mtproxy:mtproxy /app /opt/mtproto-defaults
+
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 8444
 
-USER mtproxy
-
-CMD ["python", "mtprotoproxy.py"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
