@@ -38,18 +38,18 @@ jobs:
             git reset --hard origin/main
             git clean -fd
 
-for service in bot mtproto whatsapp; do
-  stale_ids="$(sudo docker ps -a --format '{{.ID}} {{.Names}}' | awk -v svc="$service" '$2 ~ ("_proxycraft-" svc "$") { print $1 }')"
-  if [ -n "$stale_ids" ]; then
-    echo "Removing stale temporary containers for $service"
-    echo "$stale_ids" | xargs -r sudo docker rm -f
-  fi
-done
+            for service in bot mtproto whatsapp; do
+              stale_ids="$(sudo docker ps -a --format '{{.ID}} {{.Names}}' | awk -v svc="$service" '$2 ~ ("_proxycraft-" svc "$") { print $1 }')"
+              if [ -n "$stale_ids" ]; then
+                echo "Removing stale temporary containers for $service"
+                echo "$stale_ids" | xargs -r sudo docker rm -f
+              fi
+            done
 
-sudo docker compose stop bot mtproto whatsapp || true
-sudo docker compose rm -f bot mtproto whatsapp || true
-sudo docker compose up -d --build --remove-orphans --wait --wait-timeout 180 bot mtproto whatsapp
-sudo docker compose ps
+            sudo docker compose stop bot mtproto whatsapp || true
+            sudo docker compose rm -f bot mtproto whatsapp || true
+            sudo docker compose up -d --build --remove-orphans --wait --wait-timeout 180 bot mtproto whatsapp
+            sudo docker compose ps
             echo "--- Bot logs (last 10 lines) ---"
             sleep 3
             sudo docker logs proxycraft-bot --tail 10 2>&1
