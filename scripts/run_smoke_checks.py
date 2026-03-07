@@ -85,6 +85,16 @@ def env_str(name: str) -> str | None:
     return normalized or None
 
 
+def env_float_or_default(name: str, default: float) -> float:
+    value = env_str(name)
+    return float(value) if value is not None else default
+
+
+def env_int_or_default(name: str, default: int) -> int:
+    value = env_int(name)
+    return value if value is not None else default
+
+
 async def probe_tcp(host: str, port: int, *, timeout: float) -> dict[str, Any]:
     started = perf_counter()
     writer = None
@@ -440,9 +450,9 @@ async def run() -> tuple[list[SmokeCheckResult], bool]:
     db = Database(config.database)
     await db.initialize()
 
-    tcp_timeout = float(os.getenv("SMOKE_TCP_TIMEOUT", DEFAULT_TCP_TIMEOUT))
-    http_timeout = float(os.getenv("SMOKE_HTTP_TIMEOUT", DEFAULT_HTTP_TIMEOUT))
-    attempts = int(os.getenv("SMOKE_RETRY_COUNT", DEFAULT_RETRY_COUNT))
+    tcp_timeout = env_float_or_default("SMOKE_TCP_TIMEOUT", DEFAULT_TCP_TIMEOUT)
+    http_timeout = env_float_or_default("SMOKE_HTTP_TIMEOUT", DEFAULT_HTTP_TIMEOUT)
+    attempts = env_int_or_default("SMOKE_RETRY_COUNT", DEFAULT_RETRY_COUNT)
 
     server_pool = ServerPoolService(config=config, session=db.session)
     product_catalog = ProductCatalog()
