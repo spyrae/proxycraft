@@ -10,6 +10,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from . import Base
 
 logger = logging.getLogger(__name__)
+SUMMARY_MAX_LENGTH = 255
+
+
+def _normalize_summary(summary: str | None) -> str | None:
+    if summary is None:
+        return None
+    if len(summary) <= SUMMARY_MAX_LENGTH:
+        return summary
+    return summary[: SUMMARY_MAX_LENGTH - 1].rstrip() + "…"
 
 
 class GeoProbeRun(Base):
@@ -60,7 +69,7 @@ class GeoProbeRun(Base):
             .where(GeoProbeRun.id == run_id)
             .values(
                 status=status,
-                summary=summary,
+                summary=_normalize_summary(summary),
                 details=details,
                 completed_at=func.now(),
             )
@@ -150,4 +159,3 @@ class GeoProbeResult(Base):
         await session.commit()
         await session.refresh(result)
         return result
-
