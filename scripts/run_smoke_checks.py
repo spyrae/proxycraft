@@ -77,6 +77,14 @@ def env_int(name: str) -> int | None:
     return int(value)
 
 
+def env_str(name: str) -> str | None:
+    value = os.getenv(name)
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
 async def probe_tcp(host: str, port: int, *, timeout: float) -> dict[str, Any]:
     started = perf_counter()
     writer = None
@@ -253,8 +261,9 @@ async def check_mtproto(
 
     host, port, secret = parse_mtproto_endpoint(link)
     endpoint = f"{host}:{port}"
+    probe_host = env_str("SMOKE_MTPROTO_PROBE_HOST") or host
     probe = await with_retries(
-        lambda: probe_tcp(host, port, timeout=tcp_timeout),
+        lambda: probe_tcp(probe_host, port, timeout=tcp_timeout),
         attempts=attempts,
         product="mtproto",
         endpoint=endpoint,
@@ -278,6 +287,7 @@ async def check_mtproto(
             "expires_at": subscription.expires_at.isoformat(),
             "latency_ms": probe["latency_ms"],
             "link": link,
+            "probe_host": probe_host,
         },
     )
 
@@ -306,8 +316,9 @@ async def check_whatsapp(
 
     host, port = connection_info
     endpoint = f"{host}:{port}"
+    probe_host = env_str("SMOKE_WHATSAPP_PROBE_HOST") or host
     probe = await with_retries(
-        lambda: probe_tcp(host, port, timeout=tcp_timeout),
+        lambda: probe_tcp(probe_host, port, timeout=tcp_timeout),
         attempts=attempts,
         product="whatsapp",
         endpoint=endpoint,
@@ -322,6 +333,7 @@ async def check_whatsapp(
             "subscription_id": subscription.id,
             "expires_at": subscription.expires_at.isoformat(),
             "latency_ms": probe["latency_ms"],
+            "probe_host": probe_host,
         },
     )
 
@@ -352,18 +364,19 @@ async def check_vpn(
             details={"subscription_id": subscription.id},
         )
 
+    probe_url = env_str("SMOKE_VPN_PROBE_URL") or key
     probe = await with_retries(
-        lambda: probe_http(key, timeout=http_timeout),
+        lambda: probe_http(probe_url, timeout=http_timeout),
         attempts=attempts,
         product="vpn",
-        endpoint=key,
+        endpoint=probe_url,
     )
 
     if probe["status"] != 200 or probe["body_length"] <= 0:
         raise SmokeCheckFailure(
             "vpn",
             f"VPN subscription endpoint returned unexpected response ({probe['status']}).",
-            endpoint=key,
+            endpoint=probe_url,
             details={
                 "subscription_id": subscription.id,
                 "http_status": probe["status"],
@@ -393,6 +406,7 @@ async def check_vpn(
             "expires_at_ms": client_data._expiry_time,
             "latency_ms": probe["latency_ms"],
             "http_status": probe["status"],
+            "probe_url": probe_url,
         },
     )
 

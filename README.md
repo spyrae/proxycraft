@@ -47,6 +47,7 @@ The smoke-runner:
 - uses real service methods for MTProto / WhatsApp / VPN link generation
 - auto-discovers a viable subscription fixture from the production database
 - supports pinned fixtures via optional `SMOKE_*_SUBSCRIPTION_ID` env vars
+- supports optional internal probe overrides (`SMOKE_*_PROBE_HOST`, `SMOKE_VPN_PROBE_URL`) for same-host Docker deployments
 - fails deploy if a critical product path is broken
 
 ## License

@@ -26,6 +26,8 @@ The runner must:
 4. probe the corresponding network endpoint
 5. fail the deploy if any critical product path is broken
 
+Where production topology makes public hairpin probing unreliable from inside the same Docker host, the runner may use explicit probe overrides from env (`SMOKE_*_PROBE_HOST`, `SMOKE_VPN_PROBE_URL`) while keeping the generated public link in the validation path.
+
 The runner is implemented as `/app/scripts/run_smoke_checks.py` and is executed through:
 
 ```bash
