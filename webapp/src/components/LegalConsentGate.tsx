@@ -11,6 +11,7 @@ function getDocumentUrls(lang: 'en' | 'ru') {
   return {
     privacy: `${base}/privacy`,
     terms: `${base}/terms`,
+    personalData: `${base}/personal-data-consent`,
   };
 }
 
@@ -124,7 +125,7 @@ export function LegalConsentGate() {
             label={t('consent_personal_data_label')}
             tagLabel={t('consent_required')}
             onToggle={() => toggle('personalData')}
-            onOpen={() => openDocument(documentUrls.privacy)}
+            onOpen={() => openDocument(documentUrls.personalData)}
             openLabel={t('consent_open_document')}
           />
           <ConsentRow
@@ -177,7 +178,7 @@ export function LegalConsentGate() {
               });
             }}
             disabled={!requiredAccepted || acceptConsents.isPending}
-            className="min-h-11 flex-1 rounded-2xl text-sm font-bold transition-all"
+            className="min-h-11 flex-1 rounded-2xl px-5 text-sm font-bold whitespace-nowrap transition-all"
             style={{
               background: requiredAccepted
                 ? 'linear-gradient(90deg, #10B981, #34D399)'

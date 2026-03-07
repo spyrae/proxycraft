@@ -1,0 +1,75 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+---
+
+<BaseLayout title="Consent to Personal Data Processing — ProxyCraft" noindex>
+  <Header />
+  <main class="pt-28 pb-20">
+    <div class="mx-auto max-w-3xl px-4 sm:px-6">
+      <h1 class="text-3xl font-bold">Consent to Personal Data Processing</h1>
+      <div class="prose-invert mt-8 space-y-6 text-text-muted">
+        <p>Last updated: March 2026</p>
+        <p>
+          By using ProxyCraft, I freely, knowingly, and in my own interest consent to the Operator
+          processing my personal data to the extent and under the conditions described in this
+          document and the Privacy Policy.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">1. Operator</h2>
+        <p>
+          The personal data operator is Individual Entrepreneur Roman Borisovich Belov, operating
+          under the ProxyCraft brand.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">2. Categories of Data</h2>
+        <ul class="list-disc space-y-1 pl-6">
+          <li>Telegram ID, username, and display name.</li>
+          <li>Purchased subscriptions, activated configurations, and service expiration data.</li>
+          <li>Payment history and transaction identifiers.</li>
+          <li>Technical data required to provide the service and support.</li>
+          <li>Any additional information voluntarily submitted to support.</li>
+        </ul>
+
+        <h2 class="text-xl font-semibold text-text">3. Purposes of Processing</h2>
+        <ul class="list-disc space-y-1 pl-6">
+          <li>Creating and maintaining the user account.</li>
+          <li>Providing VPN, Telegram Proxy, and WhatsApp Proxy subscriptions.</li>
+          <li>Handling billing, bonuses, renewals, and support requests.</li>
+          <li>Complying with legal obligations and protecting the rights of the operator and user.</li>
+        </ul>
+
+        <h2 class="text-xl font-semibold text-text">4. Processing Operations</h2>
+        <p>
+          This consent covers collection, recording, organization, accumulation, storage,
+          clarification, extraction, use, transfer where required by law or service infrastructure,
+          anonymization, blocking, and deletion of personal data.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">5. Duration</h2>
+        <p>
+          This consent remains valid until the purposes of processing are achieved or until it is
+          withdrawn by the user, unless a longer retention period is required by law.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">6. Withdrawal of Consent</h2>
+        <p>
+          The user may withdraw consent by sending a request to{' '}
+          <a href="mailto:info@proxycraft.tech" class="text-accent hover:underline">
+            info@proxycraft.tech
+          </a>.
+          Withdrawal does not affect the lawfulness of processing carried out before the request was received.
+        </p>
+
+        <h2 class="text-xl font-semibold text-text">7. Related Document</h2>
+        <p>
+          Additional details about the scope of processed data, security measures, and user rights
+          are available in the{' '}
+          <a href="/en/privacy" class="text-accent hover:underline">Privacy Policy</a>.
+        </p>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>
