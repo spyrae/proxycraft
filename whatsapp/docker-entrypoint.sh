@@ -8,8 +8,10 @@ CERT_FILE="${HAPROXY_SSL_CERT_PATH:-${CERT_DIR}/proxy.pem}"
 CERT_DAYS="${SHOP_WHATSAPP_TLS_CERT_DAYS:-3650}"
 TLS_CN="${SHOP_WHATSAPP_TLS_CN:-${SHOP_WHATSAPP_HOST:-proxy.vpncraft.tech}}"
 OPENSSL_CONFIG="/tmp/whatsapp-openssl.cnf"
+DEFAULT_CONFIG_PATH="${HAPROXY_DEFAULT_CONFIG_PATH:-/opt/proxycraft-defaults/haproxy.cfg}"
 
 mkdir -p "$CERT_DIR"
+mkdir -p "$(dirname "$CONFIG_PATH")"
 
 write_openssl_config() {
   cat >"$OPENSSL_CONFIG" <<EOF
@@ -44,6 +46,19 @@ ensure_certificate() {
   cat "${CERT_DIR}/proxy.key" "${CERT_DIR}/proxy.crt" >"$CERT_FILE"
   chmod 600 "${CERT_DIR}/proxy.key" "${CERT_DIR}/proxy.crt" "$CERT_FILE"
   rm -f "$OPENSSL_CONFIG"
+}
+
+ensure_config() {
+  if [ -s "$CONFIG_PATH" ]; then
+    return 0
+  fi
+
+  if [ ! -s "$DEFAULT_CONFIG_PATH" ]; then
+    echo "Default HAProxy config is missing: $DEFAULT_CONFIG_PATH" >&2
+    exit 1
+  fi
+
+  cp "$DEFAULT_CONFIG_PATH" "$CONFIG_PATH"
 }
 
 validate_config() {
@@ -83,6 +98,7 @@ handle_hup() {
 trap 'handle_hup' HUP
 trap 'stop_haproxy; exit 0' INT TERM
 
+ensure_config
 ensure_certificate
 validate_config
 start_haproxy

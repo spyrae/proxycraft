@@ -38,7 +38,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./whatsapp/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - whatsapp_config:/usr/local/etc/haproxy
       - whatsapp_ssl:/etc/haproxy/ssl
     healthcheck:
       test: ["CMD", "/usr/local/bin/healthcheck.sh"]
@@ -55,7 +55,7 @@ services:
       - ./app/locales:/app/locales
       - ./app/logs:/app/logs
       - ./mtproto:/app/mtproto
-      - ./whatsapp/haproxy.cfg:/app/whatsapp/haproxy.cfg
+      - whatsapp_config:/app/whatsapp-runtime
       - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - .env
@@ -72,4 +72,5 @@ services:
 
 volumes:
   redis_data:
+  whatsapp_config:
   whatsapp_ssl:

@@ -4,6 +4,7 @@ USER root
 
 RUN apk add --no-cache openssl netcat-openbsd
 
+COPY haproxy.cfg /opt/proxycraft-defaults/haproxy.cfg
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 
