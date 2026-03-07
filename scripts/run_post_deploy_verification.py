@@ -44,6 +44,9 @@ logger = logging.getLogger("proxycraft_post_deploy")
 Severity = Literal["deploy-blocking", "warning-only"]
 Status = Literal["passed", "warning", "failed", "skipped"]
 NOTIFICATION_TIMEOUT_SECONDS = 15.0
+VPN_POOL_REFRESH_TIMEOUT_SECONDS = 45.0
+FIXTURE_PROVISION_TIMEOUT_SECONDS = 120.0
+SMOKE_SUITE_TIMEOUT_SECONDS = 180.0
 
 
 @dataclass
@@ -139,7 +142,24 @@ async def check_vpn_server_pool(
     db: Database,
     catalog: ProductCatalog,
 ) -> list[VerificationResult]:
-    await server_pool.sync_servers(force_refresh=True)
+    try:
+        await asyncio.wait_for(
+            server_pool.sync_servers(force_refresh=True),
+            timeout=VPN_POOL_REFRESH_TIMEOUT_SECONDS,
+        )
+    except TimeoutError:
+        return [
+            VerificationResult(
+                key="vpn_pool_refresh",
+                severity="deploy-blocking",
+                status="failed",
+                summary=(
+                    "VPN server pool refresh exceeded "
+                    f"{VPN_POOL_REFRESH_TIMEOUT_SECONDS:.0f}s and was aborted."
+                ),
+                details={"timeout_seconds": VPN_POOL_REFRESH_TIMEOUT_SECONDS},
+            )
+        ]
 
     async with db.session() as session:
         servers = await Server.get_all(session)
@@ -526,13 +546,46 @@ async def run_verification(*, notify: bool, notify_warnings: bool) -> tuple[list
         results.append(await check_bot_api_health(config.bot.PORT, http_timeout))
         results.extend(await check_vpn_server_pool(server_pool=server_pool, db=db, catalog=product_catalog))
 
-        fixture_results = await provision_smoke_fixtures()
+        try:
+            fixture_results = await asyncio.wait_for(
+                provision_smoke_fixtures(),
+                timeout=FIXTURE_PROVISION_TIMEOUT_SECONDS,
+            )
+        except TimeoutError:
+            fixture_results = [
+                FixtureProvisionResult(
+                    key="fixtures",
+                    product="all",
+                    status="failed",
+                    summary=(
+                        "Smoke fixture provisioning exceeded "
+                        f"{FIXTURE_PROVISION_TIMEOUT_SECONDS:.0f}s and was aborted."
+                    ),
+                    user_tg_id=0,
+                    details={"timeout_seconds": FIXTURE_PROVISION_TIMEOUT_SECONDS},
+                )
+            ]
         results.extend(map_fixture_results(fixture_results))
 
         results.append(await check_mtproto_runtime(config=config, tcp_timeout=tcp_timeout, attempts=attempts))
         results.append(await check_whatsapp_runtime(db=db, config=config, tcp_timeout=tcp_timeout, attempts=attempts))
 
-        smoke_results, _ = await run_smoke_checks(product="all")
+        try:
+            smoke_results, _ = await asyncio.wait_for(
+                run_smoke_checks(product="all"),
+                timeout=SMOKE_SUITE_TIMEOUT_SECONDS,
+            )
+        except TimeoutError:
+            smoke_results = [
+                SmokeCheckResult(
+                    product="all",
+                    status="failed",
+                    summary=(
+                        "Smoke suite exceeded "
+                        f"{SMOKE_SUITE_TIMEOUT_SECONDS:.0f}s and was aborted."
+                    ),
+                )
+            ]
         results.extend(map_smoke_results(smoke_results))
 
         await maybe_notify_admins(
