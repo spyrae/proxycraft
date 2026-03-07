@@ -356,6 +356,8 @@ class CheckHostClient:
                 **details,
                 **target.details,
             }
+            if node.country_name:
+                details.setdefault("probe_country_name", node.country_name)
             summary = (
                 f"{target.product} is reachable from {REGION_LABELS[region]} via node {node.node_id}."
                 if status == "passed"
@@ -370,7 +372,7 @@ class CheckHostClient:
                 status=status,
                 summary=summary,
                 probe_node=node.node_id,
-                probe_country=node.country_name or node.country_code,
+                probe_country=node.country_code or node.country_name,
                 probe_city=node.city,
                 probe_asn=node.asn,
                 latency_ms=latency_ms,
@@ -384,6 +386,8 @@ class CheckHostClient:
             **details,
             **target.details,
         }
+        if node.country_name:
+            details.setdefault("probe_country_name", node.country_name)
         summary = (
             f"{target.product} returned HTTP {http_status} from {REGION_LABELS[region]} via node {node.node_id}."
             if status == "passed"
@@ -398,7 +402,7 @@ class CheckHostClient:
             status=status,
             summary=summary,
             probe_node=node.node_id,
-            probe_country=node.country_name or node.country_code,
+            probe_country=node.country_code or node.country_name,
             probe_city=node.city,
             probe_asn=node.asn,
             latency_ms=latency_ms,
@@ -891,7 +895,7 @@ async def run_geo_probes(
                             f"{target.product} probe from {REGION_LABELS[region]} failed: {exception}"
                         ),
                         probe_node=node.node_id,
-                        probe_country=node.country_name or node.country_code,
+                        probe_country=node.country_code or node.country_name,
                         probe_city=node.city,
                         probe_asn=node.asn,
                         details={
