@@ -43,6 +43,7 @@ logger = logging.getLogger("proxycraft_post_deploy")
 
 Severity = Literal["deploy-blocking", "warning-only"]
 Status = Literal["passed", "warning", "failed", "skipped"]
+NOTIFICATION_TIMEOUT_SECONDS = 15.0
 
 
 @dataclass
@@ -490,9 +491,20 @@ async def maybe_notify_admins(
     )
     try:
         notification_service = NotificationService(config=config, bot=bot)
-        await notification_service.notify_admins(
-            text=build_notification_text(results, github_context()),
-        )
+        try:
+            await asyncio.wait_for(
+                notification_service.notify_admins(
+                    text=build_notification_text(results, github_context()),
+                ),
+                timeout=NOTIFICATION_TIMEOUT_SECONDS,
+            )
+        except TimeoutError:
+            logger.warning(
+                "Post-deploy alert delivery exceeded %.1fs and was skipped.",
+                NOTIFICATION_TIMEOUT_SECONDS,
+            )
+        except Exception as exception:  # noqa: BLE001
+            logger.warning("Post-deploy alert delivery failed: %s", exception)
     finally:
         await bot.session.close()
 
