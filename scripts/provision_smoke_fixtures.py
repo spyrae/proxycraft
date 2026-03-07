@@ -45,6 +45,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Provision stable production smoke fixtures for ProxyCraft products.",
     )
+    parser.add_argument(
+        "--product",
+        choices=["all", "mtproto", "whatsapp", "vpn"],
+        default="all",
+        help="Limit provisioning to a single product family.",
+    )
     parser.add_argument("--json", action="store_true", help="Print JSON summary.")
     return parser.parse_args()
 
@@ -595,7 +601,7 @@ async def provision_fixture(
     raise RuntimeError(f"Unsupported smoke fixture product: {spec.product}")
 
 
-async def run() -> list[FixtureProvisionResult]:
+async def run(*, product: str | None = None) -> list[FixtureProvisionResult]:
     config = load_config()
     db = Database(config.database)
     await db.initialize()
@@ -614,7 +620,8 @@ async def run() -> list[FixtureProvisionResult]:
     results: list[FixtureProvisionResult] = []
     try:
         await server_pool.sync_servers()
-        for spec in get_fixture_specs():
+        selected_product = None if product in {None, "all"} else product
+        for spec in get_fixture_specs(product=selected_product):
             logger.info("Provisioning smoke fixture %s.", spec.key)
             if spec.product == "mtproto" and not config.shop.MTPROTO_ENABLED:
                 results.append(
@@ -664,7 +671,7 @@ def print_human_summary(results: list[FixtureProvisionResult]) -> None:
 def main() -> None:
     args = parse_args()
     configure_logging()
-    results = asyncio.run(run())
+    results = asyncio.run(run(product=args.product))
     print_human_summary(results)
     if args.json:
         print(json.dumps([asdict(result) for result in results], ensure_ascii=False, indent=2))

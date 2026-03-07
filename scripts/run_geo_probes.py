@@ -783,7 +783,7 @@ async def run_geo_probes(
     try:
         try:
             fixture_results = await asyncio.wait_for(
-                provision_smoke_fixtures(),
+                provision_smoke_fixtures(product=product_filter),
                 timeout=fixture_timeout,
             )
         except TimeoutError:
