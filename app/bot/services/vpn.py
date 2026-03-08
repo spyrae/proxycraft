@@ -386,19 +386,11 @@ class VPNService:
         except Exception as exception:
             if "Duplicate email" in str(exception) or "duplicate" in str(exception).lower():
                 logger.warning(
-                    "Duplicate client %s in 3X-UI for subscription %s, deleting old and re-adding.",
+                    "Duplicate client %s in 3X-UI for subscription %s, removing all stale copies.",
                     subscription.client_email,
                     subscription.id,
                 )
-                try:
-                    await self.server_pool_service.execute_api_call(
-                        connection,
-                        lambda: connection.api.client.delete(
-                            inbound_id=inbound_id, client_uuid=subscription.vpn_id,
-                        ),
-                    )
-                except Exception:
-                    logger.debug("Old client delete attempt failed, trying email-based delete.")
+                await self._remove_stale_clients_by_email(connection, subscription.client_email)
                 try:
                     await self.server_pool_service.execute_api_call(
                         connection,
@@ -420,6 +412,36 @@ class VPNService:
             logger.error("Error persisting subscription data for %s: %s", subscription.id, exception)
             return False
         return True
+
+    async def _remove_stale_clients_by_email(self, connection, email: str) -> int:
+        """Find and delete ALL clients with given email across all inbounds on a server."""
+        removed = 0
+        try:
+            inbounds: list[Inbound] = await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.inbound.get_list(),
+            )
+        except Exception as exc:
+            logger.error("Failed to list inbounds for stale client cleanup: %s", exc)
+            return 0
+
+        for inbound in inbounds:
+            for client in inbound.settings.clients:
+                if client.email == email:
+                    try:
+                        ib_id = inbound.id
+                        c_uuid = client.id
+                        await self.server_pool_service.execute_api_call(
+                            connection,
+                            lambda _ib=ib_id, _cu=c_uuid: connection.api.client.delete(
+                                inbound_id=_ib, client_uuid=_cu,
+                            ),
+                        )
+                        removed += 1
+                        logger.info("Removed stale client email=%s uuid=%s from inbound %s", email, client.id, inbound.id)
+                    except Exception as del_exc:
+                        logger.warning("Failed to remove stale client %s from inbound %s: %s", client.id, inbound.id, del_exc)
+        return removed
 
     async def _update_subscription_client(
         self,
