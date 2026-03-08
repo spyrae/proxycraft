@@ -251,10 +251,23 @@ function ExpandToggle({ expanded, onToggle }: { expanded: boolean; onToggle: () 
   );
 }
 
-function ConnectionRow({ value, onOpen }: { value: string; onOpen?: () => void }) {
+function ConnectionRow({
+  value,
+  label,
+  onOpen,
+}: {
+  value: string;
+  label?: string;
+  onOpen?: () => void;
+}) {
   const { t } = useLanguage();
   return (
     <div className="space-y-2">
+      {label && (
+        <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+          {label}
+        </p>
+      )}
       <div className="flex items-center gap-2 min-w-0">
         <div
           className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
@@ -517,8 +530,6 @@ function WhatsappSection({ sub }: { sub: WhatsappSubscription }) {
 
   const effectiveCancelled = wasJustCancelled || !!sub.cancelled_at;
   const status = effectiveCancelled ? (sub.active ? 'cancelled' : 'expired') : (sub.active ? 'active' : 'expired');
-  const connectionString = sub.host && sub.port ? `${sub.host}:${sub.port}` : null;
-
   return (
     <SubscriptionCard
       title="WhatsApp Proxy"
@@ -533,7 +544,18 @@ function WhatsappSection({ sub }: { sub: WhatsappSubscription }) {
           )}
           {expanded && (
             <>
-              {connectionString && <ConnectionRow value={connectionString} />}
+              {sub.host && (
+                <ConnectionRow
+                  label={t('proxy_host')}
+                  value={sub.host}
+                />
+              )}
+              {typeof sub.port === 'number' && (
+                <ConnectionRow
+                  label={t('proxy_port')}
+                  value={String(sub.port)}
+                />
+              )}
               <CancelButton
                 product="whatsapp"
                 subscriptionId={sub.subscription_id}

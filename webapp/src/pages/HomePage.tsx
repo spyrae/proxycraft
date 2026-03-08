@@ -126,7 +126,7 @@ function BalanceCard({ balance }: { balance: number }) {
 }
 
 function ActiveStats() {
-  const { data: sub, isLoading } = useVpnSubscription();
+  const { data: sub, isLoading, dataUpdatedAt } = useVpnSubscription();
   const { t } = useLanguage();
 
   if (isLoading || !sub) {
@@ -140,7 +140,7 @@ function ActiveStats() {
   }
 
   const daysLeft = sub.expiry_time
-    ? Math.max(0, Math.ceil((sub.expiry_time - Date.now()) / (1000 * 60 * 60 * 24)))
+    ? Math.max(0, Math.ceil((sub.expiry_time - dataUpdatedAt) / (1000 * 60 * 60 * 24)))
     : 0;
 
   const progressPercent = sub.expiry_time
@@ -571,19 +571,21 @@ function WhatsappGuideContent({ lang, color }: { lang: Lang; color: string }) {
 
   const steps: Step[] = isRu
     ? [
-        { text: 'В разделе «Мой VPN» скопируйте адрес прокси (только хост, без протокола)' },
+        { text: 'В разделе «Мой VPN» скопируйте значение из поля «Хост прокси»' },
+        { text: 'Скопируйте значение из поля «Порт прокси»' },
         { text: 'Откройте WhatsApp → «Настройки» (нижний правый угол)' },
         { text: 'Выберите «Конфиденциальность» → «Прокси»' },
         { text: 'Нажмите «Включить использование прокси»' },
-        { text: 'Вставьте скопированный адрес в поле «Хост прокси»' },
+        { text: 'Вставьте хост в поле «Хост прокси» и порт в поле «Порт прокси»' },
         { text: 'Нажмите «Сохранить»' },
       ]
     : [
-        { text: 'In "My VPN" copy the proxy address (host only, without protocol)' },
+        { text: 'In "My VPN" copy the value from the "Proxy Host" field' },
+        { text: 'Copy the value from the "Proxy Port" field' },
         { text: 'Open WhatsApp → "Settings" (bottom right corner)' },
         { text: 'Go to "Privacy" → "Proxy"' },
         { text: 'Tap "Use Proxy"' },
-        { text: 'Paste the copied address into "Proxy Host" field' },
+        { text: 'Paste the host into "Proxy Host" and the port into "Proxy Port"' },
         { text: 'Tap "Save"' },
       ];
 

@@ -45,6 +45,7 @@ DEFAULT_SHOP_MTPROTO_ENABLED = False
 DEFAULT_SHOP_MTPROTO_HOST = "proxy.proxycraft.tech"
 DEFAULT_SHOP_MTPROTO_LOCATION = "Amsterdam"
 DEFAULT_SHOP_MTPROTO_PORT = 8444
+DEFAULT_SHOP_MTPROTO_PUBLIC_PORT = DEFAULT_SHOP_MTPROTO_PORT
 DEFAULT_SHOP_MTPROTO_CONFIG_PATH = "/app/mtproto-runtime/config.py"
 LEGACY_SHOP_MTPROTO_CONFIG_PATHS = {
     "/app/mtproto/config.py",
@@ -127,6 +128,7 @@ class ShopConfig:
     MTPROTO_HOST: str
     MTPROTO_LOCATION: str
     MTPROTO_PORT: int
+    MTPROTO_PUBLIC_PORT: int
     MTPROTO_CONFIG_PATH: str
     MTPROTO_TLS_DOMAIN: str
     MTPROTO_MASK_HOST: str
@@ -460,6 +462,9 @@ def load_config() -> Config:
             ),
             MTPROTO_PORT=env.int(
                 "SHOP_MTPROTO_PORT", default=DEFAULT_SHOP_MTPROTO_PORT
+            ),
+            MTPROTO_PUBLIC_PORT=env.int(
+                "SHOP_MTPROTO_PUBLIC_PORT", default=DEFAULT_SHOP_MTPROTO_PUBLIC_PORT
             ),
             MTPROTO_CONFIG_PATH=mtproto_config_path,
             MTPROTO_TLS_DOMAIN=env.str(

@@ -23,7 +23,8 @@ class MTProtoService:
         self.config = config
         self.session_factory = session_factory
         self.host = config.shop.MTPROTO_HOST
-        self.port = config.shop.MTPROTO_PORT
+        self.internal_port = config.shop.MTPROTO_PORT
+        self.public_port = config.shop.MTPROTO_PUBLIC_PORT
         self.config_path = Path(config.shop.MTPROTO_CONFIG_PATH)
         self.tls_domain = config.shop.MTPROTO_TLS_DOMAIN
         self.mask_host = config.shop.MTPROTO_MASK_HOST
@@ -120,7 +121,7 @@ class MTProtoService:
 
         domain_hex = self.tls_domain.encode().hex()
         secret = f"ee{subscription.secret}{domain_hex}"
-        return f"https://t.me/proxy?server={self.host}&port={self.port}&secret={secret}"
+        return f"https://t.me/proxy?server={self.host}&port={self.public_port}&secret={secret}"
 
     async def get_link(self, user_tg_id: int, subscription_id: int | None = None) -> str | None:
         """Return tg://proxy link for the user."""
@@ -238,7 +239,7 @@ class MTProtoService:
             "FAST_MODE = {fast_mode}\n"
             'MODES = {{"classic": False, "secure": False, "tls": True}}\n'
         ).format(
-            port=self.port,
+            port=self.internal_port,
             users_block=users_block,
             tls_domain=self.tls_domain,
             mask_host=self.mask_host,
