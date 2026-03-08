@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { openLink } from '@telegram-apps/sdk';
+import { openTelegramLink } from '@telegram-apps/sdk';
 import { StatusOverlay } from '../components/StatusOverlay';
 import type { OverlayMode } from '../components/StatusOverlay';
 import {
@@ -499,7 +499,7 @@ function MtprotoSection({ sub }: { sub: MtprotoSubscription }) {
               {sub.link && (
                 <ConnectionRow
                   value={sub.link}
-                  onOpen={() => openLink(sub.link!)}
+                  onOpen={() => openTelegramLink(sub.link!)}
                 />
               )}
               <CancelButton

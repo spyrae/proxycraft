@@ -22,6 +22,7 @@ class WhatsAppService:
         self.config = config
         self.session_factory = session_factory
         self.host = config.shop.WHATSAPP_HOST
+        self.public_port = config.shop.WHATSAPP_PUBLIC_PORT
         self.port_min = config.shop.WHATSAPP_PORT_MIN
         self.port_max = config.shop.WHATSAPP_PORT_MAX
         self.haproxy_config_path = config.shop.WHATSAPP_HAPROXY_CONFIG_PATH
@@ -116,7 +117,7 @@ class WhatsAppService:
     ) -> tuple[str, int] | None:
         if not subscription or not subscription.is_active:
             return None
-        return (self.host, subscription.port)
+        return (self.host, self.public_port)
 
     async def get_connection_info(
         self,
@@ -247,6 +248,11 @@ class WhatsAppService:
             "backend wa",
             "    default-server check inter 60000 observe layer4 send-proxy",
             f"    server wa1 g.whatsapp.net:5222 resolvers docker_dns resolve-prefer ipv4",
+            "",
+            "# Shared public chat frontend on the official proxy port",
+            "frontend shared_443",
+            f"    bind *:{self.public_port} ssl crt {ssl_cert_path}",
+            "    default_backend wa",
             "",
             "# Media backend: whatsapp.net (no PROXY protocol)",
             "backend wa_media",

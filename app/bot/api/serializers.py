@@ -185,6 +185,7 @@ def serialize_mtproto_subscription(
 def serialize_whatsapp_subscription(
     sub: WhatsAppSubscription | None,
     host: str,
+    public_port: int,
     location: str | None = None,
     subscription_id: int | None = None,
 ) -> dict:
@@ -198,7 +199,7 @@ def serialize_whatsapp_subscription(
         "expired": expired,
         "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
         "host": host,
-        "port": sub.port,
+        "port": public_port,
         "location": location,
         "cancelled_at": sub.cancelled_at.isoformat() if sub.cancelled_at else None,
     }
@@ -246,6 +247,7 @@ def serialize_mtproto_subscription_item(
 def serialize_whatsapp_subscription_item(
     sub: WhatsAppSubscription,
     host: str,
+    public_port: int,
     location: str | None = None,
 ) -> dict:
     expired = sub.expires_at < datetime.utcnow() if sub.expires_at else True
@@ -255,7 +257,7 @@ def serialize_whatsapp_subscription_item(
         "expired": expired,
         "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
         "host": host,
-        "port": sub.port,
+        "port": public_port,
         "location": location,
         "cancelled_at": sub.cancelled_at.isoformat() if sub.cancelled_at else None,
     }

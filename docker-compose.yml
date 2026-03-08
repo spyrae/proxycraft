@@ -38,6 +38,7 @@ services:
     container_name: proxycraft-whatsapp
     restart: unless-stopped
     ports:
+      - "127.0.0.1:4444:443"
       - "587:587"
       - "7777:7777"
       - "10001-10999:10001-10999"

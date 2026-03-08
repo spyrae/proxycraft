@@ -111,7 +111,12 @@ async def _serialize_whatsapp_subscription_items(tg_id: int, services: ServicesC
         return []
 
     return [
-        serialize_whatsapp_subscription_item(subscription, config.shop.WHATSAPP_HOST, config.shop.WHATSAPP_LOCATION)
+        serialize_whatsapp_subscription_item(
+            subscription,
+            config.shop.WHATSAPP_HOST,
+            config.shop.WHATSAPP_PUBLIC_PORT,
+            config.shop.WHATSAPP_LOCATION,
+        )
         for subscription in subscriptions
     ]
 
@@ -427,6 +432,7 @@ async def handle_subscription_whatsapp(request: Request) -> Response:
         serialize_whatsapp_subscription(
             sub,
             config.shop.WHATSAPP_HOST,
+            config.shop.WHATSAPP_PUBLIC_PORT,
             config.shop.WHATSAPP_LOCATION,
             subscription_id=sub.id if sub else None,
         )
@@ -1075,6 +1081,7 @@ async def handle_balance_buy(request: Request) -> Response:
         response_payload["whatsapp_subscription"] = serialize_whatsapp_subscription(
             created_subscription,
             config.shop.WHATSAPP_HOST,
+            config.shop.WHATSAPP_PUBLIC_PORT,
             config.shop.WHATSAPP_LOCATION,
             subscription_id=created_subscription.id if created_subscription else None,
         )
