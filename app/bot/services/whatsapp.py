@@ -267,7 +267,7 @@ class WhatsAppService:
         if active_subs:
             lines.append("# Per-user chat frontends (SSL termination + forward to wa backend)")
             for sub in sorted(active_subs, key=lambda s: s.port):
-                lines.append(f"frontend user_{sub.user_tg_id}")
+                lines.append(f"frontend user_{sub.id}")
                 lines.append(f"    bind *:{sub.port} ssl crt {ssl_cert_path}")
                 lines.append("    default_backend wa")
                 lines.append("")
