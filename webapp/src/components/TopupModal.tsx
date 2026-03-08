@@ -6,7 +6,8 @@ import { useTopup } from '../api/hooks';
 import { useLanguage } from '../i18n/LanguageContext';
 
 const STARS_RATE = 1.8;
-const TOPUP_AMOUNTS = [250, 500, 1000, 2000];
+const TOPUP_AMOUNTS_RUB = [250, 500, 1000, 2000];
+const TOPUP_AMOUNTS_EN_STARS = [150, 300, 500, 1000];
 
 function StarIcon() {
   return (
@@ -40,15 +41,19 @@ const PAYMENT_METHOD_KEYS = [
 ];
 
 export function TopupModal({ onClose }: { onClose: () => void }) {
-  const [selectedAmount, setSelectedAmount] = useState<number>(500);
+  const { t, lang } = useLanguage();
+  const isEn = lang === 'en';
+  const amounts = isEn ? TOPUP_AMOUNTS_EN_STARS : TOPUP_AMOUNTS_RUB;
+  const [selectedAmount, setSelectedAmount] = useState<number>(amounts[1]);
   const [currency, setCurrency] = useState<'stars' | 'rub' | 'sbp'>('stars');
   const topupMutation = useTopup();
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'redirected' | 'error'>('idle');
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { t, lang } = useLanguage();
-  const isEn = lang === 'en';
 
-  const starsAmount = Math.max(1, Math.round(selectedAmount / STARS_RATE));
+  // For EN: selectedAmount is already in stars; for RU: convert rub to stars
+  const starsAmount = isEn ? selectedAmount : Math.max(1, Math.round(selectedAmount / STARS_RATE));
+  // For API: send rub amount (convert stars back to rub for EN)
+  const apiAmount = isEn ? Math.round(selectedAmount * STARS_RATE) : selectedAmount;
   const availablePaymentMethods = isEn
     ? PAYMENT_METHOD_KEYS.filter((m) => m.key === 'stars')
     : PAYMENT_METHOD_KEYS;
@@ -67,7 +72,7 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
     setStatus('loading');
     try {
       const response = await topupMutation.mutateAsync({
-        amount: selectedAmount,
+        amount: apiAmount,
         currency,
       });
 
@@ -88,7 +93,7 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
     } catch {
       setStatus('error');
     }
-  }, [selectedAmount, currency, topupMutation, onClose]);
+  }, [apiAmount, currency, topupMutation, onClose]);
 
   if (typeof document === 'undefined') {
     return null;
@@ -157,9 +162,9 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="grid grid-cols-4 gap-2 mb-4">
-            {TOPUP_AMOUNTS.map((amount) => {
+            {amounts.map((amount) => {
               const displayLabel = isEn
-                ? `⭐ ${Math.max(1, Math.round(amount / STARS_RATE))}`
+                ? `⭐ ${amount}`
                 : `${amount}₽`;
               return (
                 <button
@@ -209,7 +214,7 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
 
           {!isEn && currency === 'stars' && (
             <p className="text-xs text-center mb-4" style={{ color: 'var(--text-dim)' }}>
-              {selectedAmount}₽ = {starsAmount} ★
+              {apiAmount}₽ = {starsAmount} ★
             </p>
           )}
 
@@ -230,8 +235,8 @@ export function TopupModal({ onClose }: { onClose: () => void }) {
                 : status === 'redirected'
                   ? t('done')
                   : isEn
-                    ? `Top up ⭐${starsAmount}`
-                    : t('topup_amount_btn', { amount: selectedAmount })}
+                    ? `Top up ⭐${selectedAmount}`
+                    : t('topup_amount_btn', { amount: apiAmount })}
           </button>
 
           {status === 'redirected' && (

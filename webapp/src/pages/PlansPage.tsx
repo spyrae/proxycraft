@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TopupModal } from '../components/TopupModal';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { Lang } from '../i18n/translations';
@@ -40,6 +41,11 @@ const LOCATION_KEYS: Record<string, string> = {
   'Saint Petersburg': 'loc_saint_petersburg',
 };
 
+// Locations incompatible with Telegram/WhatsApp proxy
+const PROXY_INCOMPATIBLE_LOCATIONS = new Set(['Saint Petersburg']);
+// Products incompatible with Saint Petersburg
+const SPB_INCOMPATIBLE_PRODUCTS = new Set<Tab>(['mtproto', 'whatsapp']);
+
 export function PlansPage() {
   const { data: me } = useMe();
   const { data: locData } = useLocations();
@@ -61,6 +67,25 @@ export function PlansPage() {
     if (me?.features.whatsapp_enabled) tabList.push({ key: 'whatsapp', label: 'WhatsApp' });
     return tabList;
   }, [me]);
+
+  // When selecting a proxy-incompatible location, force tab to VPN
+  const handleLocationChange = (locName: string) => {
+    setLocation(locName);
+    if (PROXY_INCOMPATIBLE_LOCATIONS.has(locName) && SPB_INCOMPATIBLE_PRODUCTS.has(tab)) {
+      setTab('vpn');
+    }
+  };
+
+  // When selecting Telegram/WhatsApp, force location away from SPb
+  const handleTabChange = (newTab: Tab) => {
+    setTab(newTab);
+    if (SPB_INCOMPATIBLE_PRODUCTS.has(newTab) && location && PROXY_INCOMPATIBLE_LOCATIONS.has(location)) {
+      const firstCompatible = locations.find((l) => !PROXY_INCOMPATIBLE_LOCATIONS.has(l.name));
+      if (firstCompatible) setLocation(firstCompatible.name);
+    }
+  };
+
+  const isProxyIncompatibleLocation = location ? PROXY_INCOMPATIBLE_LOCATIONS.has(location) : false;
 
   return (
     <div className="animate-fade-in">
@@ -86,15 +111,17 @@ export function PlansPage() {
             {locations.map((loc) => {
               const active = location === loc.name;
               const flag = LOCATION_FLAGS[loc.name] || '🌐';
+              const disabledByProduct = SPB_INCOMPATIBLE_PRODUCTS.has(tab) && PROXY_INCOMPATIBLE_LOCATIONS.has(loc.name);
               return (
                 <button
                   key={loc.name}
-                  onClick={() => setLocation(loc.name)}
+                  onClick={() => handleLocationChange(loc.name)}
+                  disabled={disabledByProduct}
                   className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold py-2 rounded-lg transition-all duration-200"
                   style={{
                     backgroundColor: active ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
                     color: active ? '#10B981' : 'var(--text-dim)',
-                    opacity: loc.available ? 1 : 0.5,
+                    opacity: (loc.available && !disabledByProduct) ? 1 : 0.4,
                   }}
                 >
                   <span>{flag}</span>
@@ -112,19 +139,24 @@ export function PlansPage() {
           className="flex rounded-xl p-1 mb-4"
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
         >
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className="flex-1 text-sm font-semibold py-2 rounded-lg transition-all duration-200"
-              style={{
-                backgroundColor: tab === t.key ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-                color: tab === t.key ? '#10B981' : 'var(--text-dim)',
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
+          {tabs.map((tabItem) => {
+            const disabledByLocation = isProxyIncompatibleLocation && SPB_INCOMPATIBLE_PRODUCTS.has(tabItem.key);
+            return (
+              <button
+                key={tabItem.key}
+                onClick={() => handleTabChange(tabItem.key)}
+                disabled={disabledByLocation}
+                className="flex-1 text-sm font-semibold py-2 rounded-lg transition-all duration-200"
+                style={{
+                  backgroundColor: tab === tabItem.key ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                  color: tab === tabItem.key ? '#10B981' : 'var(--text-dim)',
+                  opacity: disabledByLocation ? 0.4 : 1,
+                }}
+              >
+                {tabItem.label}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -208,6 +240,7 @@ function VpnPlans({ location }: { location: string | null }) {
   const { data: me } = useMe();
   const buyPlan = useBuyPlan();
   const trialVpn = useTrialVpn();
+  const navigate = useNavigate();
   const { t, lang } = useLanguage();
   const [selectedDevices, setSelectedDevices] = useState<number | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
@@ -273,7 +306,7 @@ function VpnPlans({ location }: { location: string | null }) {
   return (
     <div>
       {showTopup && <TopupModal onClose={() => setShowTopup(false)} />}
-      <StatusOverlay mode={overlayMode} loadingKey="activating" onDismiss={() => setOverlayMode('hidden')} />
+      <StatusOverlay mode={overlayMode} loadingKey="activating" onDismiss={() => { setOverlayMode('hidden'); navigate('/my-vpn'); }} />
       {showInsufficientBalance && <InsufficientBalanceBanner onTopup={() => { setShowInsufficientBalance(false); setShowTopup(true); }} />}
 
       {trialAvailable && (
@@ -460,6 +493,7 @@ function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
   const buyPlan = useBuyPlan();
   const trialMtproto = useTrialMtproto();
   const trialWhatsapp = useTrialWhatsapp();
+  const navigate = useNavigate();
   const { t, lang } = useLanguage();
   const currencySymbol = lang === 'en' ? '⭐' : '₽';
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
@@ -515,7 +549,7 @@ function ServicePlans({ product }: { product: 'mtproto' | 'whatsapp' }) {
   return (
     <div>
       {showTopup && <TopupModal onClose={() => setShowTopup(false)} />}
-      <StatusOverlay mode={overlayMode} loadingKey="activating" onDismiss={() => setOverlayMode('hidden')} />
+      <StatusOverlay mode={overlayMode} loadingKey="activating" onDismiss={() => { setOverlayMode('hidden'); navigate('/my-vpn'); }} />
       {showInsufficientBalance && <InsufficientBalanceBanner onTopup={() => { setShowInsufficientBalance(false); setShowTopup(true); }} />}
 
       {trialAvailable && (

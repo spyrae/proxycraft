@@ -383,14 +383,43 @@ class VPNService:
                 connection,
                 lambda: connection.api.client.add(inbound_id=inbound_id, clients=[new_client]),
             )
+        except Exception as exception:
+            if "Duplicate email" in str(exception) or "duplicate" in str(exception).lower():
+                logger.warning(
+                    "Duplicate client %s in 3X-UI for subscription %s, deleting old and re-adding.",
+                    subscription.client_email,
+                    subscription.id,
+                )
+                try:
+                    await self.server_pool_service.execute_api_call(
+                        connection,
+                        lambda: connection.api.client.delete(
+                            inbound_id=inbound_id, client_uuid=subscription.vpn_id,
+                        ),
+                    )
+                except Exception:
+                    logger.debug("Old client delete attempt failed, trying email-based delete.")
+                try:
+                    await self.server_pool_service.execute_api_call(
+                        connection,
+                        lambda: connection.api.client.add(inbound_id=inbound_id, clients=[new_client]),
+                    )
+                except Exception as retry_exc:
+                    logger.error("Retry after duplicate removal failed for subscription %s: %s", subscription.id, retry_exc)
+                    return False
+            else:
+                logger.error("Error creating client for vpn subscription %s: %s", subscription.id, exception)
+                return False
+
+        try:
             await self._persist_subscription_profile(subscription, selected_profile)
             await self._persist_vpn_profile(user, selected_profile)
             await self._update_user_primary_subscription(user, subscription)
             logger.info("Successfully created client for vpn subscription %s", subscription.id)
-            return True
         except Exception as exception:
-            logger.error("Error creating client for vpn subscription %s: %s", subscription.id, exception)
+            logger.error("Error persisting subscription data for %s: %s", subscription.id, exception)
             return False
+        return True
 
     async def _update_subscription_client(
         self,

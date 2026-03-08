@@ -815,7 +815,9 @@ async def handle_promocode_activate(request: Request) -> Response:
 
 
 STARS_RATE = 1.8  # 1 Star ≈ 1.8 RUB
-TOPUP_AMOUNTS = [250, 500, 1000, 2000]  # allowed top-up amounts in RUB
+TOPUP_AMOUNTS_RUB = [250, 500, 1000, 2000]
+TOPUP_AMOUNTS_STARS = [150, 300, 500, 1000]  # round star values for EN users
+TOPUP_AMOUNTS = TOPUP_AMOUNTS_RUB + [round(s * STARS_RATE) for s in TOPUP_AMOUNTS_STARS]
 
 
 async def handle_balance_topup(request: Request) -> Response:
@@ -1064,15 +1066,17 @@ async def handle_balance_buy(request: Request) -> Response:
         )
 
     elif product == "whatsapp":
-        created_subscription = await services.whatsapp.activate(tg_id, duration)
-        if not created_subscription:
+        created_port = await services.whatsapp.activate(tg_id, duration)
+        if not created_port:
             await refund_failed_purchase("whatsapp activation failed")
             return web.json_response({"error": "Failed to create WhatsApp subscription"}, status=500)
+        # activate() returns port (int), fetch the subscription object for serialization
+        created_subscription = await services.whatsapp.get_subscription(tg_id)
         response_payload["whatsapp_subscription"] = serialize_whatsapp_subscription(
             created_subscription,
             config.shop.WHATSAPP_HOST,
             config.shop.WHATSAPP_LOCATION,
-            subscription_id=created_subscription.id,
+            subscription_id=created_subscription.id if created_subscription else None,
         )
 
     logger.info(

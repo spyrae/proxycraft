@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTelegram } from '../hooks/useTelegram';
 import { useMe, useVpnSubscription } from '../api/hooks';
 import { TopupModal } from '../components/TopupModal';
@@ -33,8 +32,8 @@ export function HomePage() {
       {/* Balance Card */}
       <BalanceCard balance={me.balance} />
 
-      {/* Stats or Quick Setup */}
-      {hasActiveVpn ? <ActiveStats /> : <QuickSetup me={me} />}
+      {/* Stats (only when VPN is active) */}
+      {hasActiveVpn && <ActiveStats />}
 
       {/* Setup Guides */}
       <SetupGuides />
@@ -65,14 +64,15 @@ function LangToggle() {
 
 function ProtectedBadge({ active }: { active: boolean }) {
   const { t } = useLanguage();
+  if (!active) return null;
   return (
     <div
       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold"
       style={{
-        backgroundColor: active ? 'rgba(16, 185, 129, 0.15)' : 'rgba(127, 29, 29, 0.2)',
-        color: active ? '#10B981' : '#9B2C2C',
-        border: `1px solid ${active ? 'rgba(16, 185, 129, 0.4)' : 'rgba(127, 29, 29, 0.4)'}`,
-        boxShadow: active ? '0 0 10px rgba(16, 185, 129, 0.2)' : '0 0 8px rgba(127, 29, 29, 0.1)',
+        backgroundColor: 'rgba(16, 185, 129, 0.15)',
+        color: '#10B981',
+        border: '1px solid rgba(16, 185, 129, 0.4)',
+        boxShadow: '0 0 10px rgba(16, 185, 129, 0.2)',
       }}
     >
       <img
@@ -80,9 +80,8 @@ function ProtectedBadge({ active }: { active: boolean }) {
         width="14"
         height="14"
         alt=""
-        style={{ opacity: active ? 1 : 0.5 }}
       />
-      {active ? t('protected') : t('unprotected')}
+      {t('protected')}
     </div>
   );
 }
@@ -220,110 +219,6 @@ function StatCard({
       <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
         {value}
       </p>
-    </div>
-  );
-}
-
-interface MeData {
-  subscriptions: {
-    vpn: { active: boolean; trial_available: boolean };
-    mtproto: { active: boolean; trial_available: boolean };
-    whatsapp: { active: boolean; trial_available: boolean };
-  };
-  features: {
-    mtproto_enabled: boolean;
-    whatsapp_enabled: boolean;
-    stars_enabled: boolean;
-  };
-  first_name: string;
-}
-
-function QuickSetup({ me }: { me: MeData }) {
-  const navigate = useNavigate();
-  const { t } = useLanguage();
-
-  const steps = [
-    {
-      num: '1',
-      title: t('step1_title'),
-      desc: t('step1_desc'),
-      action: undefined as (() => void) | undefined,
-      color: '#F59E0B',
-    },
-    {
-      num: '2',
-      title: t('step2_title'),
-      desc: t('step2_desc'),
-      action: () => navigate('/plans'),
-      color: '#10B981',
-    },
-    {
-      num: '3',
-      title: t('step3_title'),
-      desc: t('step3_desc'),
-      color: '#8B5CF6',
-    },
-  ];
-
-  return (
-    <div className="space-y-3 animate-slide-up">
-      <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>
-        {t('get_started')}
-      </h2>
-
-      {steps.map((step, i) => (
-        <button
-          key={i}
-          onClick={step.action}
-          disabled={!step.action}
-          className="w-full card-gradient-border p-4 text-left flex items-center gap-3 transition-all"
-          style={{ opacity: step.action ? 1 : 0.6 }}
-        >
-          <span
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
-            style={{ backgroundColor: `${step.color}20`, color: step.color }}
-          >
-            {step.num}
-          </span>
-          <div>
-            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {step.title}
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--text-dim)' }}>
-              {step.desc}
-            </p>
-          </div>
-          {step.action && (
-            <svg
-              className="ml-auto shrink-0"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke={step.color}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          )}
-        </button>
-      ))}
-
-      {me.subscriptions.vpn.trial_available && (
-        <div
-          className="card-gradient-border p-4 text-center"
-          style={{ borderColor: 'rgba(16, 185, 129, 0.3)' }}
-        >
-          <p className="text-sm font-semibold" style={{ color: '#10B981' }}>
-            {t('free_trial_available')}
-          </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>
-            {t('no_payment_required')}
-          </p>
-        </div>
-      )}
     </div>
   );
 }

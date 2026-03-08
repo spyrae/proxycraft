@@ -42,12 +42,6 @@ async def errors_handler(event: ErrorEvent, config: Config, services: ServicesCo
             ),
         )
 
-        update_json = event.update.model_dump_json(indent=2, exclude_none=True)
-        for chunk in split_text(update_json):
-            await services.notification.notify_developer(
-                text=Code(chunk).as_html(),
-            )
-
     except TelegramBadRequest as exception:
         logger.warning(f"Failed to send error details: {exception}")
     except Exception as exception:
