@@ -31,7 +31,14 @@ EOF
 
 ensure_certificate() {
   if [ -s "$CERT_FILE" ]; then
-    return 0
+    current_subject="$(openssl x509 -in "$CERT_FILE" -noout -subject 2>/dev/null || true)"
+    current_san="$(openssl x509 -in "$CERT_FILE" -noout -ext subjectAltName 2>/dev/null || true)"
+    if printf '%s' "$current_subject" | grep -F "CN=${TLS_CN}" >/dev/null 2>&1 \
+      && printf '%s' "$current_san" | grep -F "DNS:${TLS_CN}" >/dev/null 2>&1; then
+      return 0
+    fi
+
+    rm -f "$CERT_FILE" "${CERT_DIR}/proxy.key" "${CERT_DIR}/proxy.crt"
   fi
 
   write_openssl_config
