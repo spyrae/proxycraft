@@ -109,6 +109,22 @@ def env_int_or_default(name: str, default: int) -> int:
     return value if value is not None else default
 
 
+def resolve_public_probe_host(override: str | None, public_host: str) -> str:
+    if override is None:
+        return public_host
+
+    normalized = override.strip().lower()
+    if normalized.startswith("proxycraft-") or normalized in {"localhost", "127.0.0.1"}:
+        logger.warning(
+            "Ignoring internal smoke probe host override %s for public endpoint %s.",
+            override,
+            public_host,
+        )
+        return public_host
+
+    return override
+
+
 async def probe_tcp(host: str, port: int, *, timeout: float) -> dict[str, Any]:
     started = perf_counter()
     writer = None
@@ -321,7 +337,7 @@ async def check_mtproto(
 
     host, port, secret = parse_mtproto_endpoint(link)
     endpoint = f"{host}:{port}"
-    probe_host = env_str("SMOKE_MTPROTO_PROBE_HOST") or host
+    probe_host = resolve_public_probe_host(env_str("SMOKE_MTPROTO_PROBE_HOST"), host)
     probe = await with_retries(
         lambda: probe_tcp(probe_host, port, timeout=tcp_timeout),
         attempts=attempts,
@@ -375,7 +391,7 @@ async def check_whatsapp(
 
     host, port = connection_info
     endpoint = f"{host}:{port}"
-    probe_host = env_str("SMOKE_WHATSAPP_PROBE_HOST") or host
+    probe_host = resolve_public_probe_host(env_str("SMOKE_WHATSAPP_PROBE_HOST"), host)
     probe = await with_retries(
         lambda: probe_tcp(probe_host, port, timeout=tcp_timeout),
         attempts=attempts,
