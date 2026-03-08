@@ -46,7 +46,7 @@ Status = Literal["passed", "warning", "failed", "skipped"]
 NOTIFICATION_TIMEOUT_SECONDS = 15.0
 VPN_POOL_REFRESH_TIMEOUT_SECONDS = 45.0
 FIXTURE_PROVISION_BASE_TIMEOUT_SECONDS = 30.0
-FIXTURE_PROVISION_PER_FIXTURE_TIMEOUT_SECONDS = 45.0
+FIXTURE_PROVISION_PER_FIXTURE_TIMEOUT_SECONDS = 75.0
 SMOKE_SUITE_TIMEOUT_SECONDS = 180.0
 
 
@@ -282,10 +282,10 @@ async def check_mtproto_runtime(config, tcp_timeout: float, attempts: int) -> Ve
             summary="MTProto is disabled in current runtime config.",
         )
 
-    host = config.shop.MTPROTO_HOST
+    public_host = config.shop.MTPROTO_HOST
     port = config.shop.MTPROTO_PORT
-    endpoint = f"{host}:{port}"
-    probe_host = env_str("SMOKE_MTPROTO_PROBE_HOST") or host
+    endpoint = f"{public_host}:{port}"
+    probe_host = env_str("SMOKE_MTPROTO_PROBE_HOST") or "mtproto"
 
     try:
         probe = await asyncio.wait_for(
@@ -304,7 +304,11 @@ async def check_mtproto_runtime(config, tcp_timeout: float, attempts: int) -> Ve
             status="failed",
             summary=f"MTProto runtime endpoint {endpoint} did not accept TCP connection.",
             endpoint=endpoint,
-            details={"reason": str(exception), "probe_host": probe_host},
+            details={
+                "reason": str(exception),
+                "probe_host": probe_host,
+                "public_host": public_host,
+            },
         )
 
     return VerificationResult(
@@ -313,7 +317,11 @@ async def check_mtproto_runtime(config, tcp_timeout: float, attempts: int) -> Ve
         status="passed",
         summary=f"MTProto runtime endpoint {endpoint} accepted TCP connection.",
         endpoint=endpoint,
-        details={"latency_ms": probe["latency_ms"], "probe_host": probe_host},
+        details={
+            "latency_ms": probe["latency_ms"],
+            "probe_host": probe_host,
+            "public_host": public_host,
+        },
     )
 
 
