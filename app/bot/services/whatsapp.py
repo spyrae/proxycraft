@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 DOCKER_SOCKET_PATH = "/var/run/docker.sock"
 WHATSAPP_CONTAINER_NAME = "proxycraft-whatsapp"
-HAPROXY_CONTAINER_CONFIG_PATH = "/usr/local/etc/haproxy/haproxy.cfg"
 
 
 class WhatsAppService:
@@ -206,11 +205,8 @@ class WhatsAppService:
         if not self._write_haproxy_config(config_content):
             logger.error("Skipping HAProxy reload because config write failed")
             return
-        if not self._validate_haproxy_config():
-            logger.error("Skipping HAProxy reload because config validation failed")
-            return
         if not self._reload_haproxy():
-            logger.error("HAProxy reload failed after successful config validation")
+            logger.error("HAProxy reload failed after config write")
 
     def _generate_haproxy_config(self, active_subs: list[WhatsAppSubscription]) -> str:
         """Generate the full HAProxy config matching the official WhatsApp proxy spec.
@@ -321,56 +317,12 @@ class WhatsAppService:
         finally:
             conn.close()
 
-    def _docker_exec(self, cmd: list[str]) -> tuple[int | None, str]:
-        try:
-            status, body = self._docker_request(
-                "POST",
-                f"/containers/{WHATSAPP_CONTAINER_NAME}/exec",
-                {
-                    "AttachStdout": True,
-                    "AttachStderr": True,
-                    "Tty": True,
-                    "Cmd": cmd,
-                },
-            )
-            if status not in (200, 201):
-                return None, body.decode(errors="replace")
-
-            exec_id = json.loads(body.decode())["Id"]
-            _, start_body = self._docker_request(
-                "POST",
-                f"/exec/{exec_id}/start",
-                {"Detach": False, "Tty": True},
-            )
-            inspect_status, inspect_body = self._docker_request("GET", f"/exec/{exec_id}/json")
-            if inspect_status != 200:
-                return None, inspect_body.decode(errors="replace")
-
-            exit_code = json.loads(inspect_body.decode()).get("ExitCode")
-            return exit_code, start_body.decode(errors="replace").strip()
-        except FileNotFoundError:
-            logger.error(f"Docker socket not found at {DOCKER_SOCKET_PATH}. Mount it in docker-compose.yml")
-            return None, "docker socket not found"
-        except Exception as e:
-            logger.error(f"Error executing command in whatsapp container: {e}")
-            return None, str(e)
-
-    def _validate_haproxy_config(self) -> bool:
-        exit_code, output = self._docker_exec(
-            ["haproxy", "-c", "-f", HAPROXY_CONTAINER_CONFIG_PATH]
-        )
-        if exit_code == 0:
-            logger.info("HAProxy config validation passed")
-            return True
-
-        logger.error(
-            "HAProxy config validation failed: %s",
-            output or f"exit code {exit_code}",
-        )
-        return False
-
     def _reload_haproxy(self) -> bool:
-        """Send HUP signal to the whatsapp container entrypoint via Docker socket API."""
+        """Send HUP to the whatsapp container entrypoint.
+
+        The container entrypoint validates the config before reloading HAProxy,
+        so duplicating that validation here only adds another failure mode.
+        """
         try:
             status, body = self._docker_request(
                 "POST",
