@@ -255,7 +255,14 @@
     "support": "Support",
     "writeToSupport": "Contact Support",
     "copyright": "ProxyCraft. All rights reserved.",
-    "cookieSettings": "Cookie Settings"
+    "cookieSettings": "Cookie Settings",
+    "ourProjects": "Our Projects",
+    "projectJourneyBay": "JourneyBay",
+    "projectJourneyBayDesc": "AI travel planning assistant",
+    "projectForgeCraft": "ForgeCraft",
+    "projectForgeCraftDesc": "Managed AI agent hosting",
+    "projectFutureCraft": "FutureCraft",
+    "projectFutureCraftDesc": "AI & automation blog"
   },
   "cookieConsent": {
     "text": "We use analytics cookies (Google Analytics) to understand how visitors use this site.",

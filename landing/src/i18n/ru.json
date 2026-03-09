@@ -255,7 +255,14 @@
     "support": "Поддержка",
     "writeToSupport": "Написать в поддержку",
     "copyright": "ProxyCraft. Все права защищены.",
-    "cookieSettings": "Настройки cookie"
+    "cookieSettings": "Настройки cookie",
+    "ourProjects": "Наши проекты",
+    "projectJourneyBay": "JourneyBay",
+    "projectJourneyBayDesc": "AI-ассистент для планирования путешествий",
+    "projectForgeCraft": "ForgeCraft",
+    "projectForgeCraftDesc": "Управляемый хостинг AI-агентов",
+    "projectFutureCraft": "FutureCraft",
+    "projectFutureCraftDesc": "Блог про AI и автоматизацию"
   },
   "cookieConsent": {
     "text": "Мы используем аналитические cookie (Яндекс.Метрика) для анализа посещаемости.",
