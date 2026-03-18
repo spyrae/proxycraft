@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from typing import Any, Self
 
-from sqlalchemy import ForeignKey, String, func, select, update
+from sqlalchemy import BigInteger, ForeignKey, String, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -22,7 +22,7 @@ class SmokeFixture(Base):
     product: Mapped[str] = mapped_column(String(32), nullable=False)
     location: Mapped[str | None] = mapped_column(String(64), nullable=True)
     user_tg_id: Mapped[int] = mapped_column(
-        ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"),
+        BigInteger, ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

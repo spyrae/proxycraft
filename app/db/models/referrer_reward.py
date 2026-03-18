@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import Self
 
 from sqlalchemy import (
+    BigInteger,
     Enum,
     ForeignKey,
     Numeric,
@@ -42,7 +43,7 @@ class ReferrerReward(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_tg_id: Mapped[int] = mapped_column(
-        ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"), nullable=False
+        BigInteger, ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"), nullable=False
     )
     reward_type: Mapped[ReferrerRewardType] = mapped_column(
         Enum(

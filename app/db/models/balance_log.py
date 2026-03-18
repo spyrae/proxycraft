@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from typing import Self
 
-from sqlalchemy import ForeignKey, String, func, select
+from sqlalchemy import BigInteger, ForeignKey, String, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -18,7 +18,7 @@ class BalanceLog(Base):
     __tablename__ = "proxycraft_balance_log"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    tg_id: Mapped[int] = mapped_column(ForeignKey("proxycraft_users.tg_id"), nullable=False)
+    tg_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("proxycraft_users.tg_id"), nullable=False)
     amount: Mapped[int] = mapped_column(nullable=False)  # kopecks, positive=topup, negative=purchase
     type: Mapped[str] = mapped_column(String(20), nullable=False)  # topup, purchase, auto_renew, refund
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)

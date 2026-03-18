@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from typing import Any, Optional, Self
 
-from sqlalchemy import ForeignKey, String, func, select, update
+from sqlalchemy import BigInteger, ForeignKey, String, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship, selectinload
@@ -36,7 +36,7 @@ class User(Base):
     __tablename__ = "proxycraft_users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    tg_id: Mapped[int] = mapped_column(unique=True, nullable=False)
+    tg_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     vpn_id: Mapped[str] = mapped_column(String(36), unique=True, nullable=False)
     server_id: Mapped[int | None] = mapped_column(
         ForeignKey("proxycraft_servers.id", ondelete="SET NULL"), nullable=True

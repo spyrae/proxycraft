@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from typing import Self
 
-from sqlalchemy import ForeignKey, func, select
+from sqlalchemy import BigInteger, ForeignKey, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -30,7 +30,7 @@ class ActivatedPromocode(Base):
         ForeignKey("proxycraft_promocodes.id", ondelete="CASCADE"), nullable=False
     )
     user_tg_id: Mapped[int] = mapped_column(
-        ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"), nullable=False
+        BigInteger, ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"), nullable=False
     )
     activated_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=False)
 

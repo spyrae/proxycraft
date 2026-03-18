@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from typing import Self
 
-from sqlalchemy import ForeignKey, Integer, func, select, update
+from sqlalchemy import BigInteger, ForeignKey, Integer, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship, selectinload
@@ -31,10 +31,10 @@ class Referral(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     referred_tg_id: Mapped[int] = mapped_column(
-        ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"), unique=True, nullable=False
+        BigInteger, ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"), unique=True, nullable=False
     )
     referrer_tg_id: Mapped[int] = mapped_column(
-        ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"), nullable=False
+        BigInteger, ForeignKey("proxycraft_users.tg_id", ondelete="CASCADE"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=False)
     referred_rewarded_at: Mapped[datetime | None] = mapped_column(nullable=True)
