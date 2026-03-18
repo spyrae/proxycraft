@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from aiohttp import web
 from aiohttp.web import Application, Request, Response
@@ -1270,40 +1270,46 @@ async def handle_admin_stats(request: Request) -> Response:
     session_factory = request.app["session"]
     services = _services(request)
 
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+
     async with session_factory() as session:
         # Total users
         result = await session.execute(select(func.count(User.id)))
         total_users = result.scalar() or 0
 
         # Registrations last 30 days
+        date_col = func.date_trunc('day', User.created_at)
         result = await session.execute(
             select(
-                func.date(User.created_at).label("date"),
+                date_col.label("date"),
                 func.count(User.id).label("count"),
             )
-            .where(User.created_at >= func.date("now", "-30 days"))
-            .group_by(func.date(User.created_at))
-            .order_by(func.date(User.created_at))
+            .where(User.created_at >= thirty_days_ago)
+            .group_by(date_col)
+            .order_by(date_col)
         )
         registrations_30d = [
-            {"date": str(row.date), "count": row.count} for row in result.all()
+            {"date": str(row.date.date()) if hasattr(row.date, 'date') else str(row.date), "count": row.count}
+            for row in result.all()
         ]
 
         # Payments last 30 days (completed)
+        pay_date_col = func.date_trunc('day', Transaction.created_at)
         result = await session.execute(
             select(
-                func.date(Transaction.created_at).label("date"),
+                pay_date_col.label("date"),
                 func.count(Transaction.id).label("count"),
             )
             .where(
                 Transaction.status == TransactionStatus.COMPLETED,
-                Transaction.created_at >= func.date("now", "-30 days"),
+                Transaction.created_at >= thirty_days_ago,
             )
-            .group_by(func.date(Transaction.created_at))
-            .order_by(func.date(Transaction.created_at))
+            .group_by(pay_date_col)
+            .order_by(pay_date_col)
         )
         payments_30d = [
-            {"date": str(row.date), "count": row.count} for row in result.all()
+            {"date": str(row.date.date()) if hasattr(row.date, 'date') else str(row.date), "count": row.count}
+            for row in result.all()
         ]
 
     # Revenue via PaymentStatsService

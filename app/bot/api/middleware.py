@@ -4,6 +4,7 @@ import hmac
 import json
 import logging
 import time
+import uuid
 from urllib.parse import parse_qs, unquote
 
 from aiohttp import web
@@ -263,8 +264,16 @@ async def tma_auth_middleware(request: Request, handler) -> Response:
         async with session_factory() as session:
             user = await User.get(session=session, tg_id=tg_id)
 
-        if not user:
-            return web.json_response({"error": "User not found"}, status=404)
+            if not user:
+                user = await User.create(
+                    session=session,
+                    tg_id=tg_id,
+                    vpn_id=str(uuid.uuid4()),
+                    first_name=tg_user.get("first_name"),
+                    username=tg_user.get("username"),
+                    language_code=tg_user.get("language_code"),
+                )
+                logger.info(f"New user {tg_id} auto-created via Mini App.")
 
         request["user"] = user
         request["tg_id"] = tg_id

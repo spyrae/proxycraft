@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { TelegramLogin } from '../components/TelegramLogin.tsx';
 import type { TelegramLoginData } from '../api/types.ts';
 
-const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME || 'proxycraft_bot';
+const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME || 'proxycraftapp_bot';
 
 interface LoginPageProps {
   onLogin: (data: TelegramLoginData) => Promise<void>;
