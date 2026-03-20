@@ -19,6 +19,7 @@ import type {
   CancelSubscriptionResponse,
   ChangeVpnProfileResponse,
   AcceptLegalConsentsResponse,
+  AmneziaWGConfigResponse,
 } from './types';
 
 function upsertSubscriptionItem<T extends { subscription_id?: number | null }>(
@@ -136,6 +137,15 @@ export function useWhatsappSubscription() {
     queryKey: ['subscription', 'whatsapp'],
     queryFn: () => api('/api/v1/subscription/whatsapp'),
     staleTime: 60_000,
+  });
+}
+
+export function useAmneziaWGConfig(subscriptionId: number | null | undefined) {
+  return useQuery<AmneziaWGConfigResponse>({
+    queryKey: ['amneziawg', subscriptionId],
+    queryFn: () => api(`/api/v1/subscription/${subscriptionId}/amneziawg`),
+    enabled: subscriptionId != null,
+    staleTime: 5 * 60_000,
   });
 }
 

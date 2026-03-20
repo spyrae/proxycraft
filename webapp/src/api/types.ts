@@ -57,7 +57,8 @@ export interface VpnProfileOption {
   name: string;
   name_en?: string;
   emoji: string;
-  kind: 'operator' | 'universal' | string;
+  kind: 'operator' | 'universal' | 'transport' | string;
+  group?: string;
   order: number;
 }
 
@@ -162,6 +163,11 @@ export interface AutoRenewResponse {
 
 export interface AcceptLegalConsentsResponse {
   legal_consents: LegalConsents;
+}
+
+export interface AmneziaWGConfigResponse {
+  available: boolean;
+  config: string | null;
 }
 
 export interface ApiError {

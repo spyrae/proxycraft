@@ -1,0 +1,4 @@
+# Secrets — never commit
+.env
+config/
+peers/

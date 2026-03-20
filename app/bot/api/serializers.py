@@ -312,6 +312,7 @@ def serialize_vpn_profile(profile: VpnProfile) -> dict:
         "name_en": profile.name_en or profile.name,
         "emoji": profile.emoji,
         "kind": profile.kind,
+        "group": profile.group,
         "order": profile.order,
     }
 

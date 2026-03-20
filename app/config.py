@@ -61,6 +61,25 @@ DEFAULT_SHOP_MTPROTO_PRICE_90 = 129
 DEFAULT_SHOP_MTPROTO_PRICE_180 = 239
 DEFAULT_SHOP_MTPROTO_PRICE_365 = 399
 
+DEFAULT_AWG_ENABLED = False
+DEFAULT_AWG_SERVER_PUBLIC_IP = "141.227.131.165"
+DEFAULT_AWG_LISTEN_PORT = 51820
+DEFAULT_AWG_SUBNET = "10.10.0.0/24"
+DEFAULT_AWG_SERVER_IP = "10.10.0.1"
+DEFAULT_AWG_DNS = "1.1.1.1, 8.8.8.8"
+DEFAULT_AWG_PEERS_DIR = "/app/infrastructure/amneziawg/peers"
+DEFAULT_AWG_DOCKER_CONTAINER = "amneziawg"
+# AmneziaWG obfuscation parameters
+DEFAULT_AWG_JC = 4
+DEFAULT_AWG_JMIN = 40
+DEFAULT_AWG_JMAX = 70
+DEFAULT_AWG_S1 = 0
+DEFAULT_AWG_S2 = 0
+DEFAULT_AWG_H1 = 1
+DEFAULT_AWG_H2 = 2
+DEFAULT_AWG_H3 = 3
+DEFAULT_AWG_H4 = 4
+
 DEFAULT_SHOP_WHATSAPP_ENABLED = False
 DEFAULT_SHOP_WHATSAPP_HOST = "proxy.proxycraft.tech"
 DEFAULT_SHOP_WHATSAPP_LOCATION = "Amsterdam"
@@ -152,6 +171,27 @@ class ShopConfig:
     WHATSAPP_PRICE_90: int
     WHATSAPP_PRICE_180: int
     WHATSAPP_PRICE_365: int
+
+
+@dataclass
+class AWGConfig:
+    ENABLED: bool
+    SERVER_PUBLIC_IP: str
+    LISTEN_PORT: int
+    SUBNET: str
+    SERVER_IP: str
+    DNS: str
+    PEERS_DIR: str
+    DOCKER_CONTAINER: str
+    JC: int
+    JMIN: int
+    JMAX: int
+    S1: int
+    S2: int
+    H1: int
+    H2: int
+    H3: int
+    H4: int
 
 
 @dataclass
@@ -251,6 +291,7 @@ class LoggingConfig:
 class Config:
     bot: BotConfig
     shop: ShopConfig
+    awg: AWGConfig
     xui: XUIConfig
     cryptomus: CryptomusConfig
     heleket: HeleketConfig
@@ -532,6 +573,25 @@ def load_config() -> Config:
             WHATSAPP_PRICE_365=env.int(
                 "SHOP_WHATSAPP_PRICE_365", default=DEFAULT_SHOP_WHATSAPP_PRICE_365
             ),
+        ),
+        awg=AWGConfig(
+            ENABLED=env.bool("AWG_ENABLED", default=DEFAULT_AWG_ENABLED),
+            SERVER_PUBLIC_IP=env.str("AWG_SERVER_PUBLIC_IP", default=DEFAULT_AWG_SERVER_PUBLIC_IP),
+            LISTEN_PORT=env.int("AWG_LISTEN_PORT", default=DEFAULT_AWG_LISTEN_PORT),
+            SUBNET=env.str("AWG_SUBNET", default=DEFAULT_AWG_SUBNET),
+            SERVER_IP=env.str("AWG_SERVER_IP", default=DEFAULT_AWG_SERVER_IP),
+            DNS=env.str("AWG_DNS", default=DEFAULT_AWG_DNS),
+            PEERS_DIR=env.str("AWG_PEERS_DIR", default=DEFAULT_AWG_PEERS_DIR),
+            DOCKER_CONTAINER=env.str("AWG_DOCKER_CONTAINER", default=DEFAULT_AWG_DOCKER_CONTAINER),
+            JC=env.int("AWG_JC", default=DEFAULT_AWG_JC),
+            JMIN=env.int("AWG_JMIN", default=DEFAULT_AWG_JMIN),
+            JMAX=env.int("AWG_JMAX", default=DEFAULT_AWG_JMAX),
+            S1=env.int("AWG_S1", default=DEFAULT_AWG_S1),
+            S2=env.int("AWG_S2", default=DEFAULT_AWG_S2),
+            H1=env.int("AWG_H1", default=DEFAULT_AWG_H1),
+            H2=env.int("AWG_H2", default=DEFAULT_AWG_H2),
+            H3=env.int("AWG_H3", default=DEFAULT_AWG_H3),
+            H4=env.int("AWG_H4", default=DEFAULT_AWG_H4),
         ),
         xui=XUIConfig(
             USERNAME=env.str("XUI_USERNAME"),

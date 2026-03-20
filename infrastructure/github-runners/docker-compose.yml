@@ -1,0 +1,30 @@
+# GitHub Actions Self-Hosted Runner for ProxyCraft (1 instance)
+#
+# Usage:
+#   1. Get registration token:
+#      RUNNER_TOKEN=$(gh api -X POST repos/spyrae/proxycraft/actions/runners/registration-token --jq .token)
+#   2. Create .env file:
+#      echo "RUNNER_TOKEN=$RUNNER_TOKEN" > .env
+#      echo "GITHUB_REPO_URL=https://github.com/spyrae/proxycraft" >> .env
+#   3. Start:
+#      docker compose up -d --build
+#   4. Check:
+#      docker compose ps
+#      docker compose logs -f
+
+services:
+  runner-1:
+    build: .
+    image: ghrunner-proxycraft:latest
+    container_name: gh-runner-proxycraft-1
+    restart: unless-stopped
+    environment:
+      GITHUB_REPO_URL: ${GITHUB_REPO_URL}
+      RUNNER_TOKEN: ${RUNNER_TOKEN}
+      RUNNER_NAME: waw-02-proxycraft-1
+      RUNNER_LABELS: self-hosted,linux,x64,waw-02
+    volumes:
+      - runner-1-work:/home/runner/_work
+
+volumes:
+  runner-1-work:

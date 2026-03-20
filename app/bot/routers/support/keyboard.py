@@ -6,11 +6,11 @@ from app.bot.routers.misc.keyboard import back_button, back_to_main_menu_button
 from app.bot.utils.navigation import NavSupport
 
 
-def contact_button(support_id: int) -> InlineKeyboardButton:
-    return InlineKeyboardButton(text=_("support:button:contact"), url=f"tg://user?id={support_id}")
+def contact_button() -> InlineKeyboardButton:
+    return InlineKeyboardButton(text=_("support:button:contact"), url="https://t.me/proxycraft_support")
 
 
-def support_keyboard(support_id: int) -> InlineKeyboardMarkup:
+def support_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
     builder.row(
@@ -24,13 +24,13 @@ def support_keyboard(support_id: int) -> InlineKeyboardMarkup:
     builder.row(
         InlineKeyboardButton(text=_("support:button:vpn_not_working"), callback_data=NavSupport.VPN_NOT_WORKING),
     )
-    builder.row(contact_button(support_id))
+    builder.row(contact_button())
     builder.row(back_to_main_menu_button())
     return builder.as_markup()
 
 
-def topic_keyboard(support_id: int) -> InlineKeyboardMarkup:
+def topic_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.row(contact_button(support_id))
+    builder.row(contact_button())
     builder.row(back_button(NavSupport.MAIN))
     return builder.as_markup()

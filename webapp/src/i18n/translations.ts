@@ -149,9 +149,21 @@ const translations = {
     cancelling: 'Cancelling',
     cancelled_until: 'Cancels on {date}',
 
+    // Protocol groups
+    protocol_vless: 'VLESS',
+    protocol_amneziawg: 'AmneziaWG',
+    vless_reality: 'Reality',
+    vless_cdn: 'CDN',
+    vless_xhttp: 'XHTTP',
+    amneziawg_config: 'AmneziaWG Config',
+    amneziawg_download: 'Download .conf',
+    amneziawg_not_ready: 'AmneziaWG is not yet available',
+
     // Location display names
     loc_amsterdam: 'Amsterdam',
     loc_saint_petersburg: 'Saint Petersburg',
+
+    service_temporarily_unavailable: 'Service temporarily unavailable',
   },
 
   ru: {
@@ -302,9 +314,21 @@ const translations = {
     cancelling: 'Отмена',
     cancelled_until: 'Отменяется {date}',
 
+    // Protocol groups
+    protocol_vless: 'VLESS',
+    protocol_amneziawg: 'AmneziaWG',
+    vless_reality: 'Reality',
+    vless_cdn: 'CDN',
+    vless_xhttp: 'XHTTP',
+    amneziawg_config: 'Конфигурация AmneziaWG',
+    amneziawg_download: 'Скачать .conf',
+    amneziawg_not_ready: 'AmneziaWG пока недоступен',
+
     // Location display names
     loc_amsterdam: 'Амстердам',
     loc_saint_petersburg: 'Санкт-Петербург',
+
+    service_temporarily_unavailable: 'Сервис временно недоступен',
   },
 } as const;
 

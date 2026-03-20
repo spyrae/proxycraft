@@ -19,7 +19,7 @@ on:
 jobs:
   deploy:
     name: Deploy Bot
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, waw-02]
     timeout-minutes: 15
 
     steps:

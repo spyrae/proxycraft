@@ -349,11 +349,11 @@ class VPNService:
         selected_profile = self._resolve_vpn_profile_for_subscription(subscription)
         client_flow = flow
         if client_flow is None:
-            client_flow = (
-                (selected_profile.client_flow if selected_profile else None)
-                or connection.server.client_flow
-                or self.config.xui.CLIENT_FLOW
-            )
+            profile_flow = selected_profile.client_flow if selected_profile else None
+            if profile_flow is not None:
+                client_flow = profile_flow
+            else:
+                client_flow = connection.server.client_flow or self.config.xui.CLIENT_FLOW
 
         new_client = Client(
             email=subscription.client_email,
@@ -484,11 +484,11 @@ class VPNService:
             selected_profile = self._resolve_vpn_profile_for_subscription(subscription)
             client_flow = flow
             if client_flow is None:
-                client_flow = (
-                    (selected_profile.client_flow if selected_profile else None)
-                    or connection.server.client_flow
-                    or self.config.xui.CLIENT_FLOW
-                )
+                profile_flow = selected_profile.client_flow if selected_profile else None
+                if profile_flow is not None:
+                    client_flow = profile_flow
+                else:
+                    client_flow = connection.server.client_flow or self.config.xui.CLIENT_FLOW
 
             client.enable = enable
             client.id = subscription.vpn_id

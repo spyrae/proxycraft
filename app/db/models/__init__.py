@@ -1,5 +1,6 @@
 from ._base import Base
 from .activated_promocode import ActivatedPromocode
+from .awg_peer import AWGPeer
 from .balance_log import BalanceLog
 from .geo_probe import GeoProbeResult, GeoProbeRun
 from .invite import Invite

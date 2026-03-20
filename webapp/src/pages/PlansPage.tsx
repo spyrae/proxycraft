@@ -161,7 +161,32 @@ export function PlansPage() {
       )}
 
       {tab === 'vpn' && <VpnPlans location={location} />}
-      {tab === 'mtproto' && <ServicePlans product="mtproto" />}
+      {tab === 'mtproto' && (
+        <div style={{ position: 'relative' }}>
+          <ServicePlans product="mtproto" />
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            borderRadius: '12px',
+            zIndex: 10,
+            pointerEvents: 'all',
+          }}>
+            <span style={{
+              color: '#fff',
+              fontSize: '18px',
+              fontWeight: 600,
+              textAlign: 'center',
+              padding: '0 24px',
+            }}>
+              {t('service_temporarily_unavailable')}
+            </span>
+          </div>
+        </div>
+      )}
       {tab === 'whatsapp' && <ServicePlans product="whatsapp" />}
     </div>
   );

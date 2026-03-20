@@ -14,6 +14,7 @@ if TYPE_CHECKING:
         MTProtoService,
         WhatsAppService,
     )
+    from app.bot.services.amneziawg import AmneziaWGService
     from app.bot.services.bundle import BundleService
     from app.bot.services.product_catalog import ProductCatalog
 
@@ -31,5 +32,6 @@ class ServicesContainer:
     invite_stats: InviteStatsService
     mtproto: MTProtoService
     whatsapp: WhatsAppService
+    amneziawg: AmneziaWGService
     product_catalog: ProductCatalog
     bundle: BundleService

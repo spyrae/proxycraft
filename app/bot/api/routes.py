@@ -1044,6 +1044,12 @@ async def handle_balance_buy(request: Request) -> Response:
             await refund_failed_purchase("vpn activation failed")
             return web.json_response({"error": "Failed to create VPN subscription"}, status=500)
 
+        # Create AWG peer in background (non-blocking)
+        if services.amneziawg.enabled:
+            asyncio.create_task(
+                services.amneziawg.create_peer(created_subscription.id)
+            )
+
         client_data, key = await asyncio.gather(
             services.vpn.get_client_data_for_subscription(created_subscription),
             services.vpn.get_key_for_subscription(created_subscription),
@@ -1144,6 +1150,7 @@ async def handle_subscription_cancel(request: Request) -> Response:
     if subscription_id is not None and not isinstance(subscription_id, int):
         return web.json_response({"error": "subscription_id must be integer"}, status=400)
 
+    services = _services(request)
     session_factory = request.app["session"]
 
     if product == "vpn":
@@ -1162,6 +1169,13 @@ async def handle_subscription_cancel(request: Request) -> Response:
 
         if not updated:
             return web.json_response({"error": "VPN subscription not found"}, status=404)
+
+        # Deactivate AWG peer in background
+        if services.amneziawg.enabled:
+            asyncio.create_task(
+                services.amneziawg.deactivate_peer(subscription.id)
+            )
+
         return web.json_response({
             "success": True,
             "product": "vpn",
@@ -1203,6 +1217,38 @@ async def handle_subscription_cancel(request: Request) -> Response:
             "subscription_id": sub.id,
             "expires_at": sub.expires_at.isoformat() if sub.expires_at else None,
         })
+
+
+# ---------- AmneziaWG ----------
+
+
+async def handle_amneziawg_config(request: Request) -> Response:
+    """GET /api/v1/subscription/{subscription_id}/amneziawg — Get AWG client config."""
+    services = _services(request)
+    user = request["user"]
+
+    if not services.amneziawg.enabled:
+        return web.json_response({"available": False, "config": None})
+
+    subscription_id_str = request.match_info.get("subscription_id")
+    if not subscription_id_str or not subscription_id_str.isdigit():
+        return web.json_response({"error": "Invalid subscription_id"}, status=400)
+
+    subscription_id = int(subscription_id_str)
+    subscription = await services.vpn.get_subscription(subscription_id)
+    if not subscription or subscription.user_tg_id != user.tg_id:
+        return web.json_response({"error": "Subscription not found"}, status=404)
+
+    peer = await services.amneziawg.get_peer(subscription_id)
+    if not peer:
+        # Try to create peer on-demand
+        peer = await services.amneziawg.create_peer(subscription_id)
+
+    if not peer or not peer.is_active:
+        return web.json_response({"available": False, "config": None})
+
+    config = services.amneziawg.generate_client_config(peer)
+    return web.json_response({"available": True, "config": config})
 
 
 # ---------- Locations ----------
@@ -1550,6 +1596,7 @@ def register_routes(app: Application) -> None:
 
     # Locations
     app.router.add_get("/api/v1/locations", handle_locations)
+    app.router.add_get("/api/v1/subscription/{subscription_id}/amneziawg", handle_amneziawg_config)
 
     # Admin endpoints
     app.router.add_post("/api/v1/admin/auth", handle_admin_auth)

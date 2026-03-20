@@ -20,7 +20,7 @@ async def callback_support(callback: CallbackQuery, user: User, config: Config) 
     await callback.answer()
     await callback.message.edit_text(
         text=_("support:message:main"),
-        reply_markup=support_keyboard(config.bot.SUPPORT_ID),
+        reply_markup=support_keyboard(),
     )
 
 
@@ -30,7 +30,7 @@ async def callback_install_ios(callback: CallbackQuery, user: User, config: Conf
     await callback.answer()
     await callback.message.edit_text(
         text=_("support:message:install_ios"),
-        reply_markup=topic_keyboard(config.bot.SUPPORT_ID),
+        reply_markup=topic_keyboard(),
     )
 
 
@@ -40,7 +40,7 @@ async def callback_install_android(callback: CallbackQuery, user: User, config: 
     await callback.answer()
     await callback.message.edit_text(
         text=_("support:message:install_android"),
-        reply_markup=topic_keyboard(config.bot.SUPPORT_ID),
+        reply_markup=topic_keyboard(),
     )
 
 
@@ -50,7 +50,7 @@ async def callback_telegram_proxy(callback: CallbackQuery, user: User, config: C
     await callback.answer()
     await callback.message.edit_text(
         text=_("support:message:telegram_proxy"),
-        reply_markup=topic_keyboard(config.bot.SUPPORT_ID),
+        reply_markup=topic_keyboard(),
     )
 
 
@@ -60,7 +60,7 @@ async def callback_whatsapp_proxy(callback: CallbackQuery, user: User, config: C
     await callback.answer()
     await callback.message.edit_text(
         text=_("support:message:whatsapp_proxy"),
-        reply_markup=topic_keyboard(config.bot.SUPPORT_ID),
+        reply_markup=topic_keyboard(),
     )
 
 
@@ -70,5 +70,5 @@ async def callback_vpn_not_working(callback: CallbackQuery, user: User, config: 
     await callback.answer()
     await callback.message.edit_text(
         text=_("support:message:vpn_not_working"),
-        reply_markup=topic_keyboard(config.bot.SUPPORT_ID),
+        reply_markup=topic_keyboard(),
     )

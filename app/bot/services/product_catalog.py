@@ -23,6 +23,7 @@ class VpnProfile:
     client_flow: str = ""
     locations: list[str] = field(default_factory=list)
     kind: str = "universal"
+    group: str = "vless-reality"
     legacy_slugs: list[str] = field(default_factory=list)
     name_en: str = ""
 
@@ -110,6 +111,7 @@ class ProductCatalog:
                         client_flow=info.get("client_flow", ""),
                         locations=info.get("locations", []),
                         kind=info.get("kind", "universal"),
+                        group=info.get("group", "vless-reality"),
                         legacy_slugs=info.get("legacy_slugs", []),
                         name_en=info.get("name_en", ""),
                     )
