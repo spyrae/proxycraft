@@ -18,7 +18,9 @@ depends_on = None
 
 def upgrade() -> None:
     op.execute("ALTER TABLE proxycraft_transactions ALTER COLUMN payment_id TYPE VARCHAR(255)")
+    op.execute("ALTER TABLE proxycraft_balance_log ALTER COLUMN payment_id TYPE VARCHAR(255)")
 
 
 def downgrade() -> None:
     op.execute("ALTER TABLE proxycraft_transactions ALTER COLUMN payment_id TYPE VARCHAR(64)")
+    op.execute("ALTER TABLE proxycraft_balance_log ALTER COLUMN payment_id TYPE VARCHAR(64)")

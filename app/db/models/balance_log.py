@@ -22,7 +22,7 @@ class BalanceLog(Base):
     amount: Mapped[int] = mapped_column(nullable=False)  # kopecks, positive=topup, negative=purchase
     type: Mapped[str] = mapped_column(String(20), nullable=False)  # topup, purchase, auto_renew, refund
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    payment_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    payment_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=False)
 
     def __repr__(self) -> str:
