@@ -336,11 +336,47 @@ function AmneziaWGSection({ subscriptionId }: { subscriptionId: number | null | 
   );
 }
 
+type ProtocolTab = 'vless' | 'amneziawg';
+
+function ProtocolTabs({ active, onChange }: { active: ProtocolTab; onChange: (tab: ProtocolTab) => void }) {
+  const { t } = useLanguage();
+  const tabs: { key: ProtocolTab; label: string }[] = [
+    { key: 'vless', label: t('protocol_vless') },
+    { key: 'amneziawg', label: t('protocol_amneziawg') },
+  ];
+
+  return (
+    <div className="flex gap-1.5">
+      {tabs.map((tab) => {
+        const isActive = tab.key === active;
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => onChange(tab.key)}
+            className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+            style={{
+              backgroundColor: isActive ? 'rgba(51, 144, 236, 0.15)' : 'var(--bg-secondary)',
+              color: isActive ? '#3390EC' : 'var(--text-dim)',
+              border: isActive
+                ? '1px solid rgba(51, 144, 236, 0.35)'
+                : '1px solid var(--border)',
+            }}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function VpnSection({ sub }: { sub: VpnSubscription }) {
   const { t } = useLanguage();
   const locationLabel = useLocationLabel(sub.location);
   const [expanded, setExpanded] = useState(false);
   const [wasJustCancelled, setWasJustCancelled] = useState(false);
+  const [protocolTab, setProtocolTab] = useState<ProtocolTab>('vless');
 
   const effectiveCancelled = wasJustCancelled || !!sub.cancelled_at;
   const status = effectiveCancelled ? (sub.active ? 'cancelled' : 'expired') : (sub.active ? 'active' : 'expired');
@@ -362,50 +398,27 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
 
           {expanded && (
             <>
-              <div className="grid grid-cols-2 gap-2">
-                <StatItem label={t('upload')} value={formatBytes(sub.traffic_up || 0)} icon="&#x2191;" color="#06B6D4" />
-                <StatItem label={t('download')} value={formatBytes(sub.traffic_down || 0)} icon="&#x2193;" color="#10B981" />
-                <StatItem label={t('total_used')} value={formatBytes(sub.traffic_used || 0)} icon="&#x25CE;" color="#8B5CF6" />
-                <StatItem label={t('devices')} value={sub.max_devices === -1 ? '&#x221E;' : String(sub.max_devices)} icon="&#x229E;" color="#F59E0B" />
-              </div>
+              <ProtocolTabs active={protocolTab} onChange={setProtocolTab} />
 
-              {sub.key && (
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                      {t('connection_key')}
-                    </p>
-                    <p className="text-[11px]" style={{ color: 'var(--text-dim)' }}>
-                      {t('subscription_key_hint')}
-                    </p>
+              {protocolTab === 'vless' && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <StatItem label={t('upload')} value={formatBytes(sub.traffic_up || 0)} icon="&#x2191;" color="#06B6D4" />
+                    <StatItem label={t('download')} value={formatBytes(sub.traffic_down || 0)} icon="&#x2193;" color="#10B981" />
+                    <StatItem label={t('total_used')} value={formatBytes(sub.traffic_used || 0)} icon="&#x25CE;" color="#8B5CF6" />
+                    <StatItem label={t('devices')} value={sub.max_devices === -1 ? '&#x221E;' : String(sub.max_devices)} icon="&#x229E;" color="#F59E0B" />
                   </div>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div
-                      className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
-                      style={{
-                        backgroundColor: 'var(--bg-secondary)',
-                        color: 'var(--text-primary)',
-                        border: '1px solid var(--border)',
-                      }}
-                    >
-                      {sub.key}
-                    </div>
-                    <CopyButton text={sub.key} />
-                  </div>
-                  <QRCode value={sub.key} />
-                </div>
-              )}
 
-              {extraKeys.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                    {t('extra_configs')}
-                  </p>
-                  {extraKeys.map((ek) => (
-                    <div key={ek.slug} className="space-y-2">
-                      <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                        {ek.name}
-                      </p>
+                  {sub.key && (
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                          {t('connection_key')}
+                        </p>
+                        <p className="text-[11px]" style={{ color: 'var(--text-dim)' }}>
+                          {t('subscription_key_hint')}
+                        </p>
+                      </div>
                       <div className="flex items-center gap-2 min-w-0">
                         <div
                           className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
@@ -415,17 +428,48 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
                             border: '1px solid var(--border)',
                           }}
                         >
-                          {ek.key}
+                          {sub.key}
                         </div>
-                        <CopyButton text={ek.key} />
+                        <CopyButton text={sub.key} />
                       </div>
-                      <QRCode value={ek.key} />
+                      <QRCode value={sub.key} />
                     </div>
-                  ))}
-                </div>
+                  )}
+
+                  {extraKeys.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                        {t('extra_configs')}
+                      </p>
+                      {extraKeys.map((ek) => (
+                        <div key={ek.slug} className="space-y-2">
+                          <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                            {ek.name}
+                          </p>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div
+                              className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
+                              style={{
+                                backgroundColor: 'var(--bg-secondary)',
+                                color: 'var(--text-primary)',
+                                border: '1px solid var(--border)',
+                              }}
+                            >
+                              {ek.key}
+                            </div>
+                            <CopyButton text={ek.key} />
+                          </div>
+                          <QRCode value={ek.key} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
 
-              <AmneziaWGSection subscriptionId={sub.subscription_id} />
+              {protocolTab === 'amneziawg' && (
+                <AmneziaWGSection subscriptionId={sub.subscription_id} />
+              )}
 
               <CancelButton
                 product="vpn"
