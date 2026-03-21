@@ -887,39 +887,46 @@ class VPNService:
                 return True
 
             # Cross-inbound switch: COPY client to new inbound (keep in old too).
-            # 3X-UI subscription panel crashes if a client only exists in WS/XHTTP
-            # inbounds, so we keep the client in all inbounds it has ever been in.
-            new_inbound = new_inbound.model_copy(deep=True)
-
+            # 3X-UI requires unique email per client_traffics, so we suffix
+            # the email with the inbound id for copies.
             already_in_new = any(
-                existing.id == subscription.vpn_id or existing.email == subscription.client_email
+                existing.id == subscription.vpn_id
                 for existing in new_inbound.settings.clients
             )
 
             if not already_in_new:
-                copy_client = moved_client.model_copy(deep=True)
-                copy_client.enable = True
-                copy_client.flow = new_flow
-                copy_client.limit_ip = limit_ip
-                copy_client.email = subscription.client_email
-                copy_client.id = subscription.vpn_id
-                copy_client.sub_id = subscription.vpn_id
-                copy_client.total_gb = 0
-
-                new_inbound.settings.clients.append(copy_client)
+                # Use unique email: base_email@inbound_id
+                copy_email = f"{subscription.client_email}@{new_inbound_id}"
+                copy_client = Client(
+                    email=copy_email,
+                    enable=True,
+                    id=subscription.vpn_id,
+                    expiry_time=moved_client.expiry_time,
+                    flow=new_flow,
+                    limit_ip=limit_ip,
+                    sub_id=subscription.vpn_id,
+                    total_gb=0,
+                )
 
                 try:
                     await self.server_pool_service.execute_api_call(
                         connection,
-                        lambda: connection.api.inbound.update(new_inbound.id, new_inbound),
+                        lambda: connection.api.client.add(
+                            inbound_id=new_inbound_id, clients=[copy_client],
+                        ),
                     )
-                except Exception:
-                    logger.exception(
-                        "Failed to add client to target inbound %s for subscription %s.",
-                        new_inbound.id,
-                        subscription.id,
-                    )
-                    return False
+                except Exception as e:
+                    if "Duplicate" in str(e):
+                        logger.info(
+                            "Client already in inbound %s for subscription %s (duplicate).",
+                            new_inbound_id, subscription.id,
+                        )
+                    else:
+                        logger.exception(
+                            "Failed to add client to inbound %s for subscription %s.",
+                            new_inbound_id, subscription.id,
+                        )
+                        return False
 
             await self._persist_subscription_profile(subscription, target_profile)
             if is_primary:
