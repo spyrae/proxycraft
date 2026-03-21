@@ -327,7 +327,12 @@ class VPNService:
         if not inbound:
             return self._build_subscription_url(subscription, server)
 
-        public_host = server.subscription_host or server.host
+        raw_host = server.subscription_host or server.host
+        # Extract pure hostname from URLs like "http://1.2.3.4:2053"
+        if "://" in raw_host:
+            from urllib.parse import urlparse as _urlparse
+            raw_host = _urlparse(raw_host).hostname or raw_host
+        public_host = raw_host.split(":")[0]  # strip port if present
         vless_uri = self._build_vless_uri(
             uuid=subscription.vpn_id,
             host=public_host,
