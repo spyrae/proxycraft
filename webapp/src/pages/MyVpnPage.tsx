@@ -6,6 +6,7 @@ import {
   useMe,
   useSubscriptions,
   useCancelSubscription,
+  useAmneziaWGConfig,
 } from '../api/hooks';
 import { SubscriptionCard } from '../components/SubscriptionCard';
 import { QRCode } from '../components/QRCode';
@@ -300,6 +301,41 @@ function ConnectionRow({
   );
 }
 
+function AmneziaWGSection({ subscriptionId }: { subscriptionId: number | null | undefined }) {
+  const { t } = useLanguage();
+  const { data, isLoading } = useAmneziaWGConfig(subscriptionId);
+
+  if (isLoading) {
+    return <div className="animate-shimmer rounded-xl h-16" />;
+  }
+
+  if (!data?.available || !data.config) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+        {t('amneziawg_config')}
+      </p>
+      <div className="flex items-center gap-2 min-w-0">
+        <div
+          className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
+          style={{
+            backgroundColor: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          {data.config.slice(0, 60)}...
+        </div>
+        <CopyButton text={data.config} />
+      </div>
+      <QRCode value={data.config} />
+    </div>
+  );
+}
+
 function VpnSection({ sub }: { sub: VpnSubscription }) {
   const { t } = useLanguage();
   const locationLabel = useLocationLabel(sub.location);
@@ -388,6 +424,8 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
                   ))}
                 </div>
               )}
+
+              <AmneziaWGSection subscriptionId={sub.subscription_id} />
 
               <CancelButton
                 product="vpn"

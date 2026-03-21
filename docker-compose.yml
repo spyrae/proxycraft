@@ -64,6 +64,8 @@ services:
       - mtproto_config:/app/mtproto-runtime
       - whatsapp_config:/app/whatsapp-runtime
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./infrastructure/amneziawg/peers:/app/awg-peers
+      - ./infrastructure/amneziawg/config:/app/awg-config
     env_file:
       - .env
     ports:

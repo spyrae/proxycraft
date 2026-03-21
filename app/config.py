@@ -67,7 +67,7 @@ DEFAULT_AWG_LISTEN_PORT = 51820
 DEFAULT_AWG_SUBNET = "10.10.0.0/24"
 DEFAULT_AWG_SERVER_IP = "10.10.0.1"
 DEFAULT_AWG_DNS = "1.1.1.1, 8.8.8.8"
-DEFAULT_AWG_PEERS_DIR = "/app/infrastructure/amneziawg/peers"
+DEFAULT_AWG_PEERS_DIR = "/app/awg-peers"
 DEFAULT_AWG_DOCKER_CONTAINER = "amneziawg"
 # AmneziaWG obfuscation parameters
 DEFAULT_AWG_JC = 4

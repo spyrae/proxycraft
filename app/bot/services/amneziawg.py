@@ -113,7 +113,11 @@ class AmneziaWGService:
 
     def _read_server_public_key(self) -> str:
         """Read the server public key from the config directory."""
-        key_path = self._peers_dir.parent / "config" / "server_public.key"
+        # Try sibling config dir first, then parent/config
+        config_dir = self._peers_dir.parent / "awg-config"
+        if not config_dir.exists():
+            config_dir = self._peers_dir.parent / "config"
+        key_path = config_dir / "server_public.key"
         try:
             return key_path.read_text().strip()
         except FileNotFoundError:
