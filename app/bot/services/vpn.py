@@ -302,10 +302,11 @@ class VPNService:
     async def get_extra_keys_for_subscription(
         self, subscription: VPNSubscription,
     ) -> list[dict[str, str]]:
-        """Generate VLESS URIs for non-Reality inbounds (WS, XHTTP).
+        """Generate VLESS URIs for ALL profiles (Reality + WS + XHTTP).
 
-        Returns list of {"slug": profile_slug, "key": "vless://..."}.
-        3X-UI subscription panel crashes for these, so we build URIs manually.
+        Returns list of {"slug": ..., "name": ..., "key": "vless://..."}.
+        3X-UI subscription panel is unreliable, so we build all URIs on backend.
+        Auto-provisions client into inbounds where missing.
         """
         try:
             server = subscription.server
@@ -323,7 +324,7 @@ class VPNService:
                 return []
 
         connection = await self.server_pool_service.get_connection_for_server_id(
-            server.id, user_label=f"extra-keys sub {subscription.id}",
+            server.id, user_label=f"keys sub {subscription.id}",
         )
         if not connection:
             return []
@@ -341,16 +342,12 @@ class VPNService:
             raw_host = _urlparse(raw_host).hostname or raw_host
         public_host = raw_host.split(":")[0]
 
-        # Find non-Reality transport profiles
-        extra_profiles = []
+        all_profiles = []
         if self.catalog:
-            location = server.location
-            for profile in self.catalog.get_vpn_profiles(location=location):
-                if profile.kind == "transport":
-                    extra_profiles.append(profile)
+            all_profiles = self.catalog.get_vpn_profiles(location=server.location)
 
         results: list[dict[str, str]] = []
-        for profile in extra_profiles:
+        for profile in all_profiles:
             inbound = next(
                 (ib for ib in inbounds if ib.remark == profile.inbound_remark),
                 None,
@@ -363,7 +360,6 @@ class VPNService:
                 c.id == subscription.vpn_id for c in inbound.settings.clients
             )
             if not client_exists:
-                # Auto-provision client into this inbound
                 try:
                     copy_email = f"{subscription.client_email}@{inbound.id}"
                     flow = profile.client_flow if profile.client_flow is not None else ""
@@ -396,7 +392,7 @@ class VPNService:
                 uuid=subscription.vpn_id,
                 host=public_host,
                 inbound=inbound,
-                remark=f"{profile.name}",
+                remark=profile.name,
             )
             results.append({
                 "slug": profile.slug,
@@ -461,18 +457,22 @@ class VPNService:
 
         # Transport-specific params
         if ss.network == "ws":
-            ws = ss.tcp_settings if not hasattr(ss, "ws_settings") else {}
-            # WS path from external proxy or defaults
             if ss.external_proxy:
+                # CDN mode: connect to CDN domain with TLS, not direct IP
                 ep = ss.external_proxy[0]
-                params["host"] = ep.get("dest", host)
-                # For CDN, connect to CDN domain, not direct IP
                 host = ep.get("dest", host)
+                port = ep.get("port", 443)
+                params["host"] = host
+                if ep.get("forceTls") == "tls":
+                    params["security"] = "tls"
+                    params["sni"] = host
+            else:
+                port = inbound.port
 
         elif ss.network == "xhttp":
-            pass  # XHTTP uses Reality settings above
-
-        port = inbound.port
+            port = inbound.port
+        else:
+            port = inbound.port
         encoded_remark = quote(remark, safe="")
         query = urlencode(params, safe="/:@")
         return f"vless://{uuid}@{host}:{port}?{query}#{encoded_remark}"

@@ -333,37 +333,13 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
                 <StatItem label={t('devices')} value={sub.max_devices === -1 ? '&#x221E;' : String(sub.max_devices)} icon="&#x229E;" color="#F59E0B" />
               </div>
 
-              {sub.key && (
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                      {t('connection_key')}
-                    </p>
-                    <p className="text-[11px]" style={{ color: 'var(--text-dim)' }}>
-                      {t('subscription_key_hint')}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div
-                      className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
-                      style={{
-                        backgroundColor: 'var(--bg-secondary)',
-                        color: 'var(--text-primary)',
-                        border: '1px solid var(--border)',
-                      }}
-                    >
-                      {sub.key}
-                    </div>
-                    <CopyButton text={sub.key} />
-                  </div>
-                  <QRCode value={sub.key} />
-                </div>
-              )}
-
-              {extraKeys.length > 0 && (
+              {extraKeys.length > 0 ? (
                 <div className="space-y-3">
                   <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                    {t('extra_configs')}
+                    {t('connection_key')}
+                  </p>
+                  <p className="text-[11px]" style={{ color: 'var(--text-dim)' }}>
+                    {t('subscription_key_hint')}
                   </p>
                   {extraKeys.map((ek) => (
                     <div key={ek.slug} className="space-y-2">
@@ -387,7 +363,27 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
                     </div>
                   ))}
                 </div>
-              )}
+              ) : sub.key ? (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    {t('connection_key')}
+                  </p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
+                      style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      {sub.key}
+                    </div>
+                    <CopyButton text={sub.key} />
+                  </div>
+                  <QRCode value={sub.key} />
+                </div>
+              ) : null}
 
               <CancelButton
                 product="vpn"
