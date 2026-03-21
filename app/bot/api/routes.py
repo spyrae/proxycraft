@@ -870,8 +870,8 @@ async def handle_balance_topup(request: Request) -> Response:
         prices = [LabeledPrice(label="XTR", amount=stars_amount)]
         try:
             invoice_url = await bot.create_invoice_link(
-                title=f"Top-up {amount}₽",
-                description=f"Balance top-up: {amount} RUB",
+                title=f"Top-up ⭐{stars_amount}",
+                description=f"Balance top-up: {stars_amount} Stars ({amount} RUB)",
                 prices=prices,
                 payload=f"topup:{amount}",
                 currency="XTR",
