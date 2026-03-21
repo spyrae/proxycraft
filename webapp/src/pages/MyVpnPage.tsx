@@ -9,7 +9,7 @@ import {
   useAmneziaWGConfig,
 } from '../api/hooks';
 import { SubscriptionCard } from '../components/SubscriptionCard';
-import { QRCode } from '../components/QRCode';
+
 import { CopyButton } from '../components/CopyButton';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translations';
@@ -331,7 +331,6 @@ function AmneziaWGSection({ subscriptionId }: { subscriptionId: number | null | 
         </div>
         <CopyButton text={data.config} />
       </div>
-      <QRCode value={data.config} />
     </div>
   );
 }
@@ -432,7 +431,6 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
                         </div>
                         <CopyButton text={sub.key} />
                       </div>
-                      <QRCode value={sub.key} />
                     </div>
                   )}
 
@@ -459,7 +457,6 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
                             </div>
                             <CopyButton text={ek.key} />
                           </div>
-                          <QRCode value={ek.key} />
                         </div>
                       ))}
                     </div>

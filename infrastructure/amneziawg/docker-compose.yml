@@ -1,44 +1,21 @@
-# AmneziaWG VPN Server for ProxyCraft
-#
-# Prerequisites:
-#   - Open UDP port 51820 on firewall: ufw allow 51820/udp
-#   - Enable IP forwarding: sysctl -w net.ipv4.ip_forward=1
-#   - Make permanent: echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
-#
-# Usage:
-#   1. Copy .env.example to .env and configure
-#   2. docker compose up -d
-#   3. Verify: docker exec amneziawg awg show
-#
-# Peer management is handled by the bot backend (app/bot/services/amneziawg.py)
-
 services:
   amneziawg:
-    image: ghcr.io/amnezia-vpn/amneziawg-go:latest
+    image: amneziavpn/amneziawg-go:latest
     container_name: amneziawg
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
+      - SYS_MODULE
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
+    devices:
+      - /dev/net/tun:/dev/net/tun
     ports:
-      - "${AWG_LISTEN_PORT:-51820}:51820/udp"
+      - '51820:51820/udp'
     volumes:
       - ./config:/etc/amneziawg
       - ./peers:/etc/amneziawg/peers
-    environment:
-      - AWG_LISTEN_PORT=${AWG_LISTEN_PORT:-51820}
+      - ./entrypoint.sh:/entrypoint.sh:ro
     entrypoint: /bin/sh
-    command:
-      - -c
-      - |
-        if [ ! -f /etc/amneziawg/awg0.conf ]; then
-          echo "ERROR: awg0.conf not found. Run setup.sh first."
-          exit 1
-        fi
-        awg-quick up /etc/amneziawg/awg0.conf
-        echo "AmneziaWG interface up"
-        # Keep container running and watch for config changes
-        trap "awg-quick down /etc/amneziawg/awg0.conf; exit 0" SIGTERM SIGINT
-        while :; do sleep 3600 & wait $!; done
+    command: ['/entrypoint.sh']
