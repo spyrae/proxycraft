@@ -701,11 +701,10 @@ class VPNService:
             return False
 
         is_primary = subscription.vpn_id == user.vpn_id
-        new_flow = (
-            target_profile.client_flow
-            or connection.server.client_flow
-            or self.config.xui.CLIENT_FLOW
-        )
+        if target_profile.client_flow is not None:
+            new_flow = target_profile.client_flow
+        else:
+            new_flow = connection.server.client_flow or self.config.xui.CLIENT_FLOW
 
         try:
             inbounds = await self.server_pool_service.execute_api_call(
