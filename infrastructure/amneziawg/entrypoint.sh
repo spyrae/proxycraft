@@ -8,7 +8,7 @@ amneziawg-go awg0 &
 AWG_PID=$!
 sleep 2
 
-grep -v '^Address\|^PostUp\|^PostDown\|^DNS\|^SaveConfig' /etc/amneziawg/awg0.conf > /tmp/stripped.conf
+grep -v '^Address\|^PostUp\|^PostDown\|^DNS\|^SaveConfig\|^MTU' /etc/amneziawg/awg0.conf > /tmp/stripped.conf
 awg setconf awg0 /tmp/stripped.conf
 
 ADDR=$(grep '^Address' /etc/amneziawg/awg0.conf | cut -d= -f2 | tr -d ' ')
@@ -30,4 +30,7 @@ echo "AmneziaWG ready ($(awg show awg0 | grep -c 'peer:') peers)"
 awg show awg0
 
 trap 'kill $AWG_PID 2>/dev/null; exit 0' SIGTERM SIGINT
-wait $AWG_PID
+# Keep container alive
+while kill -0 $AWG_PID 2>/dev/null; do
+  sleep 60
+done
