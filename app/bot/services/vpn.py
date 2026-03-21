@@ -302,11 +302,11 @@ class VPNService:
     async def get_extra_keys_for_subscription(
         self, subscription: VPNSubscription,
     ) -> list[dict[str, str]]:
-        """Generate VLESS URIs for ALL profiles (Reality + WS + XHTTP).
+        """Generate VLESS URIs for non-Reality transport profiles (WS, XHTTP).
 
         Returns list of {"slug": ..., "name": ..., "key": "vless://..."}.
-        3X-UI subscription panel is unreliable, so we build all URIs on backend.
-        Auto-provisions client into inbounds where missing.
+        Reality configs are served via subscription URL; these are extras.
+        Uses a different sub_id so subscription panel doesn't find them and crash.
         """
         try:
             server = subscription.server
@@ -342,9 +342,13 @@ class VPNService:
             raw_host = _urlparse(raw_host).hostname or raw_host
         public_host = raw_host.split(":")[0]
 
+        # Only transport profiles (CDN, XHTTP) — Reality is in subscription URL
         all_profiles = []
         if self.catalog:
-            all_profiles = self.catalog.get_vpn_profiles(location=server.location)
+            all_profiles = [
+                p for p in self.catalog.get_vpn_profiles(location=server.location)
+                if p.kind == "transport"
+            ]
 
         results: list[dict[str, str]] = []
         for profile in all_profiles:
@@ -363,6 +367,9 @@ class VPNService:
                 try:
                     copy_email = f"{subscription.client_email}@{inbound.id}"
                     flow = profile.client_flow if profile.client_flow is not None else ""
+                    # Use different sub_id so subscription panel doesn't find
+                    # WS/XHTTP clients and crash (500 error).
+                    nosub_id = f"nosub-{subscription.vpn_id}"
                     copy_client = Client(
                         email=copy_email,
                         enable=True,
@@ -370,7 +377,7 @@ class VPNService:
                         expiry_time=0,
                         flow=flow,
                         limit_ip=subscription.devices or 1,
-                        sub_id=subscription.vpn_id,
+                        sub_id=nosub_id,
                         total_gb=0,
                     )
                     await self.server_pool_service.execute_api_call(
