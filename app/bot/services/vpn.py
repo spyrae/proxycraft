@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import random
 import uuid
 from typing import TYPE_CHECKING
+from urllib.parse import quote, urlencode
 
 if TYPE_CHECKING:
     from .product_catalog import ProductCatalog, VpnProfile
@@ -278,6 +280,7 @@ class VPNService:
         return result
 
     async def get_key_for_subscription(self, subscription: VPNSubscription) -> str | None:
+        """Generate a VLESS URI for the subscription's current profile inbound."""
         subscription_id = subscription.id
 
         try:
@@ -297,14 +300,113 @@ class VPNService:
                 logger.debug("Server is not attached to vpn subscription %s.", subscription_id)
                 return None
 
+        connection = await self.server_pool_service.get_connection_for_server_id(
+            server.id, user_label=f"sub {subscription_id}",
+        )
+        if not connection:
+            return self._build_subscription_url(subscription, server)
+
+        selected_profile = self._resolve_vpn_profile_for_subscription(subscription)
+        target_remark = selected_profile.inbound_remark if selected_profile else None
+
+        try:
+            inbounds = await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.inbound.get_list(),
+            )
+        except Exception as e:
+            logger.warning("Failed to fetch inbounds for key generation (sub %s): %s", subscription_id, e)
+            return self._build_subscription_url(subscription, server)
+
+        inbound = None
+        if target_remark:
+            inbound = next((ib for ib in inbounds if ib.remark == target_remark), None)
+        if not inbound:
+            inbound = next((ib for ib in inbounds if ib.protocol == "vless"), None)
+
+        if not inbound:
+            return self._build_subscription_url(subscription, server)
+
+        public_host = server.subscription_host or server.host
+        vless_uri = self._build_vless_uri(
+            uuid=subscription.vpn_id,
+            host=public_host,
+            inbound=inbound,
+            remark=f"{inbound.remark}-{subscription.client_email}",
+        )
+        logger.debug("Generated VLESS key for sub %s: %s", subscription_id, vless_uri[:80])
+        return vless_uri
+
+    def _build_subscription_url(self, subscription: VPNSubscription, server) -> str:
+        """Fallback: legacy subscription panel URL."""
         base = extract_base_url(
             url=server.subscription_host or server.host,
             port=server.subscription_port or self.config.xui.SUBSCRIPTION_PORT,
             path=server.subscription_path or self.config.xui.SUBSCRIPTION_PATH,
         )
-        key = f"{base}{subscription.vpn_id}"
-        logger.debug("Fetched key for vpn subscription %s: %s.", subscription_id, key)
-        return key
+        return f"{base}{subscription.vpn_id}"
+
+    @staticmethod
+    def _build_vless_uri(
+        uuid: str,
+        host: str,
+        inbound: Inbound,
+        remark: str,
+    ) -> str:
+        """Build a VLESS share URI from inbound data."""
+        ss = inbound.stream_settings
+        params: dict[str, str] = {}
+
+        params["type"] = ss.network or "tcp"
+
+        # Security & Reality settings
+        params["security"] = ss.security or "none"
+        if ss.security == "reality" and ss.reality_settings:
+            rs = ss.reality_settings
+            server_names = rs.get("serverNames", [])
+            short_ids = rs.get("shortIds", [])
+            settings = rs.get("settings", {})
+
+            params["pbk"] = settings.get("publicKey", "")
+            params["fp"] = settings.get("fingerprint", "chrome")
+            if server_names:
+                params["sni"] = random.choice(server_names)
+            if short_ids:
+                params["sid"] = random.choice(short_ids)
+
+            spider_x = settings.get("spiderX", "/")
+            if spider_x:
+                # Generate random path like 3X-UI does
+                import string
+                rand_path = "".join(random.choices(string.ascii_letters + string.digits, k=16))
+                params["spx"] = spider_x.rstrip("/") + "/" + rand_path if spider_x != "/" else "/" + rand_path
+
+        # Flow (for Reality+TCP)
+        flow = ""
+        for client in inbound.settings.clients:
+            if client.id == uuid:
+                flow = client.flow or ""
+                break
+        if flow:
+            params["flow"] = flow
+
+        # Transport-specific params
+        if ss.network == "ws":
+            ws = ss.tcp_settings if not hasattr(ss, "ws_settings") else {}
+            # WS path from external proxy or defaults
+            if ss.external_proxy:
+                ep = ss.external_proxy[0]
+                params["host"] = ep.get("dest", host)
+                # For CDN, connect to CDN domain, not direct IP
+                host = ep.get("dest", host)
+
+        elif ss.network == "xhttp":
+            pass  # XHTTP uses Reality settings above
+
+        port = inbound.port
+        encoded_remark = quote(remark, safe="")
+        query = urlencode(params, safe="/:@")
+        return f"vless://{uuid}@{host}:{port}?{query}#{encoded_remark}"
 
     async def get_key(self, user: User) -> str | None:
         subscription = await self.get_primary_subscription(user)
