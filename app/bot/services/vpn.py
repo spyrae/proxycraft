@@ -784,77 +784,47 @@ class VPNService:
                 )
                 return True
 
-            old_inbound = old_inbound.model_copy(deep=True)
+            # Cross-inbound switch: COPY client to new inbound (keep in old too).
+            # 3X-UI subscription panel crashes if a client only exists in WS/XHTTP
+            # inbounds, so we keep the client in all inbounds it has ever been in.
             new_inbound = new_inbound.model_copy(deep=True)
 
-            old_clients = []
-            for existing in old_inbound.settings.clients:
-                if (
-                    existing.id == subscription.vpn_id
-                    or existing.email == subscription.client_email
-                ):
-                    continue
-                old_clients.append(existing)
-
-            moved_client.enable = True
-            moved_client.flow = new_flow
-            moved_client.limit_ip = limit_ip
-            moved_client.email = subscription.client_email
-            moved_client.id = subscription.vpn_id
-            moved_client.sub_id = subscription.vpn_id
-            moved_client.total_gb = 0
-
-            new_clients = [
-                existing for existing in new_inbound.settings.clients
-                if (
-                    existing.id != subscription.vpn_id
-                    and existing.email != subscription.client_email
-                )
-            ]
-            new_clients.append(moved_client)
-
-            old_inbound.settings.clients = old_clients
-            new_inbound.settings.clients = new_clients
-
-            await self.server_pool_service.execute_api_call(
-                connection,
-                lambda: connection.api.inbound.update(old_inbound.id, old_inbound),
+            already_in_new = any(
+                existing.id == subscription.vpn_id or existing.email == subscription.client_email
+                for existing in new_inbound.settings.clients
             )
 
-            try:
-                await self.server_pool_service.execute_api_call(
-                    connection,
-                    lambda: connection.api.inbound.update(new_inbound.id, new_inbound),
-                )
-            except Exception:
-                logger.exception(
-                    "Failed to update target inbound %s for user %s. Restoring source inbound %s.",
-                    new_inbound.id,
-                    subscription.id,
-                    old_inbound.id,
-                )
-                restore_inbound = old_inbound.model_copy(deep=True)
-                restore_inbound.settings.clients = [*old_clients, moved_client]
+            if not already_in_new:
+                copy_client = moved_client.model_copy(deep=True)
+                copy_client.enable = True
+                copy_client.flow = new_flow
+                copy_client.limit_ip = limit_ip
+                copy_client.email = subscription.client_email
+                copy_client.id = subscription.vpn_id
+                copy_client.sub_id = subscription.vpn_id
+                copy_client.total_gb = 0
+
+                new_inbound.settings.clients.append(copy_client)
+
                 try:
                     await self.server_pool_service.execute_api_call(
                         connection,
-                        lambda: connection.api.inbound.update(restore_inbound.id, restore_inbound),
+                        lambda: connection.api.inbound.update(new_inbound.id, new_inbound),
                     )
                 except Exception:
                     logger.exception(
-                        "Rollback failed while restoring source inbound %s for user %s.",
-                        restore_inbound.id,
+                        "Failed to add client to target inbound %s for subscription %s.",
+                        new_inbound.id,
                         subscription.id,
                     )
-                return False
+                    return False
 
             await self._persist_subscription_profile(subscription, target_profile)
             if is_primary:
                 await self._persist_vpn_profile(user, target_profile)
             logger.info(
-                "Subscription %s moved from inbound %s to %s (profile: %s -> %s)",
+                "Subscription %s: added to inbound %s (profile: %s -> %s)",
                 subscription.id,
-                old_inbound_id,
                 new_inbound_id,
                 current_profile.slug if current_profile else "default",
                 target_profile.slug,
