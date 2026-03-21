@@ -34,7 +34,7 @@ class Transaction(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tg_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("proxycraft_users.tg_id"), nullable=False)
-    payment_id: Mapped[str] = mapped_column(String(length=64), unique=True, nullable=False)
+    payment_id: Mapped[str] = mapped_column(String(length=255), unique=True, nullable=False)
     subscription: Mapped[str] = mapped_column(String(length=255), nullable=False)
     status: Mapped[TransactionStatus] = mapped_column(
         Enum(TransactionStatus, name="proxycraft_transactionstatus", values_callable=lambda obj: [e.value for e in obj]),
