@@ -135,6 +135,7 @@ def serialize_vpn_subscription(
     current_profile: VpnProfile | None = None,
     available_profiles: list[VpnProfile] | None = None,
     subscription_id: int | None = None,
+    extra_keys: list[dict] | None = None,
 ) -> dict:
     payload = {
         "subscription_id": subscription_id,
@@ -142,6 +143,7 @@ def serialize_vpn_subscription(
         "available_profiles": serialize_vpn_profiles(available_profiles or []),
         "location": location,
         "cancelled_at": cancelled_at.isoformat() if cancelled_at else None,
+        "extra_keys": extra_keys or [],
     }
     if not client_data:
         return {"active": False, **payload}
@@ -213,6 +215,7 @@ def serialize_vpn_subscription_item(
     cancelled_at: datetime | None = None,
     current_profile: VpnProfile | None = None,
     available_profiles: list[VpnProfile] | None = None,
+    extra_keys: list[dict] | None = None,
 ) -> dict:
     payload = serialize_vpn_subscription(
         client_data=client_data,
@@ -222,6 +225,7 @@ def serialize_vpn_subscription_item(
         current_profile=current_profile,
         available_profiles=available_profiles,
         subscription_id=subscription_id,
+        extra_keys=extra_keys,
     )
     payload["expired"] = client_data.has_subscription_expired if client_data else False
     return payload

@@ -6,8 +6,6 @@ import {
   useMe,
   useSubscriptions,
   useCancelSubscription,
-  useChangeVpnProfile,
-  useAmneziaWGConfig,
 } from '../api/hooks';
 import { SubscriptionCard } from '../components/SubscriptionCard';
 import { QRCode } from '../components/QRCode';
@@ -15,7 +13,6 @@ import { CopyButton } from '../components/CopyButton';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translations';
 import type {
-  VpnProfileOption,
   VpnSubscription,
   MtprotoSubscription,
   WhatsappSubscription,
@@ -303,278 +300,16 @@ function ConnectionRow({
   );
 }
 
-const GROUP_LABELS: Record<string, { label: TranslationKey; emoji: string }> = {
-  'vless-reality': { label: 'vless_reality', emoji: '🛡️' },
-  'vless-cdn': { label: 'vless_cdn', emoji: '☁️' },
-  'vless-xhttp': { label: 'vless_xhttp', emoji: '⚡' },
-};
-
-interface ProfileGroup {
-  groupId: string;
-  label: string;
-  emoji: string;
-  profiles: VpnProfileOption[];
-}
-
-function useProfileGroups(profiles: VpnProfileOption[]): ProfileGroup[] {
-  const { t } = useLanguage();
-  const groupMap = new Map<string, VpnProfileOption[]>();
-  for (const profile of profiles) {
-    const groupId = profile.group ?? 'vless-reality';
-    const existing = groupMap.get(groupId);
-    if (existing) {
-      existing.push(profile);
-    } else {
-      groupMap.set(groupId, [profile]);
-    }
-  }
-
-  const groups: ProfileGroup[] = [];
-  for (const [groupId, groupProfiles] of groupMap) {
-    const meta = GROUP_LABELS[groupId];
-    groups.push({
-      groupId,
-      label: meta ? t(meta.label) : groupId,
-      emoji: meta?.emoji ?? '',
-      profiles: groupProfiles,
-    });
-  }
-  return groups;
-}
-
-function VpnProfileSelector({
-  currentProfile,
-  profiles,
-  subscriptionId,
-}: {
-  currentProfile?: VpnProfileOption | null;
-  profiles?: VpnProfileOption[];
-  subscriptionId?: number | null;
-}) {
-  const { lang, t } = useLanguage();
-  const changeProfile = useChangeVpnProfile();
-  const [error, setError] = useState<string | null>(null);
-  const [overlayMode, setOverlayMode] = useState<OverlayMode>('hidden');
-
-  const availableProfiles = profiles ?? [];
-  const groups = useProfileGroups(availableProfiles);
-  const activeSlug = currentProfile?.slug ?? availableProfiles[0]?.slug ?? null;
-
-  const activeGroup = groups.find((g) =>
-    g.profiles.some((p) => p.slug === activeSlug),
-  ) ?? groups[0];
-
-  const [selectedGroupId, setSelectedGroupId] = useState<string>(
-    activeGroup?.groupId ?? 'vless-reality',
-  );
-
-  const currentGroup = groups.find((g) => g.groupId === selectedGroupId) ?? groups[0];
-  const hasMultipleGroups = groups.length > 1;
-  const groupProfiles = currentGroup?.profiles ?? [];
-  const isSwitchable = availableProfiles.length > 1;
-
-  if (availableProfiles.length === 0) {
-    return null;
-  }
-
-  const handleSwitch = (profileSlug: string) => {
-    if (profileSlug === activeSlug) return;
-    setError(null);
-    setOverlayMode('loading');
-    changeProfile.mutate(
-      { profileSlug, subscriptionId },
-      {
-        onSuccess: () => {
-          setError(null);
-          setOverlayMode('hidden');
-        },
-        onError: () => {
-          setOverlayMode('hidden');
-          setError(t('connection_profile_failed'));
-        },
-      },
-    );
-  };
-
-  return (
-    <div className="space-y-2.5">
-      <StatusOverlay mode={overlayMode} loadingKey="switching_profile" />
-
-      <div className="space-y-1">
-        <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-          {t('connection_profile')}
-        </p>
-        {isSwitchable && (
-          <p className="text-[11px]" style={{ color: 'var(--text-dim)' }}>
-            {t('connection_profile_hint')}
-          </p>
-        )}
-      </div>
-
-      {hasMultipleGroups && (
-        <div className="flex gap-1.5">
-          {groups.map((group) => {
-            const isGroupActive = group.groupId === selectedGroupId;
-            return (
-              <button
-                key={group.groupId}
-                type="button"
-                onClick={() => {
-                  setSelectedGroupId(group.groupId);
-                  if (group.profiles.length === 1) {
-                    handleSwitch(group.profiles[0].slug);
-                  }
-                }}
-                className="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all duration-200"
-                style={{
-                  backgroundColor: isGroupActive ? 'rgba(51, 144, 236, 0.15)' : 'var(--bg-secondary)',
-                  color: isGroupActive ? '#3390EC' : 'var(--text-dim)',
-                  border: isGroupActive
-                    ? '1px solid rgba(51, 144, 236, 0.35)'
-                    : '1px solid var(--border)',
-                }}
-              >
-                {group.emoji} {group.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {groupProfiles.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          {groupProfiles.map((profile) => {
-            const isActive = profile.slug === activeSlug;
-            return (
-              <button
-                key={profile.slug}
-                type="button"
-                aria-pressed={isActive}
-                disabled={!isSwitchable || changeProfile.isPending}
-                onClick={() => handleSwitch(profile.slug)}
-                className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 disabled:opacity-100"
-                style={{
-                  backgroundColor: isActive ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-card)',
-                  color: isActive ? '#10B981' : 'var(--text-dim)',
-                  border: isActive
-                    ? '1px solid rgba(16, 185, 129, 0.35)'
-                    : '1px solid var(--border)',
-                }}
-              >
-                <span className="flex items-center gap-2">
-                  <span>{profile.emoji}</span>
-                  <span>{lang === 'en' ? (profile.name_en || profile.name) : profile.name}</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {error && (
-        <p className="text-[11px]" style={{ color: '#EF4444' }}>
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
-type ProtocolTab = 'vless' | 'amneziawg';
-
-function ProtocolTabs({ active, onChange }: { active: ProtocolTab; onChange: (tab: ProtocolTab) => void }) {
-  const { t } = useLanguage();
-  const tabs: { key: ProtocolTab; label: string }[] = [
-    { key: 'vless', label: t('protocol_vless') },
-    { key: 'amneziawg', label: t('protocol_amneziawg') },
-  ];
-
-  return (
-    <div className="flex gap-1.5 mb-3">
-      {tabs.map((tab) => {
-        const isActive = tab.key === active;
-        return (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => onChange(tab.key)}
-            className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
-            style={{
-              backgroundColor: isActive ? 'rgba(51, 144, 236, 0.15)' : 'var(--bg-secondary)',
-              color: isActive ? '#3390EC' : 'var(--text-dim)',
-              border: isActive
-                ? '1px solid rgba(51, 144, 236, 0.35)'
-                : '1px solid var(--border)',
-            }}
-          >
-            {tab.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function AmneziaWGTab({ subscriptionId }: { subscriptionId: number | null | undefined }) {
-  const { t } = useLanguage();
-  const { data, isLoading } = useAmneziaWGConfig(subscriptionId);
-
-  if (isLoading) {
-    return (
-      <div className="animate-shimmer rounded-xl h-24" />
-    );
-  }
-
-  if (!data?.available || !data.config) {
-    return (
-      <div
-        className="rounded-xl p-4 text-center"
-        style={{
-          backgroundColor: 'var(--bg-secondary)',
-          border: '1px solid var(--border)',
-        }}
-      >
-        <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
-          {t('amneziawg_not_ready')}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="space-y-3">
-        <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-          {t('amneziawg_config')}
-        </p>
-        <div className="flex items-center gap-2 min-w-0">
-          <div
-            className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
-            style={{
-              backgroundColor: 'var(--bg-secondary)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            {data.config.slice(0, 60)}...
-          </div>
-          <CopyButton text={data.config} />
-        </div>
-        <QRCode value={data.config} />
-      </div>
-    </div>
-  );
-}
-
 function VpnSection({ sub }: { sub: VpnSubscription }) {
   const { t } = useLanguage();
   const locationLabel = useLocationLabel(sub.location);
   const [expanded, setExpanded] = useState(false);
   const [wasJustCancelled, setWasJustCancelled] = useState(false);
-  const [protocolTab, setProtocolTab] = useState<ProtocolTab>('vless');
 
   const effectiveCancelled = wasJustCancelled || !!sub.cancelled_at;
   const status = effectiveCancelled ? (sub.active ? 'cancelled' : 'expired') : (sub.active ? 'active' : 'expired');
+
+  const extraKeys = sub.extra_keys ?? [];
 
   return (
     <SubscriptionCard
@@ -591,27 +326,49 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
 
           {expanded && (
             <>
-              <ProtocolTabs active={protocolTab} onChange={setProtocolTab} />
+              <div className="grid grid-cols-2 gap-2">
+                <StatItem label={t('upload')} value={formatBytes(sub.traffic_up || 0)} icon="&#x2191;" color="#06B6D4" />
+                <StatItem label={t('download')} value={formatBytes(sub.traffic_down || 0)} icon="&#x2193;" color="#10B981" />
+                <StatItem label={t('total_used')} value={formatBytes(sub.traffic_used || 0)} icon="&#x25CE;" color="#8B5CF6" />
+                <StatItem label={t('devices')} value={sub.max_devices === -1 ? '&#x221E;' : String(sub.max_devices)} icon="&#x229E;" color="#F59E0B" />
+              </div>
 
-              {protocolTab === 'vless' && (
-                <>
-                  <VpnProfileSelector
-                    currentProfile={sub.current_profile}
-                    profiles={sub.available_profiles}
-                    subscriptionId={sub.subscription_id}
-                  />
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <StatItem label={t('upload')} value={formatBytes(sub.traffic_up || 0)} icon="↑" color="#06B6D4" />
-                    <StatItem label={t('download')} value={formatBytes(sub.traffic_down || 0)} icon="↓" color="#10B981" />
-                    <StatItem label={t('total_used')} value={formatBytes(sub.traffic_used || 0)} icon="◎" color="#8B5CF6" />
-                    <StatItem label={t('devices')} value={sub.max_devices === -1 ? '∞' : String(sub.max_devices)} icon="⊞" color="#F59E0B" />
+              {sub.key && (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                      {t('connection_key')}
+                    </p>
+                    <p className="text-[11px]" style={{ color: 'var(--text-dim)' }}>
+                      {t('subscription_key_hint')}
+                    </p>
                   </div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className="flex-1 min-w-0 text-[11px] font-mono p-2.5 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap"
+                      style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      {sub.key}
+                    </div>
+                    <CopyButton text={sub.key} />
+                  </div>
+                  <QRCode value={sub.key} />
+                </div>
+              )}
 
-                  {sub.key && (
-                    <div className="space-y-3">
-                      <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                        {t('connection_key')}
+              {extraKeys.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    {t('extra_configs')}
+                  </p>
+                  {extraKeys.map((ek) => (
+                    <div key={ek.slug} className="space-y-2">
+                      <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                        {ek.name}
                       </p>
                       <div className="flex items-center gap-2 min-w-0">
                         <div
@@ -622,18 +379,14 @@ function VpnSection({ sub }: { sub: VpnSubscription }) {
                             border: '1px solid var(--border)',
                           }}
                         >
-                          {sub.key}
+                          {ek.key}
                         </div>
-                        <CopyButton text={sub.key} />
+                        <CopyButton text={ek.key} />
                       </div>
-                      <QRCode value={sub.key} />
+                      <QRCode value={ek.key} />
                     </div>
-                  )}
-                </>
-              )}
-
-              {protocolTab === 'amneziawg' && (
-                <AmneziaWGTab subscriptionId={sub.subscription_id} />
+                  ))}
+                </div>
               )}
 
               <CancelButton

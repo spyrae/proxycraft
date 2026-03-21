@@ -62,6 +62,12 @@ export interface VpnProfileOption {
   order: number;
 }
 
+export interface VpnExtraKey {
+  slug: string;
+  name: string;
+  key: string;
+}
+
 export interface VpnSubscription {
   subscription_id?: number | null;
   active: boolean;
@@ -78,6 +84,7 @@ export interface VpnSubscription {
   cancelled_at?: string | null;
   current_profile?: VpnProfileOption | null;
   available_profiles?: VpnProfileOption[];
+  extra_keys?: VpnExtraKey[];
 }
 
 export interface MtprotoSubscription {

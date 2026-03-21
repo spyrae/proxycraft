@@ -280,7 +280,7 @@ class VPNService:
         return result
 
     async def get_key_for_subscription(self, subscription: VPNSubscription) -> str | None:
-        """Generate a VLESS URI for the subscription's current profile inbound."""
+        """Return subscription URL — 3X-UI panel returns all Reality configs."""
         subscription_id = subscription.id
 
         try:
@@ -292,55 +292,119 @@ class VPNService:
             async with self.session() as session:
                 subscription = await VPNSubscription.get_by_id(session=session, subscription_id=subscription_id)
             if not subscription:
-                logger.debug("VPN subscription %s no longer exists while generating key.", subscription_id)
                 return None
-
             server = subscription.server
             if not server:
-                logger.debug("Server is not attached to vpn subscription %s.", subscription_id)
                 return None
 
+        return self._build_subscription_url(subscription, server)
+
+    async def get_extra_keys_for_subscription(
+        self, subscription: VPNSubscription,
+    ) -> list[dict[str, str]]:
+        """Generate VLESS URIs for non-Reality inbounds (WS, XHTTP).
+
+        Returns list of {"slug": profile_slug, "key": "vless://..."}.
+        3X-UI subscription panel crashes for these, so we build URIs manually.
+        """
+        try:
+            server = subscription.server
+        except DetachedInstanceError:
+            server = None
+        if not server:
+            async with self.session() as session:
+                subscription = await VPNSubscription.get_by_id(
+                    session=session, subscription_id=subscription.id,
+                )
+            if not subscription:
+                return []
+            server = subscription.server
+            if not server:
+                return []
+
         connection = await self.server_pool_service.get_connection_for_server_id(
-            server.id, user_label=f"sub {subscription_id}",
+            server.id, user_label=f"extra-keys sub {subscription.id}",
         )
         if not connection:
-            return self._build_subscription_url(subscription, server)
-
-        selected_profile = self._resolve_vpn_profile_for_subscription(subscription)
-        target_remark = selected_profile.inbound_remark if selected_profile else None
+            return []
 
         try:
             inbounds = await self.server_pool_service.execute_api_call(
-                connection,
-                lambda: connection.api.inbound.get_list(),
+                connection, lambda: connection.api.inbound.get_list(),
             )
-        except Exception as e:
-            logger.warning("Failed to fetch inbounds for key generation (sub %s): %s", subscription_id, e)
-            return self._build_subscription_url(subscription, server)
-
-        inbound = None
-        if target_remark:
-            inbound = next((ib for ib in inbounds if ib.remark == target_remark), None)
-        if not inbound:
-            inbound = next((ib for ib in inbounds if ib.protocol == "vless"), None)
-
-        if not inbound:
-            return self._build_subscription_url(subscription, server)
+        except Exception:
+            return []
 
         raw_host = server.subscription_host or server.host
-        # Extract pure hostname from URLs like "http://1.2.3.4:2053"
         if "://" in raw_host:
             from urllib.parse import urlparse as _urlparse
             raw_host = _urlparse(raw_host).hostname or raw_host
-        public_host = raw_host.split(":")[0]  # strip port if present
-        vless_uri = self._build_vless_uri(
-            uuid=subscription.vpn_id,
-            host=public_host,
-            inbound=inbound,
-            remark=f"{inbound.remark}-{subscription.client_email}",
-        )
-        logger.debug("Generated VLESS key for sub %s: %s", subscription_id, vless_uri[:80])
-        return vless_uri
+        public_host = raw_host.split(":")[0]
+
+        # Find non-Reality transport profiles
+        extra_profiles = []
+        if self.catalog:
+            location = server.location
+            for profile in self.catalog.get_vpn_profiles(location=location):
+                if profile.kind == "transport":
+                    extra_profiles.append(profile)
+
+        results: list[dict[str, str]] = []
+        for profile in extra_profiles:
+            inbound = next(
+                (ib for ib in inbounds if ib.remark == profile.inbound_remark),
+                None,
+            )
+            if not inbound:
+                continue
+
+            # Ensure client exists in this inbound
+            client_exists = any(
+                c.id == subscription.vpn_id for c in inbound.settings.clients
+            )
+            if not client_exists:
+                # Auto-provision client into this inbound
+                try:
+                    copy_email = f"{subscription.client_email}@{inbound.id}"
+                    flow = profile.client_flow if profile.client_flow is not None else ""
+                    copy_client = Client(
+                        email=copy_email,
+                        enable=True,
+                        id=subscription.vpn_id,
+                        expiry_time=0,
+                        flow=flow,
+                        limit_ip=subscription.devices or 1,
+                        sub_id=subscription.vpn_id,
+                        total_gb=0,
+                    )
+                    await self.server_pool_service.execute_api_call(
+                        connection,
+                        lambda: connection.api.client.add(
+                            inbound_id=inbound.id, clients=[copy_client],
+                        ),
+                    )
+                    logger.info(
+                        "Auto-provisioned client into %s (id=%s) for sub %s",
+                        inbound.remark, inbound.id, subscription.id,
+                    )
+                except Exception as e:
+                    if "Duplicate" not in str(e):
+                        logger.warning("Failed to provision into %s: %s", inbound.remark, e)
+                        continue
+
+            uri = self._build_vless_uri(
+                uuid=subscription.vpn_id,
+                host=public_host,
+                inbound=inbound,
+                remark=f"{profile.name}",
+            )
+            results.append({
+                "slug": profile.slug,
+                "name": f"{profile.emoji} {profile.name}" if profile.emoji else profile.name,
+                "key": uri,
+            })
+
+        return results
 
     def _build_subscription_url(self, subscription: VPNSubscription, server) -> str:
         """Fallback: legacy subscription panel URL."""
@@ -510,6 +574,12 @@ class VPNService:
                 logger.error("Error creating client for vpn subscription %s: %s", subscription.id, exception)
                 return False
 
+        # Provision client into ALL other Reality (security=reality, network=tcp)
+        # inbounds on the same server so the subscription URL returns all configs.
+        await self._provision_client_to_reality_inbounds(
+            connection, subscription, inbound_id, devices,
+        )
+
         try:
             await self._persist_subscription_profile(subscription, selected_profile)
             await self._persist_vpn_profile(user, selected_profile)
@@ -519,6 +589,71 @@ class VPNService:
             logger.error("Error persisting subscription data for %s: %s", subscription.id, exception)
             return False
         return True
+
+    async def _provision_client_to_reality_inbounds(
+        self,
+        connection,
+        subscription: VPNSubscription,
+        primary_inbound_id: int,
+        devices: int,
+    ) -> None:
+        """Add client to all Reality+TCP inbounds (except primary) for multi-config subscription."""
+        try:
+            inbounds: list[Inbound] = await self.server_pool_service.execute_api_call(
+                connection,
+                lambda: connection.api.inbound.get_list(),
+            )
+        except Exception as exc:
+            logger.warning("Failed to list inbounds for multi-config provisioning: %s", exc)
+            return
+
+        for inbound in inbounds:
+            if inbound.id == primary_inbound_id:
+                continue
+
+            ss = inbound.stream_settings
+            if not (ss.security == "reality" and (ss.network or "tcp") == "tcp"):
+                continue
+
+            already_exists = any(
+                c.id == subscription.vpn_id for c in inbound.settings.clients
+            )
+            if already_exists:
+                continue
+
+            copy_email = f"{subscription.client_email}@{inbound.id}"
+            # Determine flow from the inbound's existing clients or use empty
+            flow = ""
+            if inbound.settings.clients:
+                flow = inbound.settings.clients[0].flow or ""
+
+            copy_client = Client(
+                email=copy_email,
+                enable=True,
+                id=subscription.vpn_id,
+                expiry_time=0,
+                flow=flow,
+                limit_ip=devices,
+                sub_id=subscription.vpn_id,
+                total_gb=0,
+            )
+            try:
+                await self.server_pool_service.execute_api_call(
+                    connection,
+                    lambda _ib=inbound.id, _cc=copy_client: connection.api.client.add(
+                        inbound_id=_ib, clients=[_cc],
+                    ),
+                )
+                logger.info(
+                    "Multi-config: provisioned client into inbound %s (id=%s) for sub %s",
+                    inbound.remark, inbound.id, subscription.id,
+                )
+            except Exception as e:
+                if "Duplicate" not in str(e):
+                    logger.warning(
+                        "Multi-config: failed to provision into inbound %s: %s",
+                        inbound.remark, e,
+                    )
 
     async def _remove_stale_clients_by_email(self, connection, email: str) -> int:
         """Find and delete ALL clients with given email across all inbounds on a server."""
@@ -808,6 +943,23 @@ class VPNService:
             return False
 
         is_primary = subscription.vpn_id == user.vpn_id
+
+        # Cross-transport switch (e.g. Reality -> CDN/XHTTP or vice versa):
+        # Client is already provisioned in all inbounds, just persist the profile slug.
+        current_group = current_profile.group if current_profile else "vless-reality"
+        target_group = target_profile.group
+        if current_group != target_group:
+            await self._persist_subscription_profile(subscription, target_profile)
+            if is_primary:
+                await self._persist_vpn_profile(user, target_profile)
+            logger.info(
+                "Cross-transport VPN profile switch for sub %s (%s -> %s), slug only.",
+                subscription.id,
+                current_profile.slug if current_profile else "default",
+                target_profile.slug,
+            )
+            return True
+
         if target_profile.client_flow is not None:
             new_flow = target_profile.client_flow
         else:

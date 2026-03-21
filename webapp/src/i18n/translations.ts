@@ -159,6 +159,10 @@ const translations = {
     amneziawg_download: 'Download .conf',
     amneziawg_not_ready: 'AmneziaWG is not yet available',
 
+    // Multi-config
+    extra_configs: 'Additional configs',
+    subscription_key_hint: 'Contains all operator configs. Add to V2RayNG or Streisand.',
+
     // Location display names
     loc_amsterdam: 'Amsterdam',
     loc_saint_petersburg: 'Saint Petersburg',
@@ -323,6 +327,10 @@ const translations = {
     amneziawg_config: 'Конфигурация AmneziaWG',
     amneziawg_download: 'Скачать .conf',
     amneziawg_not_ready: 'AmneziaWG пока недоступен',
+
+    // Multi-config
+    extra_configs: 'Дополнительные конфиги',
+    subscription_key_hint: 'Содержит конфиги для всех операторов. Добавьте в V2RayNG или Streisand.',
 
     // Location display names
     loc_amsterdam: 'Амстердам',

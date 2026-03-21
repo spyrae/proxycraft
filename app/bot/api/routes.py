@@ -59,16 +59,20 @@ async def _serialize_vpn_subscription_items(user: User, services: ServicesContai
     if not subscriptions:
         return []
 
-    client_data_map, keys = await asyncio.gather(
+    client_data_map, keys, extra_keys_list = await asyncio.gather(
         services.vpn.get_client_data_for_subscriptions(subscriptions),
         asyncio.gather(*[
             services.vpn.get_key_for_subscription(subscription)
             for subscription in subscriptions
         ]),
+        asyncio.gather(*[
+            services.vpn.get_extra_keys_for_subscription(subscription)
+            for subscription in subscriptions
+        ]),
     )
 
     items: list[dict] = []
-    for subscription, key in zip(subscriptions, keys, strict=False):
+    for subscription, key, extra_keys in zip(subscriptions, keys, extra_keys_list, strict=False):
         client_data = client_data_map.get(subscription.id)
         current_profile = services.vpn.get_profile_for_subscription(subscription)
         available_profiles = services.vpn.get_available_profiles(
@@ -83,6 +87,7 @@ async def _serialize_vpn_subscription_items(user: User, services: ServicesContai
                 cancelled_at=subscription.cancelled_at,
                 current_profile=current_profile,
                 available_profiles=available_profiles,
+                extra_keys=extra_keys,
             )
         )
 
