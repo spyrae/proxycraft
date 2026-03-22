@@ -1,0 +1,18 @@
+# ProxyCraft
+
+> Secure internet access in any country. VPN, Telegram Proxy, and WhatsApp Proxy services.
+
+ProxyCraft provides stable, encrypted connections for all your devices. Services include personal VPN, Telegram proxy, and WhatsApp proxy with free trial period. Simple setup, reliable performance.
+
+## Main Pages
+
+- [Home (RU)](https://proxycraft.tech/): Landing page with product overview
+- [Home (EN)](https://proxycraft.tech/en/): English landing page
+
+## Legal
+
+- [Terms of Service](https://proxycraft.tech/en/terms/)
+- [Privacy Policy](https://proxycraft.tech/en/privacy/)
+- [Cookie Policy](https://proxycraft.tech/en/cookies/)
+- [Personal Data Consent](https://proxycraft.tech/en/personal-data-consent/)
+- [Requisites](https://proxycraft.tech/en/requisites/)
