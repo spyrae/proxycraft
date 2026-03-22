@@ -36,7 +36,7 @@ class AmneziaWGService:
                     existing.is_active = True
                     await session.commit()
                     await self._write_peer_config(existing)
-                    await self._sync_awg()
+                    await self._sync_awg(f"peer_{vpn_subscription_id}.conf")
                 return existing
 
             max_suffix = await AWGPeer.get_max_ip_suffix(session)
@@ -62,7 +62,7 @@ class AmneziaWGService:
 
         if peer:
             await self._write_peer_config(peer)
-            await self._sync_awg()
+            await self._sync_awg(f"peer_{vpn_subscription_id}.conf")
 
         return peer
 
@@ -82,7 +82,7 @@ class AmneziaWGService:
             await AWGPeer.deactivate(session, vpn_subscription_id)
 
         self._remove_peer_config(vpn_subscription_id)
-        await self._sync_awg()
+        # Peer will be removed from interface on next AWG container restart
         return True
 
     def generate_client_config(self, peer: AWGPeer) -> str:
@@ -147,30 +147,24 @@ class AmneziaWGService:
         except OSError as e:
             logger.warning("Failed to remove peer config %s: %s", config_path, e)
 
-    async def _sync_awg(self) -> None:
-        """Reload AmneziaWG config inside Docker container."""
+    async def _sync_awg(self, peer_config_name: str | None = None) -> None:
+        """Add peer to running AmneziaWG interface via docker exec."""
         container = self.awg.DOCKER_CONTAINER
+        if not peer_config_name:
+            logger.warning("No peer config name provided for AWG sync")
+            return
         try:
             proc = await asyncio.create_subprocess_exec(
-                "docker", "exec", container, "awg-quick", "strip", "/etc/amneziawg/awg0.conf",
+                "docker", "exec", container,
+                "awg", "addconf", "awg0", f"/etc/amneziawg/peers/{peer_config_name}",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
             if proc.returncode != 0:
-                logger.warning("awg-quick strip failed: %s", stderr.decode())
-
-            proc = await asyncio.create_subprocess_exec(
-                "docker", "exec", container, "awg", "syncconf", "awg0", "/dev/stdin",
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, stderr = await asyncio.wait_for(proc.communicate(input=stdout), timeout=10)
-            if proc.returncode != 0:
-                logger.error("awg syncconf failed: %s", stderr.decode())
+                logger.error("awg addconf failed: %s", stderr.decode())
             else:
-                logger.info("AWG config synced successfully")
+                logger.info("AWG peer %s added to interface", peer_config_name)
         except asyncio.TimeoutError:
             logger.error("AWG sync timed out")
         except Exception as e:
