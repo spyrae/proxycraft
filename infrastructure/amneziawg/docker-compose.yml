@@ -3,6 +3,7 @@ services:
     image: amneziavpn/amneziawg-go:latest
     container_name: amneziawg
     restart: unless-stopped
+    network_mode: host
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -11,8 +12,6 @@ services:
       - net.ipv4.conf.all.src_valid_mark=1
     devices:
       - /dev/net/tun:/dev/net/tun
-    ports:
-      - '51820:51820/udp'
     volumes:
       - ./config:/etc/amneziawg
       - ./peers:/etc/amneziawg/peers
