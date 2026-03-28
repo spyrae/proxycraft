@@ -181,8 +181,8 @@ async def main() -> None:
     dispatcher.startup.register(on_startup)
     dispatcher.shutdown.register(on_shutdown)
 
-    # Enable Maintenance mode for developing # WARNING: remove before production
-    MaintenanceMiddleware.set_mode(False)
+    # Maintenance mode — service paused
+    MaintenanceMiddleware.set_mode(True)
 
     # Register middlewares
     middlewares.register(dispatcher=dispatcher, i18n=i18n, session=db.session)

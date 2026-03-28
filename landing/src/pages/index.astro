@@ -1,36 +1,26 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import Header from '@/components/Header.astro';
-import Hero from '@/components/Hero.astro';
-import TrustBar from '@/components/TrustBar.astro';
-import ProblemSection from '@/components/ProblemSection.astro';
-import ProductCards from '@/components/ProductCards.astro';
-import Features from '@/components/Features.astro';
-import Platforms from '@/components/Platforms.astro';
-import HowItWorks from '@/components/HowItWorks.astro';
-import PricingTable from '@/components/PricingTable.astro';
-import UseCases from '@/components/UseCases.astro';
-import Referral from '@/components/Referral.astro';
-import FAQ from '@/components/FAQ.astro';
-import FinalCTA from '@/components/FinalCTA.astro';
-import Footer from '@/components/Footer.astro';
 ---
 
-<BaseLayout>
-  <Header />
-  <main>
-    <Hero />
-    <TrustBar />
-    <ProblemSection />
-    <ProductCards />
-    <Features />
-    <Platforms />
-    <HowItWorks />
-    <PricingTable />
-    <UseCases />
-    <Referral />
-    <FAQ />
-    <FinalCTA />
+<BaseLayout title="ProxyCraft — Сервис временно приостановлен" description="Сервис временно приостановлен. Мы скоро вернёмся." noindex={true}>
+  <main class="min-h-screen flex items-center justify-center px-6">
+    <div class="max-w-md w-full text-center">
+      <div class="w-20 h-20 mx-auto mb-8 rounded-full flex items-center justify-center" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2);">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+      </div>
+      <h1 class="text-3xl font-bold mb-4" style="color: #F9FAFB;">
+        Сервис временно приостановлен
+      </h1>
+      <p class="text-lg mb-2" style="color: #9CA3AF;">
+        Мы проводим технические работы.
+      </p>
+      <p class="text-lg" style="color: #9CA3AF;">
+        Приносим извинения за неудобства.
+      </p>
+    </div>
   </main>
-  <Footer />
 </BaseLayout>
