@@ -3,7 +3,7 @@ set -euo pipefail
 
 SITE="proxycraft.tech"
 PROJECT="proxycraft-landing"
-INDEXNOW_KEY="509ba55d653644589424addd0fd8322a"
+INDEXNOW_KEY="${INDEXNOW_KEY:?Set INDEXNOW_KEY env var}"
 SITEMAP_URL="https://${SITE}/sitemap-index.xml"
 
 echo "🔨 Building ${SITE}..."
